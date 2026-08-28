@@ -1,0 +1,1 @@
+"""Suno Helper - Backend application."""

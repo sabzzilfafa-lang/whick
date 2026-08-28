@@ -1,0 +1,832 @@
+import { useEffect, useState } from "react";
+import { Link, useParams } from "react-router-dom";
+import {
+  api,
+  formatSunoCopy,
+  GenerationVariant,
+  Song,
+  SongInstrumentSettings,
+} from "../api";
+import InstrumentEditor, {
+  parseInstrumentSettings,
+  serializeInstrumentSettings,
+} from "../components/InstrumentEditor";
+import SongWorkflowBar from "../components/SongWorkflowBar";
+import { isStructuredSunoPrompt, SUNO_PROMPT_MAX_CHARS } from "../lib/sunoPrompt";
+import { cleanTheme } from "../lib/theme";
+import { currentWorkflowStep, getSongWorkflowSteps } from "../lib/songWorkflow";
+
+type TabField = "lyrics" | "prompt" | "instruments";
+type LyricsLang = "ko" | "en";
+
+function koLyrics(song: Song): string {
+  return song.lyrics_ko ?? song.lyrics ?? "";
+}
+
+function enLyrics(song: Song): string {
+  return song.lyrics_en ?? "";
+}
+
+function displayTitle(song: Song, lang: LyricsLang): string {
+  if (lang === "en" && song.title_en?.trim()) return song.title_en;
+  return song.title;
+}
+
+function formatDurationBadge(song: Song): string | null {
+  if (!song.estimated_duration_label) return null;
+  const label = song.estimated_duration_label;
+  if (song.estimated_duration_source === "album") return `~${label} · 앨범 배분`;
+  if (song.estimated_duration_source === "lyrics") return `~${label} · 가사 기준`;
+  return `~${label}`;
+}
+
+function durationFieldsFromResult(result: {
+  estimated_duration_sec?: number;
+  estimated_duration_label?: string;
+  estimated_duration_source?: Song["estimated_duration_source"];
+}): Partial<Song> {
+  if (!result.estimated_duration_label) return {};
+  return {
+    estimated_duration_sec: result.estimated_duration_sec,
+    estimated_duration_label: result.estimated_duration_label,
+    estimated_duration_source: result.estimated_duration_source,
+  };
+}
+
+function MixNotesHeader({ song }: { song: Song }) {
+  const badge = formatDurationBadge(song);
+  return (
+    <div className="editor-panel-label-row">
+      <label className="editor-panel-label">믹스 메모 / 프롬프트 지시</label>
+      {badge && (
+        <span className="track-duration-badge" title="Suno 프롬프트에 반영되는 목표 런닝타임">
+          런닝타임 {badge}
+        </span>
+      )}
+    </div>
+  );
+}
+
+export default function SongPage() {
+  const { id } = useParams<{ id: string }>();
+  const [song, setSong] = useState<Song | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState<string | null>(null);
+  const [error, setError] = useState("");
+  const [saved, setSaved] = useState(false);
+  const [message, setMessage] = useState("");
+  const [variants, setVariants] = useState<GenerationVariant[]>([]);
+  const [showAB, setShowAB] = useState(false);
+  const [abType, setAbType] = useState<TabField>("lyrics");
+  const [lyricsLang, setLyricsLang] = useState<LyricsLang>("en");
+  const [translatingLyrics, setTranslatingLyrics] = useState(false);
+  const [instrumentData, setInstrumentData] = useState<SongInstrumentSettings | null>(null);
+  const [instrumentsOpen, setInstrumentsOpen] = useState(false);
+  const [presetName, setPresetName] = useState("");
+
+  const load = () => {
+    if (!id) return;
+    api.getSong(Number(id)).then(setSong).finally(() => setLoading(false));
+  };
+
+  useEffect(load, [id]);
+
+  useEffect(() => {
+    if (!song) return;
+    const parsed = parseInstrumentSettings(song.instrument_settings);
+    if (parsed) {
+      setInstrumentData(parsed);
+      setPresetName(parsed.preset_name);
+    }
+  }, [song?.id, song?.instrument_settings]);
+
+  const exportToWorkFolder = async (savedSong: Song, lang: LyricsLang = lyricsLang) => {
+    const exportRes = await api.exportSongToPipeline(savedSong.id, "music", lang);
+    await api.openPipelineFolder(exportRes.path);
+    return exportRes;
+  };
+
+  const handleSave = async () => {
+    if (!song) return;
+    const instJson =
+      instrumentData != null
+        ? serializeInstrumentSettings(instrumentData)
+        : song.instrument_settings;
+    setGenerating("save");
+    setError("");
+    setMessage("");
+    try {
+      const updated = await api.updateSong(song.id, {
+        title: song.title,
+        title_en: song.title_en,
+        theme: song.theme,
+        mood: song.mood,
+        tags: song.tags,
+        lyrics: koLyrics(song),
+        lyrics_ko: koLyrics(song),
+        lyrics_en: song.lyrics_en,
+        suno_prompt: song.suno_prompt,
+        instrument_settings: instJson,
+      });
+      const merged = { ...song, ...updated, instrument_settings: instJson };
+      const exportRes = await exportToWorkFolder(merged, lyricsLang);
+      setSong({ ...merged, pipeline_path: exportRes.pipeline_path });
+      setSaved(true);
+      setMessage(`저장 완료 — 작업폴더: ${exportRes.path}`);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "저장 또는 작업폴더 반영 실패");
+    } finally {
+      setGenerating(null);
+    }
+  };
+
+  const handleSetupInstruments = async () => {
+    if (!song) return;
+    setGenerating("instruments");
+    setError("");
+    setInstrumentsOpen(true);
+    try {
+      let data: SongInstrumentSettings;
+      const existing = parseInstrumentSettings(song.instrument_settings);
+      if (existing?.instruments.length) {
+        data = existing;
+        setMessage("저장된 악기 세팅을 불러왔습니다.");
+      } else {
+        const result = await api.applySongInstrumentsFromPreset(song.id);
+        data = result;
+        setMessage("앨범 프리셋의 기본 악기를 불러왔습니다. 추가·삭제 후 저장하세요.");
+      }
+      const json = serializeInstrumentSettings(data);
+      setInstrumentData(data);
+      setPresetName(data.preset_name);
+      setSong({ ...song, instrument_settings: json });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "악기 불러오기 실패");
+    } finally {
+      setGenerating(null);
+    }
+  };
+
+  const handleSaveInstruments = async () => {
+    if (!song || !instrumentData) return;
+    setGenerating("instruments-save");
+    setError("");
+    try {
+      const saved = await api.saveSongInstruments(song.id, instrumentData);
+      const json = serializeInstrumentSettings(saved);
+      setInstrumentData(saved);
+      setSong({ ...song, instrument_settings: json });
+      setMessage("악기 세팅을 저장했습니다.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "저장 실패");
+    } finally {
+      setGenerating(null);
+    }
+  };
+
+  const handleAiInstruments = async () => {
+    if (!song) return;
+    if (!koLyrics(song).trim()) {
+      setError("AI 악기 제안은 한글 가사를 먼저 작성한 뒤 사용할 수 있습니다.");
+      return;
+    }
+    setGenerating("instruments-ai");
+    setError("");
+    try {
+      if (instrumentData) {
+        await api.saveSongInstruments(song.id, instrumentData);
+      }
+      const result = await api.generateInstruments(song.id, undefined, true);
+      const parsed = parseInstrumentSettings(result.content);
+      if (parsed) {
+        setInstrumentData(parsed);
+        setPresetName(parsed.preset_name);
+      }
+      setSong({ ...song, instrument_settings: result.content });
+      setInstrumentsOpen(true);
+      setMessage("프리셋 악기를 바탕으로, 이 곡 가사에 맞게 제안을 반영했습니다.");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "AI 제안 실패";
+      if (msg.includes("404")) {
+        setError(
+          "AI 모델 오류입니다. 설정에서 「가성비 권장 설정 적용」 후 저장하고, stop.bat → start.bat으로 재시작해 주세요."
+        );
+      } else {
+        setError(msg);
+      }
+    } finally {
+      setGenerating(null);
+    }
+  };
+
+  const handleReloadPreset = async () => {
+    if (!song || !confirm("프리셋 기본 악기로 되돌립니다. 이 곡의 수정 내용이 사라집니다.")) return;
+    setGenerating("instruments");
+    setError("");
+    try {
+      const data = await api.applySongInstrumentsFromPreset(song.id);
+      const json = serializeInstrumentSettings(data);
+      setInstrumentData(data);
+      setPresetName(data.preset_name);
+      setSong({ ...song, instrument_settings: json });
+      setMessage("프리셋 기본 악기로 되돌렸습니다.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "불러오기 실패");
+    } finally {
+      setGenerating(null);
+    }
+  };
+
+  const handleLyricsLangChange = async (lang: LyricsLang) => {
+    if (!song || lang === lyricsLang) return;
+    if (lang === "ko") {
+      setLyricsLang("ko");
+      return;
+    }
+    setLyricsLang("en");
+    const ko = koLyrics(song).trim();
+    const en = enLyrics(song).trim();
+    if (!ko || en) return;
+
+    setTranslatingLyrics(true);
+    setError("");
+    try {
+      const result = await api.generateLyrics(song.id, undefined, "en", koLyrics(song));
+      setSong({
+        ...song,
+        lyrics_en: result.content,
+        ...(result.title?.trim() ? { title_en: result.title.trim() } : {}),
+        ...durationFieldsFromResult(result),
+      });
+      setMessage(
+        result.title?.trim()
+          ? `영어 제목과 가사를 의역했습니다: ${result.title.trim()}`
+          : "수정한 한글 가사를 바탕으로 영어 가사를 의역했습니다."
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "가사 번역 실패");
+      setLyricsLang("ko");
+    } finally {
+      setTranslatingLyrics(false);
+    }
+  };
+
+  const handleGenerate = async (type: TabField) => {
+    if (!song) return;
+    if (type === "prompt") {
+      if (!koLyrics(song).trim()) {
+        setError("Suno 프롬프트 생성 전에 한글 가사를 먼저 작성하세요.");
+        return;
+      }
+      const instJson =
+        instrumentData != null
+          ? serializeInstrumentSettings(instrumentData)
+          : song.instrument_settings;
+      if (!instJson?.trim()) {
+        setError("악기 세팅을 불러온 뒤 믹스 메모를 입력하세요.");
+        return;
+      }
+    }
+    setGenerating(type);
+    setError("");
+    try {
+      let result;
+      if (type === "lyrics") {
+        result = await api.generateLyrics(
+          song.id,
+          undefined,
+          lyricsLang,
+          lyricsLang === "en" ? koLyrics(song) : undefined
+        );
+      } else if (type === "prompt") {
+        const instJson =
+          instrumentData != null
+            ? serializeInstrumentSettings(instrumentData)
+            : song.instrument_settings;
+        result = await api.generatePrompt(song.id, undefined, instJson);
+      } else {
+        await handleAiInstruments();
+        return;
+      }
+
+      if (type === "lyrics") {
+        if (lyricsLang === "en") {
+          setSong({
+            ...song,
+            lyrics_en: result.content,
+            ...(result.title?.trim() ? { title_en: result.title.trim() } : {}),
+            ...durationFieldsFromResult(result),
+          });
+          setMessage(
+            result.title?.trim()
+              ? `영어 제목과 가사를 의역했습니다: ${result.title.trim()}`
+              : "수정한 한글 가사를 바탕으로 영어 가사를 의역했습니다."
+          );
+        } else {
+          setSong({
+            ...song,
+            lyrics_ko: result.content,
+            lyrics: result.content,
+            ...(result.title?.trim() ? { title: result.title.trim() } : {}),
+            ...durationFieldsFromResult(result),
+          });
+          if (result.title?.trim()) {
+            setMessage(`곡 제목과 한글 가사를 생성했습니다: ${result.title.trim()}`);
+          }
+        }
+      } else {
+        const field = type === "prompt" ? "suno_prompt" : "instrument_settings";
+        const instJson =
+          type === "prompt" && instrumentData != null
+            ? serializeInstrumentSettings(instrumentData)
+            : song.instrument_settings;
+        setSong({
+          ...song,
+          [field]: result.content,
+          ...(type === "prompt" && instJson ? { instrument_settings: instJson } : {}),
+          ...durationFieldsFromResult(result),
+        });
+        if (type === "prompt") {
+          const len = result.content.length;
+          if (isStructuredSunoPrompt(result.content)) {
+            setMessage(`Suno 프롬프트 생성 완료 (${len}/${SUNO_PROMPT_MAX_CHARS}자).`);
+          } else {
+            setMessage(`프롬프트를 생성했습니다 (${len}자). 내용을 확인해 주세요.`);
+          }
+        }
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "생성 실패");
+    } finally {
+      setGenerating(null);
+    }
+  };
+
+  const copyText = async (text: string, label: string) => {
+    if (!text.trim()) {
+      setError(`${label}이(가) 비어 있습니다.`);
+      return;
+    }
+    await navigator.clipboard.writeText(text);
+    setMessage(`${label}을(를) 클립보드에 복사했습니다.`);
+  };
+
+  const copyLyrics = () => {
+    if (!song) return;
+    const text = lyricsLang === "ko" ? koLyrics(song) : enLyrics(song);
+    void copyText(text, lyricsLang === "ko" ? "한글 가사" : "영어 가사");
+  };
+
+  const copyPrompt = () => {
+    if (!song) return;
+    void copyText(song.suno_prompt || "", "Suno 프롬프트");
+  };
+
+  const handleAB = async (type: TabField = abType) => {
+    if (!song) return;
+    setAbType(type);
+    setGenerating("ab");
+    setError("");
+    try {
+      const result = await api.generateAB(song.id, type, 2);
+      setVariants(result);
+      setShowAB(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "A/B 생성 실패");
+    } finally {
+      setGenerating(null);
+    }
+  };
+
+  const applyVariant = async (variant: GenerationVariant) => {
+    if (!song) return;
+    await api.applyVariant(song.id, variant.id);
+    const field =
+      variant.task_type === "lyrics"
+        ? lyricsLang === "en"
+          ? "lyrics_en"
+          : "lyrics_ko"
+        : variant.task_type === "prompt"
+          ? "suno_prompt"
+          : "instrument_settings";
+    const updates: Partial<Song> = { [field]: variant.content };
+    if (variant.task_type === "lyrics" && lyricsLang === "ko") {
+      updates.lyrics = variant.content;
+    }
+    setSong({ ...song, ...updates });
+    setMessage(`${variant.variant_label}안이 적용되었습니다.`);
+    setShowAB(false);
+  };
+
+  const copySuno = () => {
+    if (!song) return;
+    navigator.clipboard.writeText(formatSunoCopy(song));
+    setMessage("Suno용 콘텐츠가 클립보드에 복사되었습니다.");
+  };
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!song || !e.target.files?.[0]) return;
+    try {
+      const res = await api.uploadAudio(song.id, e.target.files[0]);
+      setSong({ ...song, audio_path: res.audio_path });
+      setMessage("음원 업로드 완료 — 「저장」을 누르면 작업폴더(01_음악작업)로 복사됩니다.");
+    } catch {
+      setError("음원 업로드 실패");
+    } finally {
+      e.target.value = "";
+    }
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!song || !e.target.files?.[0]) return;
+    try {
+      const res = await api.uploadSongImage(song.id, e.target.files[0]);
+      setSong({ ...song, image_path: res.image_path });
+      setMessage("커버 이미지 업로드 완료");
+    } catch {
+      setError("이미지 업로드 실패");
+    }
+  };
+
+  const handleExportToStudio = async () => {
+    if (!song) return;
+    setGenerating("export");
+    setMessage("");
+    try {
+      const exportRes = await exportToWorkFolder(song, lyricsLang);
+      setSong({ ...song, pipeline_path: exportRes.pipeline_path });
+      setMessage(`작업폴더로 복사 완료: ${exportRes.path}`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setGenerating(null);
+    }
+  };
+
+  if (loading) return <div className="loading">불러오는 중...</div>;
+  if (!song) return <div className="error">곡을 찾을 수 없습니다</div>;
+
+  const workflowSteps = getSongWorkflowSteps(song);
+  const step = currentWorkflowStep(song);
+
+  return (
+    <div>
+      <div className="page-header">
+        <div>
+          <Link to={`/albums/${song.album_id}`} style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>
+            ← 앨범으로
+          </Link>
+          <h2 style={{ marginTop: "0.5rem" }}>
+            {song.track_number}. {displayTitle(song, lyricsLang)}
+          </h2>
+          {song.theme && (
+            <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem" }}>
+              {cleanTheme(song.theme)}
+            </p>
+          )}
+        </div>
+        <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+          {saved && <span style={{ color: "var(--success)", fontSize: "0.85rem" }}>저장됨</span>}
+          <button className="btn btn-secondary" onClick={copySuno}>
+            Suno 복사
+          </button>
+          <button className="btn btn-primary" onClick={handleSave} disabled={generating === "save"}>
+            {generating === "save" ? "저장 중..." : "저장"}
+          </button>
+        </div>
+      </div>
+
+      {error && <div className="error">{error}</div>}
+      {message && <div className="success-banner">{message}</div>}
+
+      <SongWorkflowBar steps={workflowSteps} />
+
+      {(song.audio_path || song.image_path) && (
+        <div className="card" style={{ marginBottom: "1rem", display: "flex", gap: "1.5rem", alignItems: "flex-start", flexWrap: "wrap" }}>
+          {song.image_path && (
+            <div>
+              <div className="meta" style={{ marginBottom: "0.35rem" }}>커버 이미지 (유튜브 영상용)</div>
+              <img
+                src={`${api.songCoverUrl(song.id)}?t=${song.updated_at}`}
+                alt="커버"
+                style={{ maxWidth: "200px", borderRadius: "8px", display: "block" }}
+              />
+            </div>
+          )}
+          {song.audio_path && (
+            <div className="meta">음원: 업로드됨 — 저장 시 01_음악작업 폴더로 audio.* 복사</div>
+          )}
+        </div>
+      )}
+
+      <div className="form-group" style={{ maxWidth: "400px" }}>
+        <label>태그 (쉼표 구분)</label>
+        <input
+          value={song.tags || ""}
+          onChange={(e) => setSong({ ...song, tags: e.target.value })}
+          placeholder="예: 발라드, 감성, 여름"
+        />
+      </div>
+
+      <div className="generate-actions">
+        <div className="generate-action-group">
+          <button
+            className={`btn ${step === "lyrics_ko" || step === "lyrics_en" ? "btn-primary" : "btn-secondary"}`}
+            onClick={() => handleGenerate("lyrics")}
+            disabled={!!generating || translatingLyrics}
+          >
+            {generating === "lyrics"
+              ? lyricsLang === "en" && koLyrics(song).trim()
+                ? "번역 중..."
+                : "가사 생성 중..."
+              : lyricsLang === "ko"
+                ? "한글 가사 생성"
+                : koLyrics(song).trim()
+                  ? "영어로 의역"
+                  : "영어 가사 생성"}
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={() => void handleAB("lyrics")}
+            disabled={!!generating || translatingLyrics}
+            title="가사 A/B 비교 생성"
+          >
+            {generating === "ab" && abType === "lyrics" ? "A/B..." : "A/B"}
+          </button>
+        </div>
+        <button
+          className={`btn ${step === "instruments" ? "btn-primary" : "btn-secondary"}`}
+          onClick={handleSetupInstruments}
+          disabled={!!generating || translatingLyrics}
+        >
+          {generating === "instruments" ? "불러오는 중..." : "악기 세팅"}
+        </button>
+        <button
+          className={`btn ${step === "prompt" ? "btn-primary" : "btn-secondary"}`}
+          onClick={() => handleGenerate("prompt")}
+          disabled={!!generating || translatingLyrics}
+        >
+          {generating === "prompt" ? "프롬프트 생성 중..." : "Suno 프롬프트"}
+        </button>
+        <label className="btn btn-secondary" style={{ cursor: "pointer" }} title="다운로드 폴더 등에서 mp3/wav 파일을 선택하세요">
+          음원 파일 선택
+          <input type="file" accept="audio/*" onChange={handleUpload} hidden />
+        </label>
+        <label className="btn btn-secondary" style={{ cursor: "pointer" }}>
+          커버 이미지
+          <input type="file" accept="image/*" onChange={handleImageUpload} hidden />
+        </label>
+        <button
+          className="btn btn-secondary"
+          onClick={handleExportToStudio}
+          disabled={!!generating}
+        >
+          {generating === "export" ? "복사 중..." : "작업폴더로 복사"}
+        </button>
+        <Link to="/studio" className="btn btn-secondary">유튜브 스튜디오</Link>
+      </div>
+
+      {showAB && (
+        <div className="card ab-panel">
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "1rem" }}>
+            <div className="card-title" style={{ margin: 0 }}>A/B 비교</div>
+            <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+              {(["lyrics", "instruments", "prompt"] as TabField[]).map((t) => (
+                <button
+                  key={t}
+                  className={`btn btn-sm ${abType === t ? "btn-primary" : "btn-secondary"}`}
+                  onClick={async () => {
+                    setAbType(t);
+                    if (song) {
+                      const v = await api.listVariants(song.id, t);
+                      setVariants(v.slice(0, 2));
+                    }
+                  }}
+                >
+                  {t === "lyrics" ? "가사" : t === "prompt" ? "프롬프트" : "악기"}
+                </button>
+              ))}
+              <button
+                type="button"
+                className="btn btn-sm btn-secondary"
+                onClick={() => void handleAB(abType)}
+                disabled={!!generating}
+              >
+                {generating === "ab" ? "생성 중..." : "A/B 생성"}
+              </button>
+              <button className="btn btn-sm btn-secondary" onClick={() => setShowAB(false)}>닫기</button>
+            </div>
+          </div>
+          {variants.filter((v) => v.task_type === abType).length === 0 ? (
+            <p style={{ color: "var(--text-muted)" }}>
+              {abType === "lyrics"
+                ? "가사 생성 옆 A/B로도 생성할 수 있습니다."
+                : "위 A/B 생성 버튼으로 이 타입의 비교안을 만드세요."}
+            </p>
+          ) : (
+            <div className="ab-grid">
+              {variants.filter((v) => v.task_type === abType).map((v) => (
+                <div key={v.id} className="ab-card">
+                  <div className="ab-label">{v.variant_label}안</div>
+                  <textarea value={v.content} readOnly rows={10} />
+                  <button className="btn btn-primary btn-sm" onClick={() => applyVariant(v)}>
+                    이 안 선택
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="song-editor">
+        <div className="editor-panel editor-panel--lyrics">
+          <div className="editor-panel-header">
+            <h3>가사</h3>
+            <div className="editor-panel-tools">
+              <button
+                type="button"
+                className="btn btn-sm btn-secondary"
+                onClick={copyLyrics}
+                disabled={translatingLyrics}
+              >
+                복사
+              </button>
+              <div className="lang-toggle">
+              <button
+                type="button"
+                className={`btn btn-sm ${lyricsLang === "ko" ? "btn-primary" : "btn-secondary"}`}
+                onClick={() => handleLyricsLangChange("ko")}
+                disabled={translatingLyrics}
+              >
+                한글
+              </button>
+              <button
+                type="button"
+                className={`btn btn-sm ${lyricsLang === "en" ? "btn-primary" : "btn-secondary"}`}
+                onClick={() => handleLyricsLangChange("en")}
+                disabled={translatingLyrics}
+              >
+                {translatingLyrics ? "번역 중..." : "English"}
+              </button>
+              </div>
+            </div>
+          </div>
+          <div className="form-group song-title-field">
+            <label>{lyricsLang === "en" ? "곡 제목 (English)" : "곡 제목 (한글)"}</label>
+            <input
+              value={displayTitle(song, lyricsLang)}
+              onChange={(e) => {
+                if (lyricsLang === "en") {
+                  setSong({ ...song, title_en: e.target.value });
+                } else {
+                  setSong({ ...song, title: e.target.value });
+                }
+              }}
+              placeholder={
+                lyricsLang === "en"
+                  ? "영어 가사 번역 시 함께 만들어지며, 직접 수정할 수 있습니다"
+                  : "한글 가사 생성 시 함께 만들어지며, 직접 수정할 수 있습니다"
+              }
+            />
+          </div>
+          <textarea
+            value={lyricsLang === "ko" ? koLyrics(song) : enLyrics(song)}
+            onChange={(e) => {
+              if (lyricsLang === "en") {
+                setSong({ ...song, lyrics_en: e.target.value });
+              } else {
+                setSong({ ...song, lyrics_ko: e.target.value, lyrics: e.target.value });
+              }
+            }}
+            placeholder={
+              translatingLyrics
+                ? "한글 가사를 영어로 번역하는 중..."
+                : lyricsLang === "ko"
+                  ? "한글 가사 (AI 생성 또는 직접 입력)"
+                  : enLyrics(song).trim()
+                    ? "English lyrics"
+                    : "English 탭 또는 「영어로 의역」으로 수정한 한글을 영어 가사로 옮깁니다"
+            }
+            rows={16}
+            disabled={translatingLyrics}
+            className="lyrics-textarea"
+          />
+        </div>
+        <div className="song-editor-side">
+          {(instrumentsOpen || instrumentData) && instrumentData ? (
+            <div className="editor-panel editor-panel--instruments">
+              <InstrumentEditor
+                settings={instrumentData}
+                onChange={setInstrumentData}
+                presetName={presetName}
+              />
+              <div className="instrument-ai-optional">
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={handleAiInstruments}
+                  disabled={!!generating || !koLyrics(song).trim()}
+                >
+                  {generating === "instruments-ai"
+                    ? "AI 제안 생성 중..."
+                    : "가사에 맞게 AI 악기 제안 (선택)"}
+                </button>
+                <p className="instrument-ai-hint">
+                  가사·테마를 보고 악기를 0~2개 추가·조정하는 제안입니다. 직접 고르셨다면 건너뛰어도 됩니다.
+                </p>
+              </div>
+              <div className="instrument-editor-actions">
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={handleReloadPreset}
+                  disabled={!!generating}
+                >
+                  프리셋 불러오기
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  onClick={handleSaveInstruments}
+                  disabled={!!generating}
+                >
+                  {generating === "instruments-save" ? "저장 중..." : "악기 저장"}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="editor-panel editor-panel--instruments">
+              <h3>악기 세팅</h3>
+              <p style={{ color: "var(--text-muted)", fontSize: "0.9rem" }}>
+                「악기 세팅」을 누르면 앨범 스타일 프리셋의 기본 악기가 나옵니다.
+                곡마다 추가·삭제한 뒤 <strong>악기 저장</strong>하세요.
+              </p>
+            </div>
+          )}
+
+          <div className="editor-section-gap" aria-hidden="true" />
+
+          {(instrumentsOpen || instrumentData) && instrumentData ? (
+            <div className="editor-panel editor-panel--mix-notes">
+              <MixNotesHeader song={song} />
+              <input
+                value={instrumentData.mix_notes || ""}
+                onChange={(e) =>
+                  setInstrumentData({ ...instrumentData, mix_notes: e.target.value })
+                }
+                placeholder="예: 코러스에서 드럼 강하게, 브릿지는 피아노만, 전체적으로 몽환적으로"
+              />
+              <p className="panel-hint">
+                Suno 프롬프트 생성 시 반영됩니다 (악기 저장 없이도 프롬프트 생성에 포함).
+                보컬·믹스 지시(예: 남녀 혼성듀오)는 [Overview]에 영어로 들어갑니다.
+              </p>
+            </div>
+          ) : (
+            <div className="editor-panel editor-panel--mix-notes editor-panel--muted">
+              <MixNotesHeader song={song} />
+              <p className="panel-hint" style={{ margin: 0 }}>
+                악기 세팅을 불러온 뒤 입력할 수 있습니다.
+              </p>
+            </div>
+          )}
+
+          <div className="editor-panel editor-panel--prompt">
+            <div className="editor-panel-header">
+              <h3>Suno 스타일 프롬프트</h3>
+              <button type="button" className="btn btn-sm btn-secondary" onClick={copyPrompt}>
+                복사
+              </button>
+            </div>
+            <p className="panel-hint">
+              가사·악기를 반영해 Intro → Verse → Climax → Outro 구간별 편곡을 영어로 생성합니다.
+              Suno Style of Music 칸에 붙여 넣으세요. (최대 {SUNO_PROMPT_MAX_CHARS}자)
+            </p>
+            <textarea
+              value={song.suno_prompt || ""}
+              onChange={(e) => setSong({ ...song, suno_prompt: e.target.value })}
+              placeholder="「Suno 프롬프트」 버튼으로 구간별 편곡 프롬프트를 생성하세요"
+              rows={12}
+              className="prompt-textarea"
+            />
+            <p
+              style={{
+                fontSize: "0.85rem",
+                marginTop: "0.4rem",
+                color:
+                  (song.suno_prompt?.length ?? 0) > SUNO_PROMPT_MAX_CHARS
+                    ? "var(--danger, #e55)"
+                    : "var(--text-muted)",
+              }}
+            >
+              {(song.suno_prompt?.length ?? 0).toLocaleString()} / {SUNO_PROMPT_MAX_CHARS}자
+              {(song.suno_prompt?.length ?? 0) > SUNO_PROMPT_MAX_CHARS && " — Suno 제한 초과"}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
