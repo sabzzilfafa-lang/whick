@@ -68,23 +68,39 @@ def _build_music_context(
     album: Optional[dict] = None,
     song: Optional[dict] = None,
     reference_song: Optional[dict] = None,
+    *,
+    omit_profile_instruments: bool = False,
 ) -> str:
+    """음악 컨텍스트 문자열 생성.
+
+    omit_profile_instruments=True: 곡별 악기 세팅이 있을 때 프로필 기본 악기를
+    넣지 않음 (프롬프트가 프리셋 악기로 되돌아가는 문제 방지).
+    """
     parts = []
 
     if profile:
-        parts.append("## 음악 프로필 (일관된 스타일)")
+        parts.append("## 음악 프로필 (앨범 장르·톤 기준)")
         if profile.get("genre"):
             parts.append(f"- 장르: {profile['genre']}")
         if profile.get("mood"):
-            parts.append(f"- 분위기: {profile['mood']}")
+            parts.append(f"- 앨범 기본 분위기: {profile['mood']}")
         if profile.get("tempo_bpm"):
-            parts.append(f"- 템포: {profile['tempo_bpm']} BPM")
+            base = profile["tempo_bpm"]
+            parts.append(
+                f"- 기준 템포: {base} BPM "
+                f"(곡마다 가사·분위기에 따라 {int(base) - 5}~{int(base) + 5} 중 하나 사용)"
+            )
         if profile.get("key_signature"):
             parts.append(f"- 조성: {profile['key_signature']}")
         if profile.get("vocal_style"):
-            parts.append(f"- 보컬 스타일: {profile['vocal_style']}")
+            parts.append(f"- 기본 보컬 스타일: {profile['vocal_style']}")
         if profile.get("instruments"):
-            parts.append(f"- 악기: {profile['instruments']}")
+            if omit_profile_instruments:
+                parts.append(
+                    "- 악기: (아래 곡별 악기 목록이 우선 — 프로필 기본 악기로 되돌리지 말 것)"
+                )
+            else:
+                parts.append(f"- 기본 악기 팔레트: {profile['instruments']}")
         if profile.get("production_style"):
             parts.append(f"- 프로덕션: {profile['production_style']}")
         if profile.get("reference_artists"):
@@ -107,12 +123,12 @@ def _build_music_context(
             parts.append(f"- 목표: 전체 {total_min}분 / {track_count}곡 (곡당 약 {m}:{s:02d})")
 
     if song:
-        parts.append("\n## 곡 정보")
+        parts.append("\n## 곡 정보 (이 곡만의 감정·테마 — 편곡에 반영)")
         parts.append(f"- 곡명: {song.get('title', '')}")
         if song.get("theme"):
             parts.append(f"- 테마: {song['theme']}")
         if song.get("mood"):
-            parts.append(f"- 곡 분위기: {song['mood']}")
+            parts.append(f"- 곡 분위기(최우선): {song['mood']}")
         if song.get("track_number"):
             parts.append(f"- 트랙 번호: {song['track_number']}")
 
@@ -154,19 +170,23 @@ LYRICS_KO_JSON_SYSTEM = """당신은 전문 작사가입니다. Suno AI용 한�
 
 규칙:
 - 곡 테마·앨범 컨셉·트랙 테마에 맞는 감성적인 한국어 곡 제목 1개
-- 앨범 곡당 목표 길이에 맞게 가사 분량 작성 (짧은 2분 30초 팝 한 세트 금지)
+- 앨범에서 배분된 **곡당 목표 시간**에 맞는 가사 **줄 수·섹션 수**를 반드시 채울 것
+- 짧은 2분 30초 팝 한 세트(Verse+Chorus 1~2회) 금지
 - 가사는 [Verse], [Chorus], [Bridge], [Outro] 등 섹션 태그 사용
 - 제목을 가사 본문에 넣지 말 것
 - 출력은 아래 JSON만 (마크다운 없음):
 
-{"title": "곡 제목", "lyrics": "전체 가사"}""" + LYRICS_KO_NATURAL
+{"title": "곡 제목", "lyrics": "전체 가사"}""" + LYRICS_KO_NATURAL + """
+
+Suno 길이: 프롬프트 시간이 아니라 가사 줄 수가 곡 길이를 결정함. 목표 줄 수 미달 시 실패."""
 
 LYRICS_ALBUM_BATCH_SYSTEM = """당신은 전문 작사가입니다. 앨범의 여러 곡 한국어 제목·가사를 한 번에 작성합니다.
 
 규칙:
 - 각 곡은 테마에 맞는 제목 1개 + [Verse]/[Chorus] 등 섹션 태그 가사
-- 앨범 전체 런닝타임·곡 수에 맞는 **곡당 목표 길이**를 반드시 지킬 것 (짧은 2분 30초 팝 한 세트 금지)
-- 곡당 목표에 맞게 Verse/Chorus 반복·Bridge·[Instrumental] 등으로 분량 확보
+- **모든 곡**이 앨범에서 배분된 곡당 목표 시간·가사 줄 수를 반드시 지킬 것
+- 곡마다 동일한 줄 수 목표 (앨범 배분 기준)
+- 짧은 2분 30초 팝 한 세트 금지 — Verse 2~3회 이상, Bridge, Outro 등으로 분량 확보
 - 곡마다 제목을 가사 본문에 넣지 말 것
 - 출력은 아래 JSON만 (마크다운 없음):
 
@@ -177,7 +197,7 @@ LYRICS_TRANSLATE_SYSTEM = """당신은 K-pop·발라드 전문 작사·번역가
 규칙:
 - 직역 금지 — 부르기 좋은 영어 **노래 가사**로 의역·각색
 - 한국어 원문의 의미·감정·이미지·스토리를 유지
-- [Verse], [Chorus], [Bridge], [Outro] 등 섹션 태그와 줄바꿈 구조 유지
+- [Verse], [Chorus], [Bridge], [Outro] 등 **섹션 태그·줄 수·줄바꿈 구조를 한국어와 동일하게 유지** (줄을 줄이지 말 것)
 - 영어권 가사처럼 자연스럽게 (어색한 번역체·문어체 금지)
 - 한국어 곡명을 영어 노래 제목으로 의역 (직역보다 자연스러운 영어 곡명)
 - 출력은 아래 JSON만 (마크다운 없음):
@@ -206,7 +226,11 @@ Do NOT output only comma-separated tags.
 
 Rules:
 - English only (Suno optimized)
-- Use instruments from the provided instrument settings
+- CLOSED instrument set: use ONLY the song-specific instrument list; list every name in [Overview] and [Mix]
+- NEVER invent drums/percussion/kick/snare/hi-hat/synth/strings unless they appear in the list
+- If drums are not listed, say "no drums, no percussion" and avoid "full band" / "drum groove" / "driving beat"
+- Mood/emotion from THIS song's lyrics & theme overrides album default mood
+- Groove from listed instruments only (bass/guitar/piano pulse — not a kit unless listed)
 - Reflect lyrics sections [Verse], [Chorus], [Bridge], [Outro]
 - Include BPM, vocal style, mood, **exact total duration mm:ss from user prompt**
 - HARD LIMIT: entire output under 950 characters
@@ -215,14 +239,14 @@ Rules:
 
 Format (one line per section):
 
-[Overview] genre, mood, BPM, vocals, **total duration mm:ss**, instruments, production
+[Overview] genre, mood, BPM, vocals, **total duration mm:ss**, ALL instruments, production
 [Intro] opening instruments, density, no vocals
-[Verse] lead instruments, rhythm, vocal mix
+[Verse] lead instruments, groove from listed instruments, vocal mix
 [Build] pre-chorus layering
 [Chorus] peak arrangement, hook, effects
 [Bridge] contrast or variation
 [Outro] ending, fade/stop
-[Mix] balance, keep BPM and **total duration**, instruments
+[Mix] balance, keep BPM and **total duration**, only listed instruments (+ no drums if not listed)
 """
 
 PROMPT_RETRY_NOTE = """
@@ -231,24 +255,28 @@ Use ALL section headers on separate lines. One short sentence each. No long para
 Do NOT output a short comma-separated tag list only.
 """
 
-INSTRUMENTS_SYSTEM = """당신은 음악 프로듀서입니다. 앨범 스타일 프리셋의 기본 악기 구성을 바탕으로, 이 곡의 가사·테마·분위기에 맞게 악기를 조정합니다.
+INSTRUMENTS_SYSTEM = """당신은 앨범 프로듀서입니다. 같은 장르 안에서 곡마다 감정·리듬·리드 악기가 달라지도록 구성합니다.
 
 규칙:
-- 제공된 기본 악기 구성을 출발점으로 삼고, 대부분 유지합니다
-- 곡에 어울리면 악기를 0~2개 추가하거나, 불필요한 악기만 제거할 수 있습니다
-- 출력은 아래 JSON 형식만 사용합니다 (설명 없이)
+- 앨범 프리셋은 **장르 팔레트**일 뿐, 모든 곡에 같은 악기 세트를 복제하지 말 것
+- 가사·테마·곡 분위기의 감정(설렘, 반가움, 우울, 그리움, 희망 등)을 읽고 그에 맞는 리드·리듬·텍스처를 고를 것
+- 시그니처 악기 1~2개만 앨범 통일감용으로 남기고, 나머지 2~4개는 교체·역할 변경·연주법(tone/texture) 변경
+- 감정에 맞게 BPM 느낌·리듬 밀도·리드 악기를 mix_notes와 texture에 명시
+- from_preset: 프리셋에서 온 악기는 true, 새로 넣은 악기는 false
+- 출력은 아래 JSON만 (설명 없이)
 
 출력 형식:
 {
   "preset_name": "프리셋명 (유지 또는 빈 문자열)",
-  "mix_notes": "이 곡 믹스·연주 관련 한 줄 메모",
+  "mix_notes": "이 곡 감정·리듬·보컬 한 줄 (한국어 OK)",
+  "tempo_bpm": 80,
   "instruments": [
     {
       "name": "악기명 (한국어)",
       "name_en": "english name",
       "role": "lead|rhythm|bass|harmony|texture|effects",
       "tone": "음색 키워드",
-      "texture": "연주·패턴 설명",
+      "texture": "연주·패턴·리듬 느낌",
       "notes": "이 곡에서의 역할 한 줄",
       "from_preset": true
     }
@@ -297,6 +325,78 @@ _TRACK_HEADER_RE = re.compile(
     re.DOTALL,
 )
 _ALBUM_LYRICS_CHUNK_SIZE = 5
+
+
+def _lyrics_max_tokens_for_album(album: dict, profile: Optional[dict] = None) -> int:
+    from app.services.suno_prompt_service import compute_track_lyrics_target
+
+    target = compute_track_lyrics_target(album, profile)
+    if not target:
+        return 2000
+    return max(3000, int(target["target_lines_max"]) * 55)
+
+
+def _lyrics_retry_suffix(
+    lyrics: str,
+    album: dict,
+    profile: Optional[dict] = None,
+) -> str:
+    from app.services.suno_prompt_service import (
+        _lyrics_stats,
+        compute_track_lyrics_target,
+    )
+
+    target = compute_track_lyrics_target(album, profile)
+    if not target:
+        return ""
+    stats = _lyrics_stats(lyrics)
+    return (
+        f"\n\n[재시도] 이전 결과는 가사 {stats['lines']}줄로 너무 짧습니다. "
+        f"최소 {target['target_lines_min']}줄, 권장 {target['target_lines_mid']}줄 이상 필요합니다. "
+        "2절부터 같은 가사를 반복하지 말고, 새 Verse/Bridge/Outro 가사를 추가하세요."
+    )
+
+
+async def _generate_ko_lyrics_json_once(
+    client: AIClient,
+    system: str,
+    user_prompt: str,
+    model: Optional[str],
+    temperature: float,
+    max_tokens: int,
+) -> tuple[Optional[str], str]:
+    raw = await client.chat(
+        model or settings.model_lyrics,
+        system,
+        user_prompt,
+        temperature=temperature,
+        max_tokens=max_tokens,
+        json_mode=True,
+    )
+    return _parse_lyrics_ko_json(raw)
+
+
+def _album_lyrics_chunk_max_tokens(
+    album: dict,
+    profile: Optional[dict],
+    song_count: int,
+) -> int:
+    per_song = _lyrics_max_tokens_for_album(album, profile)
+    return max(6000, per_song * song_count)
+
+
+def _album_lyrics_chunk_size_for_target(album: dict, profile: Optional[dict] = None) -> int:
+    """긴 가사 목표일 때 청크 크기 축소."""
+    from app.services.suno_prompt_service import compute_track_lyrics_target
+
+    target = compute_track_lyrics_target(album, profile)
+    if not target:
+        return _ALBUM_LYRICS_CHUNK_SIZE
+    if int(target["target_lines_mid"]) >= 55:
+        return 3
+    if int(target["target_lines_mid"]) >= 45:
+        return 4
+    return _ALBUM_LYRICS_CHUNK_SIZE
 
 
 def _lyrics_looks_corrupted(lyrics: str) -> bool:
@@ -520,31 +620,49 @@ async def generate_lyrics_ko_with_title(
     temperature: float = 0.8,
 ) -> tuple[Optional[str], str]:
     """한국어 가사 + 곡 제목 JSON 생성. 실패 시 가사만 반환."""
-    context = _build_music_context(profile, album, song, reference_song)
-    from app.services.suno_prompt_service import format_album_lyrics_duration_context
+    from app.services.suno_prompt_service import (
+        build_lyrics_duration_prompt_block,
+        lyrics_meets_target,
+    )
 
-    duration_ctx = format_album_lyrics_duration_context(album)
-    user_prompt = (
+    context = _build_music_context(profile, album, song, reference_song)
+    duration_ctx = build_lyrics_duration_prompt_block(album, profile)
+    base_prompt = (
         f"{context}{duration_ctx}\n\n"
         "위 정보를 바탕으로 이 곡의 한국어 제목과 가사를 JSON으로 작성해주세요."
     )
     if additional:
-        user_prompt += f"\n\n추가 지시: {additional}"
+        base_prompt += f"\n\n추가 지시: {additional}"
 
-    raw = await client.chat(
-        model or settings.model_lyrics,
+    max_tokens = _lyrics_max_tokens_for_album(album, profile)
+    title, lyrics = await _generate_ko_lyrics_json_once(
+        client,
         LYRICS_KO_JSON_SYSTEM,
-        user_prompt,
-        temperature=temperature,
-        max_tokens=2000,
-        json_mode=True,
+        base_prompt,
+        model,
+        temperature,
+        max_tokens,
     )
-    title, lyrics = _parse_lyrics_ko_json(raw)
+    if lyrics and not lyrics_meets_target(lyrics, album, profile):
+        retry_prompt = base_prompt + _lyrics_retry_suffix(lyrics, album, profile)
+        r_title, r_lyrics = await _generate_ko_lyrics_json_once(
+            client,
+            LYRICS_KO_JSON_SYSTEM,
+            retry_prompt,
+            model,
+            min(0.95, temperature + 0.05),
+            max_tokens,
+        )
+        if r_lyrics and (
+            not lyrics
+            or _lyrics_stats_simple(r_lyrics) >= _lyrics_stats_simple(lyrics)
+        ):
+            title, lyrics = r_title or title, r_lyrics
+
     if lyrics and title:
         return title, lyrics
     if lyrics:
         return None, lyrics
-    # JSON 파싱 실패 시 일반 가사 생성으로 폴백
     fallback = await generate_lyrics(
         client,
         profile,
@@ -559,6 +677,12 @@ async def generate_lyrics_ko_with_title(
     return None, fallback
 
 
+def _lyrics_stats_simple(lyrics: str) -> int:
+    from app.services.suno_prompt_service import _lyrics_stats
+
+    return _lyrics_stats(lyrics)["lines"]
+
+
 async def _generate_album_lyrics_chunk(
     client: AIClient,
     profile: Optional[dict],
@@ -568,40 +692,88 @@ async def _generate_album_lyrics_chunk(
     model: Optional[str] = None,
     temperature: float = 0.8,
 ) -> list[dict]:
-    from app.services.suno_prompt_service import format_album_lyrics_duration_context
+    from app.services.suno_prompt_service import (
+        _lyrics_stats,
+        build_lyrics_duration_prompt_block,
+        compute_track_lyrics_target,
+        lyrics_meets_target,
+    )
 
     context = _build_music_context(profile, album, None, None)
-    duration_ctx = format_album_lyrics_duration_context(album)
+    duration_ctx = build_lyrics_duration_prompt_block(album, profile)
+    target = compute_track_lyrics_target(album, profile)
     lines = ["\n## 트랙 목록"]
     for s in sorted(songs, key=lambda x: x.get("track_number") or 0):
         tn = s.get("track_number")
         theme = s.get("theme") or ""
         lines.append(f"- Track {tn}: {theme}")
-    user_prompt = (
+    min_lines = target["target_lines_min"] if target else 0
+    base_prompt = (
         f"{context}{duration_ctx}\n"
         + "\n".join(lines)
         + f"\n\n위 {len(songs)}곡 각각 제목+가사를 JSON tracks 배열로 작성해주세요."
         + "\n각 곡의 lyrics는 해당 곡 가사만 포함하고, 다른 트랙 JSON을 넣지 마세요."
-        + "\n모든 곡이 위 곡당 목표 길이에 맞도록 섹션 수·가사 줄 수를 충분히 확보하세요."
+        + f"\n모든 곡 가사는 각각 최소 {min_lines}줄 이상이어야 합니다."
+        + "\n짧은 팝 한 세트나 2절 반복 루프로 시간을 채우지 마세요."
     )
     if additional:
-        user_prompt += f"\n\n추가 지시: {additional}"
+        base_prompt += f"\n\n추가 지시: {additional}"
 
-    raw = await client.chat(
-        model or settings.model_lyrics,
-        LYRICS_ALBUM_BATCH_SYSTEM,
-        user_prompt,
-        temperature=temperature,
-        max_tokens=max(4000, len(songs) * 900),
-        json_mode=True,
-    )
-    parsed = _parse_album_lyrics_json(raw)
-    if not parsed:
-        raise ValueError("앨범 가사 JSON 파싱 실패 — 다시 시도해주세요")
-    if len(parsed) < len(songs):
-        raise ValueError(
-            f"가사 파싱 불완전 ({len(parsed)}/{len(songs)}곡) — 다시 시도해주세요"
+    max_tokens = _album_lyrics_chunk_max_tokens(album, profile, len(songs))
+
+    async def _call(prompt: str, temp: float) -> list[dict]:
+        raw = await client.chat(
+            model or settings.model_lyrics,
+            LYRICS_ALBUM_BATCH_SYSTEM,
+            prompt,
+            temperature=temp,
+            max_tokens=max_tokens,
+            json_mode=True,
         )
+        parsed = _parse_album_lyrics_json(raw)
+        if not parsed:
+            raise ValueError("앨범 가사 JSON 파싱 실패 — 다시 시도해주세요")
+        if len(parsed) < len(songs):
+            raise ValueError(
+                f"가사 파싱 불완전 ({len(parsed)}/{len(songs)}곡) — 다시 시도해주세요"
+            )
+        return parsed
+
+    parsed = await _call(base_prompt, temperature)
+    short_tracks = [
+        item
+        for item in parsed
+        if not lyrics_meets_target(item.get("lyrics", ""), album, profile)
+    ]
+    if short_tracks and target:
+        worst = min(
+            short_tracks,
+            key=lambda x: _lyrics_stats(x.get("lyrics", ""))["lines"],
+        )
+        retry_prompt = base_prompt + _lyrics_retry_suffix(
+            worst.get("lyrics", ""), album, profile
+        )
+        retry_prompt += (
+            f"\n특히 Track {worst.get('track_number')} 등 "
+            f"{len(short_tracks)}곡이 가사 줄 수 부족입니다."
+        )
+        try:
+            retry_parsed = await _call(retry_prompt, min(0.95, temperature + 0.05))
+            by_track = {item["track_number"]: item for item in parsed}
+            for item in retry_parsed:
+                tn = item.get("track_number")
+                old = by_track.get(tn)
+                if not old:
+                    by_track[tn] = item
+                    continue
+                old_lines = _lyrics_stats(old.get("lyrics", ""))["lines"]
+                new_lines = _lyrics_stats(item.get("lyrics", ""))["lines"]
+                if new_lines >= old_lines:
+                    by_track[tn] = item
+            parsed = [by_track[k] for k in sorted(by_track)]
+        except Exception:
+            pass
+
     return parsed
 
 
@@ -617,8 +789,9 @@ async def generate_album_lyrics_batch(
     """앨범 전체 곡 가사 생성 (5곡씩 나눠 호출)."""
     songs_sorted = sorted(songs, key=lambda x: x.get("track_number") or 0)
     all_results: list[dict] = []
-    for i in range(0, len(songs_sorted), _ALBUM_LYRICS_CHUNK_SIZE):
-        chunk = songs_sorted[i : i + _ALBUM_LYRICS_CHUNK_SIZE]
+    chunk_size = _album_lyrics_chunk_size_for_target(album, profile)
+    for i in range(0, len(songs_sorted), chunk_size):
+        chunk = songs_sorted[i : i + chunk_size]
         chunk_results = await _generate_album_lyrics_chunk(
             client,
             profile,
@@ -652,6 +825,14 @@ async def translate_lyrics_to_english(
             user_prompt += f"\n\n한국어 곡명: {song['title']}"
         if song.get("theme"):
             user_prompt += f"\n테마: {song['theme']}"
+    from app.services.suno_prompt_service import _lyrics_stats
+
+    ko_stats = _lyrics_stats(korean_lyrics)
+    if ko_stats["lines"] > 0:
+        user_prompt += (
+            f"\n\n한국어 가사는 **{ko_stats['lines']}줄**입니다. "
+            "영어 가사도 섹션·줄 수를 동일하게 유지하세요 (줄을 줄이지 마세요)."
+        )
     user_prompt += (
         "\n\n위 한국어 가사는 사용자가 수정한 최종본입니다. "
         "이 내용을 바탕으로 영어 곡 제목과 **노래 가사**를 JSON으로 의역해주세요. "
@@ -686,6 +867,7 @@ async def generate_suno_prompt(
     temperature: float = 0.6,
     instrument_settings: Optional[str] = None,
 ) -> str:
+    from app.services.instrument_settings_service import parse_settings
     from app.services.suno_prompt_service import (
         PROMPT_JSON_SYSTEM,
         build_template_fallback,
@@ -697,7 +879,15 @@ async def generate_suno_prompt(
         _parse_prompt_json,
     )
 
-    context = _build_music_context(profile, album, song, reference_song)
+    parsed_inst = parse_settings(instrument_settings)
+    has_song_instruments = bool(parsed_inst and parsed_inst.get("instruments"))
+    context = _build_music_context(
+        profile,
+        album,
+        song,
+        reference_song,
+        omit_profile_instruments=has_song_instruments,
+    )
     user_prompt = build_user_prompt_for_json(
         context, album, lyrics, instrument_settings, additional, profile, song
     )
@@ -715,7 +905,12 @@ async def generate_suno_prompt(
         )
         parsed = _parse_prompt_json(raw)
         if parsed:
-            formatted = finalize_suno_prompt(format_sections(parsed), duration_sec)
+            formatted = finalize_suno_prompt(
+                format_sections(parsed),
+                duration_sec,
+                instrument_settings=instrument_settings,
+                profile=profile,
+            )
             if is_detailed_suno_prompt(formatted):
                 return formatted
     except Exception:
@@ -726,7 +921,8 @@ async def generate_suno_prompt(
         legacy_prompt = user_prompt + (
             "\n\nWrite compact multi-section English prompt under 950 characters. "
             "Headers: [Overview], [Intro], [Verse], [Build], [Chorus], [Bridge], [Outro], [Mix]. "
-            "One short sentence per line."
+            "One short sentence per line. Use ONLY the closed instrument list; "
+            "if drums are not listed, say no drums/no percussion."
         )
         result = await client.chat(
             chosen_model,
@@ -735,7 +931,12 @@ async def generate_suno_prompt(
             temperature=max(0.35, temperature - 0.1),
             max_tokens=900,
         )
-        trimmed = finalize_suno_prompt(result.strip(), duration_sec)
+        trimmed = finalize_suno_prompt(
+            result.strip(),
+            duration_sec,
+            instrument_settings=instrument_settings,
+            profile=profile,
+        )
         if is_detailed_suno_prompt(trimmed):
             return trimmed
     except Exception:
@@ -747,6 +948,8 @@ async def generate_suno_prompt(
             profile, album, song, lyrics, instrument_settings
         ),
         duration_sec,
+        instrument_settings=instrument_settings,
+        profile=profile,
     )
 
 
@@ -766,26 +969,52 @@ async def generate_instruments(
         ensure_settings,
         serialize_settings,
     )
+    from app.services.suno_prompt_service import (
+        _base_bpm,
+        bpm_range_label,
+        resolve_track_bpm,
+    )
 
-    context = _build_music_context(profile, album, song)
+    context = _build_music_context(
+        profile, album, song, omit_profile_instruments=False
+    )
     base = ensure_settings(base_instruments, profile)
-    user_prompt = f"{context}\n\n## 앨범 프리셋 기본 악기 구성\n{serialize_settings(base)}"
+    # 이미 곡에 확정된 BPM이 있으면 유지, 없으면 가사·분위기 ±5로 결정
+    track_bpm = resolve_track_bpm(
+        profile,
+        song,
+        lyrics,
+        serialize_settings(base) if base.get("tempo_bpm") is not None else None,
+    )
+    base["tempo_bpm"] = track_bpm
+    bpm_base = _base_bpm(profile, song)
+    user_prompt = (
+        f"{context}\n\n"
+        "## 앨범 프리셋 팔레트 (출발점 — 그대로 복제 금지)\n"
+        f"{serialize_settings(base)}\n\n"
+        f"## 이 곡 확정 BPM: {track_bpm}\n"
+        f"- 프리셋 기준 {bpm_base} BPM, 허용 범위 {bpm_range_label(bpm_base)}\n"
+        f"- JSON의 tempo_bpm 필드는 반드시 {track_bpm} 으로 둘 것\n\n"
+        "## 편곡 지시 (필수)\n"
+        "- 이 곡 가사·테마의 고유 감정(설렘/반가움/우울/그리움/희망 등)을 먼저 파악할 것\n"
+        "- 시그니처 악기 1~2개만 남기고 리드·리듬·텍스처를 감정에 맞게 바꿀 것\n"
+        "- 같은 앨범의 다른 곡과 악기·리듬이 거의 같으면 실패\n"
+        "- mix_notes에 이 곡의 감정과 리듬 느낌을 한 줄로 적을 것"
+    )
     if lyrics:
-        user_prompt += f"\n\n## 작성된 가사\n{lyrics}"
+        user_prompt += f"\n\n## 작성된 가사 (감정·분위기 근거)\n{lyrics}"
     if suno_prompt:
         user_prompt += f"\n\n## Suno 프롬프트\n{suno_prompt}"
-    user_prompt += (
-        "\n\n위 기본 악기 구성을 유지하면서, 이 곡의 테마·가사에 맞게 "
-        "악기를 추가·삭제·조정한 JSON을 작성해주세요."
-    )
     if additional:
         user_prompt += f"\n\n추가 지시: {additional}"
 
+    # 감정별 편곡 변주를 위해 기본보다 약간 높게
+    temp = max(temperature, 0.55)
     result = await client.chat(
         model or settings.model_instruments,
         INSTRUMENTS_SYSTEM,
         user_prompt,
-        temperature=temperature,
+        temperature=temp,
     )
     try:
         cleaned = result.strip()
@@ -795,10 +1024,13 @@ async def generate_instruments(
                 cleaned = cleaned[4:]
         data = json.loads(cleaned.strip())
         if isinstance(data, dict) and isinstance(data.get("instruments"), list):
+            data["tempo_bpm"] = track_bpm
             return json.dumps(data, ensure_ascii=False, indent=2)
         return cleaned.strip()
     except json.JSONDecodeError:
-        return result
+        # 파싱 실패 시에도 계산된 BPM을 기본 세팅에 넣어 반환
+        base["tempo_bpm"] = track_bpm
+        return serialize_settings(base) if not result.strip() else result
 
 
 async def suggest_track_themes(

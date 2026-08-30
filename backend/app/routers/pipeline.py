@@ -25,12 +25,14 @@ from app.services.workflow_service import (
     get_work_root,
     init_work_folders,
     list_stages,
-    move_project,
     pipeline_relative_path,
     remove_pipeline_project_if_unused,
+    resolve_playlist_output_title,
     resolve_safe_path,
     save_pipeline_config,
     song_display_title,
+    REVIEW_WIP_PREFIX,
+    sanitize_review_folder_name,
     WORKFLOW_STAGES as STAGES,
 )
 
@@ -61,6 +63,14 @@ class RunPipelineRequest(BaseModel):
     project_path: str
     target_stage: str = "review"
     song_id: Optional[int] = None
+    project_paths: Optional[list[str]] = None
+
+
+class RunPlaylistPipelineRequest(BaseModel):
+    project_paths: list[str]
+    title: Optional[str] = None
+    subtitle: Optional[str] = None
+    target_stage: str = "review"
 
 
 class OpenFolderRequest(BaseModel):
@@ -169,22 +179,30 @@ async def api_move_stage(req: MoveStageRequest, db: AsyncSession = Depends(get_d
     stage = next((s for s in STAGES if s["id"] == req.to_stage), None)
     if not stage:
         raise HTTPException(400, "알 수 없는 단계")
-    dest_parent = root / stage["folder"]
     try:
-        dest = move_project(src, dest_parent)
+        from app.services.workflow_service import move_project_to_stage
+
+        dest = move_project_to_stage(src, root, req.to_stage)
     except FileNotFoundError:
         raise HTTPException(404, "프로젝트 폴더 없음")
+    except ValueError as e:
+        raise HTTPException(400, str(e))
     return {"path": str(dest), "stage": req.to_stage}
 
 
 @router.post("/export-song")
 async def api_export_song(req: ExportSongRequest, db: AsyncSession = Depends(get_db)):
+    from app.models import Album
+    from app.services.workflow_service import album_pipeline_folder_name
+
     song = await db.get(Song, req.song_id)
     if not song:
         raise HTTPException(404, "곡 없음")
     root = await get_work_root(db)
     lang = req.language if req.language in ("ko", "en") else "en"
     name = req.project_name or build_pipeline_project_name(song, lang)
+    album = await db.get(Album, song.album_id) if song.album_id else None
+    album_folder = album_pipeline_folder_name(album) if album else None
     audio = Path(song.audio_path) if song.audio_path else None
     image = Path(song.image_path) if song.image_path else None
     old_pipeline_path = song.pipeline_path
@@ -198,6 +216,7 @@ async def api_export_song(req: ExportSongRequest, db: AsyncSession = Depends(get
         image if image and image.exists() else None,
         song.suno_prompt,
         track_title=song_display_title(song, lang),
+        album_folder=album_folder,
     )
     song.pipeline_path = pipeline_relative_path(root, dest)
     if old_pipeline_path and old_pipeline_path != song.pipeline_path:
@@ -214,6 +233,33 @@ async def api_run_pipeline(req: RunPipelineRequest, db: AsyncSession = Depends(g
         project = resolve_safe_path(root, req.project_path)
     if not project.is_dir():
         raise HTTPException(400, "프로젝트 폴더가 아닙니다")
+
+    extra = [p for p in (req.project_paths or []) if str(p).strip()]
+    editor = None
+    if len(extra) < 2:
+        from app.services.editor_service import load_editor_config
+
+        editor = load_editor_config(project)
+        extra = [p for p in (editor.get("project_paths") or []) if str(p).strip()]
+    if len(extra) >= 2:
+        if editor is None:
+            from app.services.editor_service import load_editor_config
+
+            editor = load_editor_config(project)
+        thumb = editor.get("thumbnail") or {}
+        yt = editor.get("youtube") or {}
+        album_title = resolve_playlist_output_title(
+            extra,
+            str(thumb.get("title") or yt.get("title") or ""),
+        )
+        return await _start_playlist_job(
+            db,
+            extra,
+            title=album_title,
+            subtitle=thumb.get("subtitle") or yt.get("subtitle") or "",
+            target_stage=req.target_stage,
+        )
+
     assets = find_project_assets(project)
     if not assets["audio_paths"]:
         raise HTTPException(400, "음원 파일이 없습니다 (mp3/wav 등)")
@@ -223,7 +269,75 @@ async def api_run_pipeline(req: RunPipelineRequest, db: AsyncSession = Depends(g
         raise HTTPException(400, "FFmpeg가 설치되어 있지 않습니다")
 
     job_id = await enqueue_pipeline_job(str(project), req.target_stage, req.song_id)
-    return {"job_id": job_id, "message": "파이프라인 작업이 시작되었습니다"}
+    return {
+        "job_id": job_id,
+        "message": "파이프라인 백그라운드 시작 — 상단 「영상 파이프라인」 진행을 확인하세요 (첫 Whisper는 수분 걸릴 수 있음)",
+    }
+
+
+async def _start_playlist_job(
+    db: AsyncSession,
+    project_paths: list[str],
+    *,
+    title: str | None,
+    subtitle: str,
+    target_stage: str,
+) -> dict:
+    from datetime import datetime
+
+    from app.services.pipeline_queue import enqueue_playlist_job
+
+    if not find_ffmpeg():
+        raise HTTPException(400, "FFmpeg가 설치되어 있지 않습니다")
+    root = await get_work_root(db)
+    projects: list[str] = []
+    for p in project_paths:
+        path = Path(p)
+        if not path.is_absolute():
+            path = resolve_safe_path(root, p)
+        if not path.is_dir():
+            raise HTTPException(400, f"폴더 없음: {p}")
+        assets = find_project_assets(path)
+        if not assets["audio_paths"]:
+            raise HTTPException(400, f"음원 없음: {path.name}")
+        projects.append(str(path))
+    if len(projects) < 2:
+        raise HTTPException(400, "합본은 프로젝트를 2개 이상 선택하세요")
+
+    stage = next((s for s in STAGES if s["id"] == target_stage), None)
+    if not stage:
+        raise HTTPException(400, "알 수 없는 출력 단계")
+
+    stamp = datetime.now().strftime("%Y%m%d_%H%M")
+    output_title = resolve_playlist_output_title(projects, title)
+    safe_title = sanitize_review_folder_name(output_title)
+    out_dir = root / stage["folder"] / f"{REVIEW_WIP_PREFIX}{stamp}_{safe_title}"
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    job_id = await enqueue_playlist_job(
+        projects,
+        str(out_dir),
+        title=output_title,
+        subtitle=subtitle or "",
+        target_stage=target_stage,
+    )
+    return {
+        "job_id": job_id,
+        "path": str(out_dir),
+        "message": f"{len(projects)}곡 합본 작업이 시작되었습니다 — 상단 진행 표시를 확인하세요",
+    }
+
+
+@router.post("/run-playlist")
+async def api_run_playlist(req: RunPlaylistPipelineRequest, db: AsyncSession = Depends(get_db)):
+    """다중 프로젝트 → 합본 영상 (백그라운드 큐)."""
+    return await _start_playlist_job(
+        db,
+        req.project_paths,
+        title=req.title,
+        subtitle=req.subtitle or "",
+        target_stage=req.target_stage,
+    )
 
 
 @router.get("/workflow-stages")

@@ -307,6 +307,7 @@ export default function ProfilesPage() {
         open={showModal}
         onClose={() => setShowModal(false)}
         title={editingId ? "프리셋 수정" : "내 프리셋 저장"}
+        disableOverlayClose
       >
         {error && <div className="error">{error}</div>}
         <div className="form-row">
@@ -362,6 +363,11 @@ export default function ProfilesPage() {
               value={form.tempo_bpm}
               onChange={(e) => setForm({ ...form, tempo_bpm: Number(e.target.value) })}
             />
+            <p className="panel-hint" style={{ marginTop: "0.35rem" }}>
+              기준값입니다. 곡마다 가사·분위기에 따라 ±5 범위
+              ({Math.max(40, (form.tempo_bpm || 80) - 5)}~
+              {(form.tempo_bpm || 80) + 5})에서 자동 결정됩니다.
+            </p>
           </div>
           <div className="form-group">
             <label>보컬</label>

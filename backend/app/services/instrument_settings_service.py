@@ -22,6 +22,7 @@ def build_from_profile(profile: Optional[dict]) -> dict[str, Any]:
         return {
             "preset_name": "",
             "mix_notes": "",
+            "tempo_bpm": None,
             "instruments": [],
         }
 
@@ -45,6 +46,8 @@ def build_from_profile(profile: Optional[dict]) -> dict[str, Any]:
     return {
         "preset_name": profile.get("name") or "",
         "mix_notes": profile.get("production_style") or "",
+        # 곡별 BPM은 가사·분위기 기반 ±5로 나중에 확정 (프리셋 값을 고정 저장하지 않음)
+        "tempo_bpm": None,
         "instruments": instruments,
     }
 
@@ -92,9 +95,15 @@ def parse_settings(raw: Optional[str]) -> Optional[dict[str, Any]]:
         return None
 
     if isinstance(data.get("instruments"), list):
+        tempo_raw = data.get("tempo_bpm")
+        try:
+            tempo_bpm = int(tempo_raw) if tempo_raw is not None else None
+        except (TypeError, ValueError):
+            tempo_bpm = None
         return {
             "preset_name": data.get("preset_name") or "",
             "mix_notes": data.get("mix_notes") or "",
+            "tempo_bpm": tempo_bpm,
             "instruments": [
                 {
                     "name": i.get("name", ""),
@@ -115,6 +124,7 @@ def parse_settings(raw: Optional[str]) -> Optional[dict[str, Any]]:
         return {
             "preset_name": "",
             "mix_notes": data.get("mix_notes") or "",
+            "tempo_bpm": None,
             "instruments": legacy_items,
         }
     return None

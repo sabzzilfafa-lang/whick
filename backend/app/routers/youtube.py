@@ -11,12 +11,15 @@ from app.database import get_db
 from app.services.workflow_service import get_work_root, move_project, resolve_safe_path
 from app.services.youtube_service import (
     build_auth_url,
+    describe_video_file,
     disconnect_youtube,
+    find_video_file,
     get_stored_video_id,
+    get_upload_job,
     get_youtube_public_status,
     handle_oauth_callback,
     publish_video,
-    upload_project_video,
+    start_upload_job,
 )
 
 router = APIRouter(prefix="/youtube", tags=["youtube"])
@@ -124,32 +127,25 @@ async def youtube_upload(req: YoutubeUploadRequest, db: AsyncSession = Depends(g
         raise HTTPException(400, "프로젝트 폴더가 아닙니다")
 
     try:
-        result = await upload_project_video(
-            db,
-            project,
+        return start_upload_job(
+            project=project,
+            work_root=root,
             privacy_status=req.privacy_status,
             title=req.title,
             description=req.description,
             tags=req.tags,
+            move_to_stage=req.move_to_stage,
         )
     except ValueError as e:
-        raise HTTPException(400, str(e))
-    except Exception as e:
-        raise HTTPException(502, f"업로드 실패: {e}")
+        raise HTTPException(400, str(e)) from e
 
-    if req.move_to_stage:
-        from app.services.workflow_service import WORKFLOW_STAGES
 
-        stage = next((s for s in WORKFLOW_STAGES if s["id"] == req.move_to_stage), None)
-        if stage:
-            dest_parent = root / stage["folder"]
-            try:
-                move_project(project, dest_parent)
-                result["moved_to"] = str(dest_parent / project.name)
-            except FileNotFoundError:
-                pass
-
-    return result
+@router.get("/upload/{job_id}")
+async def youtube_upload_status(job_id: str):
+    job = get_upload_job(job_id)
+    if not job:
+        raise HTTPException(404, "업로드 작업을 찾을 수 없습니다")
+    return job
 
 
 @router.post("/publish")
@@ -197,7 +193,12 @@ async def youtube_project_meta(
     db: AsyncSession = Depends(get_db),
 ):
     root = await get_work_root(db)
-    project = resolve_safe_path(root, path) if path else root
+    project = Path(path)
+    if not project.is_absolute():
+        try:
+            project = resolve_safe_path(root, path)
+        except ValueError as e:
+            raise HTTPException(400, str(e)) from e
     if not project.is_dir():
         raise HTTPException(400, "프로젝트 폴더가 아닙니다")
     video_id = get_stored_video_id(project)
@@ -210,4 +211,6 @@ async def youtube_project_meta(
             meta = json.loads(meta_file.read_text(encoding="utf-8"))
         except json.JSONDecodeError:
             meta = None
-    return {"video_id": video_id, "meta": meta}
+    video = find_video_file(project, work_root=root)
+    upload_file = describe_video_file(video) if video else None
+    return {"video_id": video_id, "meta": meta, "upload_file": upload_file}

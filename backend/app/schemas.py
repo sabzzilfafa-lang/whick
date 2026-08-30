@@ -171,6 +171,14 @@ class SongResponse(SongBase):
     estimated_duration_sec: Optional[int] = None
     estimated_duration_label: Optional[str] = None
     estimated_duration_source: Optional[str] = None
+    tempo_bpm: Optional[int] = None
+    tempo_bpm_base: Optional[int] = None
+    tempo_bpm_range: Optional[str] = None
+    target_lyrics_lines_min: Optional[int] = None
+    target_lyrics_lines_max: Optional[int] = None
+    actual_lyrics_lines: Optional[int] = None
+    lyrics_length_ok: Optional[bool] = None
+    lyrics_length_status: Optional[str] = None
     lyrics: Optional[str] = None
     lyrics_ko: Optional[str] = None
     lyrics_en: Optional[str] = None
@@ -237,6 +245,7 @@ class SongInstrumentItem(BaseModel):
 class SongInstrumentSettings(BaseModel):
     preset_name: str = ""
     mix_notes: str = ""
+    tempo_bpm: Optional[int] = None
     instruments: list[SongInstrumentItem] = []
 
 
@@ -274,6 +283,14 @@ class GenerationResponse(BaseModel):
     estimated_duration_sec: Optional[int] = None
     estimated_duration_label: Optional[str] = None
     estimated_duration_source: Optional[str] = None
+    tempo_bpm: Optional[int] = None
+    tempo_bpm_base: Optional[int] = None
+    tempo_bpm_range: Optional[str] = None
+    target_lyrics_lines_min: Optional[int] = None
+    target_lyrics_lines_max: Optional[int] = None
+    actual_lyrics_lines: Optional[int] = None
+    lyrics_length_ok: Optional[bool] = None
+    lyrics_length_status: Optional[str] = None
 
 
 class GenerationVariantResponse(BaseModel):

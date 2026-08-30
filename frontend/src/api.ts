@@ -9,7 +9,14 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: res.statusText }));
-    throw new Error(typeof err.detail === "string" ? err.detail : "요청 실패");
+    const detail = err.detail;
+    const msg =
+      typeof detail === "string"
+        ? detail
+        : Array.isArray(detail)
+          ? detail.map((d: { msg?: string }) => d.msg).filter(Boolean).join(" / ") || res.statusText
+          : "요청 실패";
+    throw new Error(msg);
   }
   return res.json();
 }
@@ -55,6 +62,14 @@ export interface Song {
   estimated_duration_sec?: number;
   estimated_duration_label?: string;
   estimated_duration_source?: "lyrics" | "album" | "default";
+  tempo_bpm?: number;
+  tempo_bpm_base?: number;
+  tempo_bpm_range?: string;
+  target_lyrics_lines_min?: number;
+  target_lyrics_lines_max?: number;
+  actual_lyrics_lines?: number;
+  lyrics_length_ok?: boolean;
+  lyrics_length_status?: "none" | "short" | "ok" | "long" | "unknown";
   theme?: string;
   mood?: string;
   tags?: string;
@@ -83,6 +98,14 @@ export interface GenerationResult {
   estimated_duration_sec?: number;
   estimated_duration_label?: string;
   estimated_duration_source?: "lyrics" | "album" | "default";
+  tempo_bpm?: number;
+  tempo_bpm_base?: number;
+  tempo_bpm_range?: string;
+  target_lyrics_lines_min?: number;
+  target_lyrics_lines_max?: number;
+  actual_lyrics_lines?: number;
+  lyrics_length_ok?: boolean;
+  lyrics_length_status?: "none" | "short" | "ok" | "long" | "unknown";
 }
 
 export interface SongInstrumentItem {
@@ -98,6 +121,7 @@ export interface SongInstrumentItem {
 export interface SongInstrumentSettings {
   preset_name: string;
   mix_notes: string;
+  tempo_bpm?: number | null;
   instruments: SongInstrumentItem[];
 }
 
@@ -240,6 +264,20 @@ export interface YoutubeUploadResult {
   privacy_status: string;
   url: string;
   moved_to?: string;
+  file_name?: string;
+  file_size_mb?: number;
+  duration_sec?: number | null;
+}
+
+export interface YoutubeUploadJob {
+  id: string;
+  status: "running" | "completed" | "failed";
+  bytes_sent: number;
+  size_bytes: number;
+  percent: number;
+  file_name?: string;
+  result?: YoutubeUploadResult | null;
+  error?: string | null;
 }
 
 export interface YoutubePublishResult {
@@ -247,6 +285,116 @@ export interface YoutubePublishResult {
   privacy_status: string;
   url: string;
   moved_to?: string;
+}
+
+export interface EditorConfig {
+  version: number;
+  mode: "single" | "playlist";
+  project_paths: string[];
+  last_step?: number;
+  thumbnail: {
+    layout: "canvas";
+    title?: string;
+    subtitle?: string;
+    background: {
+      image: string;
+      mode: string;
+      dim: number;
+    };
+    template_id?: string;
+    boxes: Array<{
+      id: string;
+      text: string;
+      x: number;
+      y: number;
+      w: number;
+      h: number;
+      font_size: number;
+      bold: boolean;
+      color: string;
+      align: "left" | "center" | "right";
+      fill?: string;
+    }>;
+  };
+  subtitle: {
+    mode: "ko" | "en" | "both";
+    margin_v_en: number;
+    margin_v_ko: number;
+    font_size_en: number;
+    font_size_ko: number;
+    font_size_title: number;
+    title_intro_sec: number;
+    track_header_enabled: boolean;
+    track_header_y: number;
+    title_color: string;
+  };
+  overlay: {
+    eq_bar_enabled: boolean;
+    eq_bar_style: "none" | "bars" | "thin" | "thick" | "spaced" | "line" | "mirror" | "dots";
+    eq_bar_x: number;
+    eq_bar_y: number;
+    eq_bar_w: number;
+    eq_bar_h: number;
+    eq_bar_color: string;
+    eq_bar_align?: "bottom_center" | "custom";
+  };
+  remaster: {
+    low_db: number;
+    high_db: number;
+    stereo_width: number;
+    strip_fingerprint: boolean;
+  };
+  youtube: {
+    title: string;
+    subtitle: string;
+    description_ko: string;
+    description_en: string;
+    include_lyrics_in_description: boolean;
+    tags: string[];
+    hashtags: string;
+    tracks: Array<{
+      index?: number;
+      title: string;
+      start_sec: number;
+      duration_sec?: number;
+      manual?: boolean;
+    }>;
+    description_locked: boolean;
+  };
+}
+
+export interface EditorConfigResponse {
+  config: EditorConfig;
+  assets: {
+    track_title?: string;
+    has_audio: boolean;
+    has_image: boolean;
+    has_lyrics_en: boolean;
+    has_lyrics_ko: boolean;
+    image_paths: string[];
+    album_images?: Array<{ path: string; label: string; folder: string; name: string; rel: string }>;
+  };
+}
+
+export interface YoutubeDraft {
+  mode: string;
+  title: string;
+  subtitle: string;
+  description_ko: string;
+  description_en: string;
+  include_lyrics_in_description: boolean;
+  tags: string[];
+  hashtags: string;
+  tracks: EditorConfig["youtube"]["tracks"];
+  description_locked: boolean;
+  description_preview: string;
+  auto_block?: string;
+  char_count: number;
+}
+
+export interface FingerprintCheck {
+  ok: boolean | null;
+  checks: Array<{ file: string; has_suno: boolean; path: string }>;
 }
 
 export interface YoutubeProjectMeta {
@@ -257,6 +405,13 @@ export interface YoutubeProjectMeta {
     privacy_status: string;
     url: string;
     uploaded_at: string;
+  } | null;
+  upload_file?: {
+    name: string;
+    path: string;
+    size_bytes: number;
+    size_mb: number;
+    duration_sec?: number | null;
   } | null;
 }
 
@@ -434,6 +589,8 @@ export const api = {
   // Queue
   listQueue: () => request<QueueJob[]>("/queue"),
   getQueueJob: (id: number) => request<QueueJob>(`/queue/${id}`),
+  cancelQueueJob: (id: number) =>
+    request<QueueJob>(`/queue/${id}/cancel`, { method: "POST" }),
 
   // Generation
   generateLyrics: (
@@ -651,13 +808,38 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ song_id: songId, stage_id: stageId, language }),
     }),
-  runPipeline: (projectPath: string, targetStage = "review", songId?: number) =>
-    request<{ job_id: number; message: string }>("/pipeline/run", {
+  runPipeline: (
+    projectPath: string,
+    targetStage = "review",
+    songId?: number,
+    projectPaths?: string[],
+  ) =>
+    request<{ job_id: number; message: string; path?: string }>("/pipeline/run", {
       method: "POST",
       body: JSON.stringify({
         project_path: projectPath,
         target_stage: targetStage,
         song_id: songId,
+        project_paths: projectPaths,
+      }),
+    }),
+  runPlaylistPipeline: (data: {
+    project_paths: string[];
+    title?: string;
+    subtitle?: string;
+    target_stage?: string;
+  }) =>
+    request<{
+      job_id: number;
+      path: string;
+      message: string;
+    }>("/pipeline/run-playlist", {
+      method: "POST",
+      body: JSON.stringify({
+        project_paths: data.project_paths,
+        title: data.title,
+        subtitle: data.subtitle,
+        target_stage: data.target_stage ?? "review",
       }),
     }),
 
@@ -674,19 +856,55 @@ export const api = {
     }),
   getYoutubeAuthUrl: () => request<{ auth_url: string }>("/youtube/auth-url"),
   disconnectYoutube: () => request<{ ok: boolean }>("/youtube/disconnect", { method: "POST" }),
-  uploadToYoutube: (
+  startYoutubeUpload: (
     projectPath: string,
-    privacyStatus: "private" | "unlisted" | "public" = "private",
-    moveToStage?: string | null
+    options?: {
+      privacyStatus?: "private" | "unlisted" | "public";
+      moveToStage?: string | null;
+      title?: string;
+      description?: string;
+      tags?: string[];
+    }
   ) =>
-    request<YoutubeUploadResult>("/youtube/upload", {
+    request<YoutubeUploadJob>("/youtube/upload", {
       method: "POST",
       body: JSON.stringify({
         project_path: projectPath,
-        privacy_status: privacyStatus,
-        move_to_stage: moveToStage ?? null,
+        privacy_status: options?.privacyStatus ?? "private",
+        move_to_stage: options?.moveToStage ?? null,
+        title: options?.title,
+        description: options?.description,
+        tags: options?.tags,
       }),
     }),
+  getYoutubeUploadJob: (jobId: string) => request<YoutubeUploadJob>(`/youtube/upload/${jobId}`),
+  uploadToYoutube: async (
+    projectPath: string,
+    options?: {
+      privacyStatus?: "private" | "unlisted" | "public";
+      moveToStage?: string | null;
+      title?: string;
+      description?: string;
+      tags?: string[];
+    },
+    onProgress?: (job: YoutubeUploadJob) => void
+  ) => {
+    const started = await api.startYoutubeUpload(projectPath, options);
+    onProgress?.(started);
+    let job = started;
+    while (job.status === "running") {
+      await new Promise((r) => setTimeout(r, 400));
+      job = await api.getYoutubeUploadJob(job.id);
+      onProgress?.(job);
+    }
+    if (job.status === "failed") {
+      throw new Error(job.error || "업로드 실패");
+    }
+    if (!job.result?.url) {
+      throw new Error("업로드 결과를 받지 못했습니다");
+    }
+    return job.result;
+  },
   publishOnYoutube: (projectPath: string, videoId?: string) =>
     request<YoutubePublishResult>("/youtube/publish", {
       method: "POST",
@@ -698,6 +916,67 @@ export const api = {
     }),
   getYoutubeProjectMeta: (path: string) =>
     request<YoutubeProjectMeta>(`/youtube/project-meta?path=${encodeURIComponent(path)}`),
+
+  // Video Editor (8-step studio)
+  getEditorConfig: (path: string) =>
+    request<EditorConfigResponse>(`/editor/config?path=${encodeURIComponent(path)}`),
+  saveEditorConfig: (path: string, data: Partial<EditorConfig>) =>
+    request<{ config: EditorConfig }>(`/editor/config?path=${encodeURIComponent(path)}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+  renderEditorThumbnail: async (path: string, thumbnail?: EditorConfig["thumbnail"]) => {
+    const res = await fetch(
+      `${API_BASE}/editor/preview/thumbnail/render?path=${encodeURIComponent(path)}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ thumbnail }),
+      }
+    );
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }));
+      throw new Error(typeof err.detail === "string" ? err.detail : "미리보기 실패");
+    }
+    return res.blob();
+  },
+  editorThumbnailPreviewUrl: (path: string) =>
+    `${API_BASE}/editor/preview/thumbnail?path=${encodeURIComponent(path)}&t=${Date.now()}`,
+  editorSubtitlePreviewUrl: (path: string) =>
+    `${API_BASE}/editor/preview/subtitle?path=${encodeURIComponent(path)}&t=${Date.now()}`,
+  editorCoverFrameUrl: (path: string) =>
+    `${API_BASE}/editor/preview/cover-frame?path=${encodeURIComponent(path)}&t=${Date.now()}`,
+  editorAudioPreviewUrl: (path: string) =>
+    `${API_BASE}/editor/preview/audio?path=${encodeURIComponent(path)}&t=${Date.now()}`,
+  editorVideoUrl: (path: string, preview = false) =>
+    `${API_BASE}/editor/video?path=${encodeURIComponent(path)}&preview=${preview ? "1" : "0"}`,
+  renderEditorPreviewVideo: (path: string) =>
+    request<{ ok: boolean; path: string; duration_sec: number }>(
+      `/editor/preview/video?path=${encodeURIComponent(path)}`,
+      { method: "POST", body: JSON.stringify({}) },
+    ),
+  saveEditorThumbnail: (path: string, thumbnail?: EditorConfig["thumbnail"]) =>
+    request<{ ok: boolean; path: string; config?: EditorConfig }>(
+      `/editor/preview/thumbnail/save?path=${encodeURIComponent(path)}`,
+      {
+        method: "POST",
+        body: JSON.stringify({ thumbnail }),
+      }
+    ),
+  getEditorFingerprintCheck: (path: string) =>
+    request<FingerprintCheck>(`/editor/fingerprint-check?path=${encodeURIComponent(path)}`),
+  getYoutubeDraft: (path: string) =>
+    request<YoutubeDraft>(`/editor/youtube-draft?path=${encodeURIComponent(path)}`),
+  saveYoutubeDraft: (path: string, data: Partial<YoutubeDraft>) =>
+    request<{ ok: boolean; description: string; char_count: number; auto_block?: string }>(
+      `/editor/youtube-draft?path=${encodeURIComponent(path)}`,
+      { method: "PUT", body: JSON.stringify(data) }
+    ),
+  regenerateYoutubeChapters: (projectPath: string, projectPaths: string[]) =>
+    request<{ tracks: EditorConfig["youtube"]["tracks"] }>("/editor/youtube-draft/regenerate-chapters", {
+      method: "POST",
+      body: JSON.stringify({ project_path: projectPath, project_paths: projectPaths }),
+    }),
 };
 
 export function formatSunoCopy(song: Song): string {

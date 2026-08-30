@@ -9,6 +9,7 @@ import SettingsPage from "./pages/SettingsPage";
 import AnalyzePage from "./pages/AnalyzePage";
 import SearchPage from "./pages/SearchPage";
 import StudioPage from "./pages/StudioPage";
+import EditorPage from "./pages/EditorPage";
 
 export default function App() {
   return (
@@ -22,6 +23,7 @@ export default function App() {
         <Route path="analyze" element={<AnalyzePage />} />
         <Route path="search" element={<SearchPage />} />
         <Route path="studio" element={<StudioPage />} />
+        <Route path="editor" element={<EditorPage />} />
         <Route path="settings" element={<SettingsPage />} />
       </Route>
     </Routes>

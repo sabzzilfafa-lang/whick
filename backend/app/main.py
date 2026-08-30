@@ -3,12 +3,12 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 
 from app.api import router
 from app.database import init_db
 from app.routers.extra import router as extra_router
 from app.routers.pipeline import router as pipeline_router
+from app.routers.editor import router as editor_router
 from app.routers.youtube import router as youtube_router
 
 
@@ -17,6 +17,7 @@ async def lifespan(app: FastAPI):
     from app.config import settings
     from app.database import async_session
     from app.services.queue_service import resume_pending_album_jobs
+    from app.services.pipeline_queue import resume_pending_pipeline_jobs
     from app.services.workflow_service import init_work_folders
 
     settings.data_dir.mkdir(exist_ok=True)
@@ -29,6 +30,7 @@ async def lifespan(app: FastAPI):
     except Exception:
         pass
     await resume_pending_album_jobs()
+    await resume_pending_pipeline_jobs()
     yield
 
 
@@ -50,6 +52,7 @@ app.add_middleware(
 app.include_router(router, prefix="/api")
 app.include_router(extra_router, prefix="/api")
 app.include_router(pipeline_router, prefix="/api")
+app.include_router(editor_router, prefix="/api")
 app.include_router(youtube_router, prefix="/api")
 
 @app.get("/api/health")
@@ -62,6 +65,21 @@ async def health():
     }
 
 # 프론트엔드 빌드 파일 서빙 (프로덕션)
+# "/" 마운트는 미등록 POST /api/... 를 가로채 405를 낸다. /api 는 제외한다.
 frontend_dist = Path(__file__).parent.parent.parent / "frontend" / "dist"
 if frontend_dist.exists():
-    app.mount("/", StaticFiles(directory=str(frontend_dist), html=True), name="static")
+    from starlette.staticfiles import StaticFiles as StarletteStaticFiles
+    from starlette.types import Receive, Scope, Send
+
+    class FrontendStatic(StarletteStaticFiles):
+        async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+            path = scope.get("path") or ""
+            if path == "/api" or path.startswith("/api/"):
+                from starlette.responses import JSONResponse
+
+                response = JSONResponse({"detail": "Not Found"}, status_code=404)
+                await response(scope, receive, send)
+                return
+            await super().__call__(scope, receive, send)
+
+    app.mount("/", FrontendStatic(directory=str(frontend_dist), html=True), name="static")

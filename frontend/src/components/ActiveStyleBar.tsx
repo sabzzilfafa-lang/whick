@@ -29,7 +29,12 @@ export default function ActiveStyleBar() {
       <div className="active-style-info">
         <strong>현재 스타일: {active.name}</strong>
         <span>
-          {[active.genre, active.mood, active.tempo_bpm && `${active.tempo_bpm} BPM`]
+          {[
+            active.genre,
+            active.mood,
+            active.tempo_bpm &&
+              `${active.tempo_bpm} BPM (±5 → ${active.tempo_bpm - 5}~${active.tempo_bpm + 5})`,
+          ]
             .filter(Boolean)
             .join(" · ")}
         </span>

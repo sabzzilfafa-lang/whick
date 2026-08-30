@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
   api,
@@ -33,36 +33,110 @@ function displayTitle(song: Song, lang: LyricsLang): string {
 }
 
 function formatDurationBadge(song: Song): string | null {
-  if (!song.estimated_duration_label) return null;
-  const label = song.estimated_duration_label;
-  if (song.estimated_duration_source === "album") return `~${label} · 앨범 배분`;
-  if (song.estimated_duration_source === "lyrics") return `~${label} · 가사 기준`;
-  return `~${label}`;
+  const parts: string[] = [];
+  if (song.estimated_duration_label) {
+    const label = song.estimated_duration_label;
+    if (song.estimated_duration_source === "album") parts.push(`~${label} · 앨범 배분`);
+    else if (song.estimated_duration_source === "lyrics") parts.push(`~${label} · 가사 기준`);
+    else parts.push(`~${label}`);
+  }
+  if (song.tempo_bpm != null) {
+    parts.push(
+      song.tempo_bpm_range
+        ? `${song.tempo_bpm} BPM (${song.tempo_bpm_range})`
+        : `${song.tempo_bpm} BPM`
+    );
+  }
+  return parts.length ? parts.join(" · ") : null;
+}
+
+function formatLyricsLengthBadge(song: Song): string | null {
+  if (!song.target_lyrics_lines_min) return null;
+  const actual = song.actual_lyrics_lines ?? 0;
+  const range = `${song.target_lyrics_lines_min}~${song.target_lyrics_lines_max}`;
+  if (song.lyrics_length_status === "ok") {
+    return `가사 ${actual}줄 / 목표 ${range}줄 ✓`;
+  }
+  if (song.lyrics_length_status === "short") {
+    return `가사 ${actual}줄 — 목표 ${range}줄 (부족)`;
+  }
+  if (song.lyrics_length_status === "long") {
+    return `가사 ${actual}줄 — 목표 ${range}줄 (초과)`;
+  }
+  if (actual > 0) return `가사 ${actual}줄 / 목표 ${range}줄`;
+  return `목표 가사 ${range}줄`;
+}
+
+function lyricsFieldsFromResult(result: {
+  target_lyrics_lines_min?: number;
+  target_lyrics_lines_max?: number;
+  actual_lyrics_lines?: number;
+  lyrics_length_ok?: boolean;
+  lyrics_length_status?: Song["lyrics_length_status"];
+}): Partial<Song> {
+  if (!result.target_lyrics_lines_min) return {};
+  return {
+    target_lyrics_lines_min: result.target_lyrics_lines_min,
+    target_lyrics_lines_max: result.target_lyrics_lines_max,
+    actual_lyrics_lines: result.actual_lyrics_lines,
+    lyrics_length_ok: result.lyrics_length_ok,
+    lyrics_length_status: result.lyrics_length_status,
+  };
 }
 
 function durationFieldsFromResult(result: {
   estimated_duration_sec?: number;
   estimated_duration_label?: string;
   estimated_duration_source?: Song["estimated_duration_source"];
+  tempo_bpm?: number;
+  tempo_bpm_base?: number;
+  tempo_bpm_range?: string;
+  target_lyrics_lines_min?: number;
+  target_lyrics_lines_max?: number;
+  actual_lyrics_lines?: number;
+  lyrics_length_ok?: boolean;
+  lyrics_length_status?: Song["lyrics_length_status"];
 }): Partial<Song> {
-  if (!result.estimated_duration_label) return {};
   return {
-    estimated_duration_sec: result.estimated_duration_sec,
-    estimated_duration_label: result.estimated_duration_label,
-    estimated_duration_source: result.estimated_duration_source,
+    ...lyricsFieldsFromResult(result),
+    ...(result.estimated_duration_label
+      ? {
+          estimated_duration_sec: result.estimated_duration_sec,
+          estimated_duration_label: result.estimated_duration_label,
+          estimated_duration_source: result.estimated_duration_source,
+        }
+      : {}),
+    ...(result.tempo_bpm != null
+      ? {
+          tempo_bpm: result.tempo_bpm,
+          tempo_bpm_base: result.tempo_bpm_base,
+          tempo_bpm_range: result.tempo_bpm_range,
+        }
+      : {}),
   };
 }
 
 function MixNotesHeader({ song }: { song: Song }) {
   const badge = formatDurationBadge(song);
+  const lyricsBadge = formatLyricsLengthBadge(song);
   return (
     <div className="editor-panel-label-row">
       <label className="editor-panel-label">믹스 메모 / 프롬프트 지시</label>
-      {badge && (
-        <span className="track-duration-badge" title="Suno 프롬프트에 반영되는 목표 런닝타임">
-          런닝타임 {badge}
-        </span>
-      )}
+      <div className="track-duration-badges">
+        {badge && (
+          <span className="track-duration-badge" title="앨범 배분 곡당 목표 시간">
+            목표 {badge}
+          </span>
+        )}
+        {lyricsBadge && (
+          <span
+            className={`track-duration-badge${song.lyrics_length_status === "short" ? " track-duration-badge--warn" : ""}`}
+            title="Suno는 가사 줄 수로 곡 길이를 맞춥니다"
+          >
+            {lyricsBadge}
+          </span>
+        )}
+      </div>
     </div>
   );
 }
@@ -83,6 +157,8 @@ export default function SongPage() {
   const [instrumentData, setInstrumentData] = useState<SongInstrumentSettings | null>(null);
   const [instrumentsOpen, setInstrumentsOpen] = useState(false);
   const [presetName, setPresetName] = useState("");
+  const [copiedField, setCopiedField] = useState<"lyrics" | "prompt" | "suno" | null>(null);
+  const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const load = () => {
     if (!id) return;
@@ -90,6 +166,18 @@ export default function SongPage() {
   };
 
   useEffect(load, [id]);
+
+  useEffect(() => {
+    return () => {
+      if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+    };
+  }, []);
+
+  const flashCopied = (field: "lyrics" | "prompt" | "suno") => {
+    setCopiedField(field);
+    if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+    copiedTimerRef.current = setTimeout(() => setCopiedField(null), 2000);
+  };
 
   useEffect(() => {
     if (!song) return;
@@ -152,10 +240,24 @@ export default function SongPage() {
       if (existing?.instruments.length) {
         data = existing;
         setMessage("저장된 악기 세팅을 불러왔습니다.");
+      } else if (koLyrics(song).trim()) {
+        // 프리셋만 복사하면 전 곡이 같아지므로, 가사 감정이 있으면 곡별 편곡까지 생성
+        await api.applySongInstrumentsFromPreset(song.id);
+        const result = await api.generateInstruments(song.id, undefined, true);
+        const parsed = parseInstrumentSettings(result.content);
+        if (!parsed?.instruments.length) {
+          throw new Error("악기 제안을 파싱하지 못했습니다");
+        }
+        data = parsed;
+        setMessage(
+          "가사 감정을 반영해 이 곡용 악기를 구성했습니다. 필요하면 수정 후 저장하세요."
+        );
       } else {
         const result = await api.applySongInstrumentsFromPreset(song.id);
         data = result;
-        setMessage("앨범 프리셋의 기본 악기를 불러왔습니다. 추가·삭제 후 저장하세요.");
+        setMessage(
+          "앨범 프리셋 기본 악기를 불러왔습니다. 한글 가사 작성 후 「AI 악기 제안」으로 곡별 변화를 주세요."
+        );
       }
       const json = serializeInstrumentSettings(data);
       setInstrumentData(data);
@@ -337,10 +439,19 @@ export default function SongPage() {
         }
       } else {
         const field = type === "prompt" ? "suno_prompt" : "instrument_settings";
-        const instJson =
+        let instJson =
           type === "prompt" && instrumentData != null
             ? serializeInstrumentSettings(instrumentData)
             : song.instrument_settings;
+        if (type === "prompt" && result.tempo_bpm != null) {
+          const base =
+            instrumentData ??
+            parseInstrumentSettings(instJson) ??
+            ({ preset_name: "", mix_notes: "", instruments: [] } as SongInstrumentSettings);
+          const withTempo = { ...base, tempo_bpm: result.tempo_bpm };
+          instJson = serializeInstrumentSettings(withTempo);
+          setInstrumentData(withTempo);
+        }
         setSong({
           ...song,
           [field]: result.content,
@@ -349,10 +460,17 @@ export default function SongPage() {
         });
         if (type === "prompt") {
           const len = result.content.length;
+          const bpmNote =
+            result.tempo_bpm != null
+              ? ` · ${result.tempo_bpm} BPM` +
+                (result.tempo_bpm_range ? ` (${result.tempo_bpm_range})` : "")
+              : "";
           if (isStructuredSunoPrompt(result.content)) {
-            setMessage(`Suno 프롬프트 생성 완료 (${len}/${SUNO_PROMPT_MAX_CHARS}자).`);
+            setMessage(
+              `Suno 프롬프트 생성 완료 (${len}/${SUNO_PROMPT_MAX_CHARS}자)${bpmNote}.`
+            );
           } else {
-            setMessage(`프롬프트를 생성했습니다 (${len}자). 내용을 확인해 주세요.`);
+            setMessage(`프롬프트를 생성했습니다 (${len}자)${bpmNote}. 내용을 확인해 주세요.`);
           }
         }
       }
@@ -363,24 +481,29 @@ export default function SongPage() {
     }
   };
 
-  const copyText = async (text: string, label: string) => {
+  const copyText = async (text: string, label: string, field: "lyrics" | "prompt") => {
     if (!text.trim()) {
       setError(`${label}이(가) 비어 있습니다.`);
       return;
     }
-    await navigator.clipboard.writeText(text);
-    setMessage(`${label}을(를) 클립보드에 복사했습니다.`);
+    try {
+      await navigator.clipboard.writeText(text);
+      flashCopied(field);
+      setMessage(`${label}을(를) 클립보드에 복사했습니다.`);
+    } catch {
+      setError("클립보드 복사에 실패했습니다.");
+    }
   };
 
   const copyLyrics = () => {
     if (!song) return;
     const text = lyricsLang === "ko" ? koLyrics(song) : enLyrics(song);
-    void copyText(text, lyricsLang === "ko" ? "한글 가사" : "영어 가사");
+    void copyText(text, lyricsLang === "ko" ? "한글 가사" : "영어 가사", "lyrics");
   };
 
   const copyPrompt = () => {
     if (!song) return;
-    void copyText(song.suno_prompt || "", "Suno 프롬프트");
+    void copyText(song.suno_prompt || "", "Suno 프롬프트", "prompt");
   };
 
   const handleAB = async (type: TabField = abType) => {
@@ -421,8 +544,13 @@ export default function SongPage() {
 
   const copySuno = () => {
     if (!song) return;
-    navigator.clipboard.writeText(formatSunoCopy(song));
-    setMessage("Suno용 콘텐츠가 클립보드에 복사되었습니다.");
+    void navigator.clipboard.writeText(formatSunoCopy(song)).then(
+      () => {
+        flashCopied("suno");
+        setMessage("Suno용 콘텐츠가 클립보드에 복사되었습니다.");
+      },
+      () => setError("클립보드 복사에 실패했습니다.")
+    );
   };
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -430,7 +558,7 @@ export default function SongPage() {
     try {
       const res = await api.uploadAudio(song.id, e.target.files[0]);
       setSong({ ...song, audio_path: res.audio_path });
-      setMessage("음원 업로드 완료 — 「저장」을 누르면 작업폴더(01_음악작업)로 복사됩니다.");
+      setMessage("음원 업로드 완료 — 「저장」을 누르면 01_음악작업/앨범명/곡 폴더로 복사됩니다.");
     } catch {
       setError("음원 업로드 실패");
     } finally {
@@ -489,7 +617,7 @@ export default function SongPage() {
         <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
           {saved && <span style={{ color: "var(--success)", fontSize: "0.85rem" }}>저장됨</span>}
           <button className="btn btn-secondary" onClick={copySuno}>
-            Suno 복사
+            {copiedField === "suno" ? "복사됨" : "Suno 복사"}
           </button>
           <button className="btn btn-primary" onClick={handleSave} disabled={generating === "save"}>
             {generating === "save" ? "저장 중..." : "저장"}
@@ -515,7 +643,7 @@ export default function SongPage() {
             </div>
           )}
           {song.audio_path && (
-            <div className="meta">음원: 업로드됨 — 저장 시 01_음악작업 폴더로 audio.* 복사</div>
+            <div className="meta">음원: 업로드됨 — 저장 시 01_음악작업/앨범/곡 폴더로 audio.* 복사</div>
           )}
         </div>
       )}
@@ -644,15 +772,25 @@ export default function SongPage() {
       <div className="song-editor">
         <div className="editor-panel editor-panel--lyrics">
           <div className="editor-panel-header">
-            <h3>가사</h3>
+            <div className="editor-panel-title-row">
+              <h3>가사</h3>
+              {formatLyricsLengthBadge(song) && (
+                <span
+                  className={`track-duration-badge${song.lyrics_length_status === "short" ? " track-duration-badge--warn" : ""}`}
+                  title="Suno는 가사 줄 수로 곡 길이를 맞춥니다"
+                >
+                  {formatLyricsLengthBadge(song)}
+                </span>
+              )}
+            </div>
             <div className="editor-panel-tools">
               <button
                 type="button"
-                className="btn btn-sm btn-secondary"
+                className={`btn btn-sm ${copiedField === "lyrics" ? "btn-primary" : "btn-secondary"}`}
                 onClick={copyLyrics}
                 disabled={translatingLyrics}
               >
-                복사
+                {copiedField === "lyrics" ? "복사됨" : "복사"}
               </button>
               <div className="lang-toggle">
               <button
@@ -735,7 +873,9 @@ export default function SongPage() {
                     : "가사에 맞게 AI 악기 제안 (선택)"}
                 </button>
                 <p className="instrument-ai-hint">
-                  가사·테마를 보고 악기를 0~2개 추가·조정하는 제안입니다. 직접 고르셨다면 건너뛰어도 됩니다.
+                  가사 감정을 읽고 리드·리듬·텍스처를 곡마다 다르게 제안합니다.
+                  시그니처 1~2개만 남기고 나머지를 바꿉니다. 직접 고르셨다면 건너뛰어도 됩니다.
+                  「프리셋 불러오기」만 스타일 프리셋 기본 악기로 되돌립니다.
                 </p>
               </div>
               <div className="instrument-editor-actions">
@@ -796,12 +936,17 @@ export default function SongPage() {
           <div className="editor-panel editor-panel--prompt">
             <div className="editor-panel-header">
               <h3>Suno 스타일 프롬프트</h3>
-              <button type="button" className="btn btn-sm btn-secondary" onClick={copyPrompt}>
-                복사
+              <button
+                type="button"
+                className={`btn btn-sm ${copiedField === "prompt" ? "btn-primary" : "btn-secondary"}`}
+                onClick={copyPrompt}
+              >
+                {copiedField === "prompt" ? "복사됨" : "복사"}
               </button>
             </div>
             <p className="panel-hint">
-              가사·악기를 반영해 Intro → Verse → Climax → Outro 구간별 편곡을 영어로 생성합니다.
+              이 곡의 가사 감정·악기 세팅을 반영해 Intro → Verse → Climax → Outro 편곡을 만듭니다.
+              수동으로 고친 악기를 스타일 프리셋으로 되돌리지 않습니다.
               Suno Style of Music 칸에 붙여 넣으세요. (최대 {SUNO_PROMPT_MAX_CHARS}자)
             </p>
             <textarea

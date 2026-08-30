@@ -178,11 +178,17 @@ from app.services.queue_service import (
     maybe_enqueue_album_job,
     recover_stuck_job,
 )
+from app.services.pipeline_queue import (
+    cancel_pipeline_job,
+    recover_stuck_pipeline_job,
+)
 
 
 def _refresh_stale_job(job: QueueJob) -> bool:
     if mark_stale_job_failed(job):
         return True
+    if job.job_type in ("pipeline", "playlist"):
+        return recover_stuck_pipeline_job(job)
     if recover_stuck_job(job):
         maybe_enqueue_album_job(job)
         return True
@@ -211,6 +217,21 @@ async def get_queue_job(job_id: int, db: AsyncSession = Depends(get_db)):
     if not job:
         raise HTTPException(404, "작업을 찾을 수 없습니다")
     if _refresh_stale_job(job):
+        await db.flush()
+    return job
+
+
+@router.post("/queue/{job_id}/cancel", response_model=QueueJobResponse)
+async def cancel_queue_job(job_id: int, db: AsyncSession = Depends(get_db)):
+    job = await db.get(QueueJob, job_id)
+    if not job:
+        raise HTTPException(404, "작업을 찾을 수 없습니다")
+    if job.job_type in ("pipeline", "playlist"):
+        await cancel_pipeline_job(job, db)
+        return job
+    if job.status in ("pending", "running"):
+        job.status = "cancelled"
+        job.message = "사용자가 목록에서 닫음"
         await db.flush()
     return job
 

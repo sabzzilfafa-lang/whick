@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type MouseEvent } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   api,
   BrowseEntry,
@@ -25,6 +26,7 @@ function formatSize(n?: number): string {
 }
 
 export default function StudioPage() {
+  const navigate = useNavigate();
   const [status, setStatus] = useState<PipelineStatus | null>(null);
   const [config, setConfig] = useState<PipelineConfig | null>(null);
   const [stages, setStages] = useState<WorkflowStage[]>([]);
@@ -32,6 +34,9 @@ export default function StudioPage() {
   const [browsePath, setBrowsePath] = useState("");
   const [entries, setEntries] = useState<BrowseEntry[]>([]);
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
+  /** 다중 선택 (Ctrl/Shift). 순서는 선택 순서 유지 */
+  const [selectedProjects, setSelectedProjects] = useState<string[]>([]);
+  const lastIndexRef = useRef<number | null>(null);
   const [assets, setAssets] = useState<ProjectAssets | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -39,6 +44,8 @@ export default function StudioPage() {
   const [showSettings, setShowSettings] = useState(false);
   const [moveTarget, setMoveTarget] = useState("review");
   const [pipelineTarget, setPipelineTarget] = useState("review");
+  const [playlistTitle, setPlaylistTitle] = useState("");
+  const [playlistSubtitle, setPlaylistSubtitle] = useState("");
   const [youtubeMeta, setYoutubeMeta] = useState<{ video_id?: string | null; url?: string } | null>(null);
   const [youtubeConnected, setYoutubeConnected] = useState(false);
 
@@ -88,20 +95,63 @@ export default function StudioPage() {
     }).catch(() => setYoutubeMeta(null));
   }, [selectedProject, workRoot]);
 
+  const isProjectEntry = (entry: BrowseEntry) =>
+    entry.is_dir && entry.kind === "project";
+
   const openStage = (stage: WorkflowStage) => {
     loadBrowse(stage.folder);
     setSelectedProject(null);
+    setSelectedProjects([]);
+    lastIndexRef.current = null;
+  };
+
+  const applySingleSelect = (path: string) => {
+    setSelectedProjects([path]);
+    setSelectedProject(path);
+  };
+
+  const handleProjectClick = (e: MouseEvent, entry: BrowseEntry, index: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const path = entry.path;
+
+    if (e.ctrlKey || e.metaKey) {
+      setSelectedProjects((prev) => {
+        const exists = prev.includes(path);
+        const next = exists ? prev.filter((p) => p !== path) : [...prev, path];
+        setSelectedProject(next.length ? next[next.length - 1] : null);
+        return next;
+      });
+      lastIndexRef.current = index;
+      return;
+    }
+
+    if (e.shiftKey && lastIndexRef.current != null) {
+      const from = Math.min(lastIndexRef.current, index);
+      const to = Math.max(lastIndexRef.current, index);
+      const range = entries
+        .slice(from, to + 1)
+        .filter((en) => isProjectEntry(en))
+        .map((en) => en.path);
+      setSelectedProjects(range);
+      setSelectedProject(path);
+      return;
+    }
+
+    applySingleSelect(path);
+    lastIndexRef.current = index;
   };
 
   const openEntry = (entry: BrowseEntry) => {
     if (entry.is_dir) {
-      if (entry.kind === "folder") {
-        const parentIsStage = stages.some((s) => browsePath.replace(/\\/g, "/").endsWith(s.folder));
-        if (parentIsStage || stages.some((s) => entry.path.replace(/\\/g, "/").includes(`/${s.folder}/`))) {
-          setSelectedProject(entry.path);
-        }
+      if (isProjectEntry(entry)) {
+        // 프로젝트는 클릭으로 선택만 (더블클릭으로 진입)
+        return;
       }
       loadBrowse(relPath(workRoot, entry.path));
+      setSelectedProject(null);
+      setSelectedProjects([]);
+      lastIndexRef.current = null;
     }
   };
 
@@ -113,6 +163,8 @@ export default function StudioPage() {
     parts.pop();
     loadBrowse(parts.join("/"));
     setSelectedProject(null);
+    setSelectedProjects([]);
+    lastIndexRef.current = null;
   };
 
   const handleInit = async () => {
@@ -153,6 +205,55 @@ export default function StudioPage() {
       const rel = relPath(workRoot, selectedProject);
       const res = await api.runPipeline(rel, pipelineTarget);
       setMessage(res.message);
+      // 완료/실패까지 폴링 (상단 배너와 메시지 동기화)
+      const jobId = res.job_id;
+      for (let i = 0; i < 180; i++) {
+        await new Promise((r) => setTimeout(r, 2000));
+        const job = await api.getQueueJob(jobId).catch(() => null);
+        if (!job) break;
+        if (job.message) {
+          setMessage(`영상 파이프라인: ${job.message}${job.total ? ` · ${job.progress}/${job.total}` : ""}`);
+        }
+        if (job.status === "completed") {
+          setMessage(`영상 생성 완료 — 검수대기 폴더를 확인하세요`);
+          await refresh();
+          const stage = stages.find((s) => s.id === pipelineTarget);
+          if (stage) await loadBrowse(stage.folder);
+          break;
+        }
+        if (job.status === "failed") {
+          setMessage(`영상 생성 실패: ${job.message || "알 수 없는 오류"}`);
+          break;
+        }
+      }
+    } catch (e) {
+      setMessage(String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleRunPlaylist = async () => {
+    if (selectedProjects.length < 2) {
+      setMessage("합본 영상은 Ctrl/Shift로 프로젝트를 2개 이상 선택하세요.");
+      return;
+    }
+    setBusy(true);
+    setMessage("");
+    try {
+      const paths = selectedProjects.map((p) => relPath(workRoot, p));
+      const res = await api.runPlaylistPipeline({
+        project_paths: paths,
+        title: playlistTitle.trim() || undefined,
+        subtitle: playlistSubtitle.trim() || undefined,
+        target_stage: pipelineTarget,
+      });
+      setMessage(res.message);
+      setSelectedProjects([res.path]);
+      setSelectedProject(res.path);
+      await refresh();
+      const stage = stages.find((s) => s.id === pipelineTarget);
+      if (stage) await loadBrowse(stage.folder);
     } catch (e) {
       setMessage(String(e));
     } finally {
@@ -169,6 +270,7 @@ export default function StudioPage() {
       const res = await api.movePipelineStage(rel, moveTarget);
       setMessage(`이동 완료: ${res.path}`);
       setSelectedProject(res.path);
+      setSelectedProjects([res.path]);
       await refresh();
       const stage = stages.find((s) => s.id === moveTarget);
       if (stage) await loadBrowse(stage.folder);
@@ -189,7 +291,9 @@ export default function StudioPage() {
     setMessage("");
     try {
       const rel = relPath(workRoot, selectedProject);
-      const res = await api.uploadToYoutube(rel, "private");
+      const res = await api.uploadToYoutube(rel, { privacyStatus: "private" }, (job) => {
+        setMessage(`유튜브 업로드 ${job.percent}% · ${(job.bytes_sent / (1024 * 1024)).toFixed(1)} MB`);
+      });
       setYoutubeMeta({ video_id: res.video_id, url: res.url });
       setMessage(`유튜브 비공개 업로드 완료: ${res.url}`);
       await refresh();
@@ -241,7 +345,15 @@ export default function StudioPage() {
     }
   };
 
+  const clearMultiSelect = () => {
+    setSelectedProjects([]);
+    setSelectedProject(null);
+    lastIndexRef.current = null;
+  };
+
   if (loading) return <div className="loading">스튜디오 불러오는 중...</div>;
+
+  const multiCount = selectedProjects.length;
 
   return (
     <div className="studio-page">
@@ -271,6 +383,9 @@ export default function StudioPage() {
           <span className="badge">인코더: {status.detected_encoder}</span>
         )}
         <span className="meta">작업 루트: {workRoot}</span>
+        {multiCount > 0 && (
+          <span className="badge badge-ok">선택 {multiCount}개</span>
+        )}
       </div>
 
       {message && <div className="studio-message">{message}</div>}
@@ -346,32 +461,117 @@ export default function StudioPage() {
             <span className="studio-path" title={browsePath}>
               {relPath(workRoot, browsePath) || "/"}
             </span>
+            {multiCount > 0 && (
+              <button type="button" className="btn btn-secondary btn-sm" onClick={clearMultiSelect}>
+                선택 해제
+              </button>
+            )}
           </div>
+          <p className="studio-multiselect-hint meta">
+            단계 → 앨범 폴더 → 곡(01~) · 곡은 Ctrl(⌘)/Shift 다중선택 · 더블클릭으로 폴더 열기
+          </p>
           <ul className="studio-file-list">
             {entries.length === 0 && <li className="empty">비어 있음</li>}
-            {entries.map((entry) => (
-              <li key={entry.path}>
-                <button
-                  type="button"
-                  className={`studio-file-item ${selectedProject === entry.path ? "selected" : ""}`}
-                  onClick={() => openEntry(entry)}
-                  onDoubleClick={() => entry.is_dir && setSelectedProject(entry.path)}
-                >
-                  <span className="file-icon">{entry.is_dir ? "📁" : entry.kind === "audio" ? "🎵" : entry.kind === "image" ? "🖼" : "📄"}</span>
-                  <span className="file-name">{entry.name}</span>
-                  <span className="file-meta">{formatSize(entry.size)}</span>
-                </button>
-              </li>
-            ))}
+            {entries.map((entry, index) => {
+              const selected = selectedProjects.includes(entry.path);
+              const order = selected ? selectedProjects.indexOf(entry.path) + 1 : 0;
+              return (
+                <li key={entry.path}>
+                  <button
+                    type="button"
+                    className={`studio-file-item ${selected ? "selected" : ""}`}
+                    onClick={(e) => {
+                      if (isProjectEntry(entry)) {
+                        handleProjectClick(e, entry, index);
+                      } else {
+                        openEntry(entry);
+                      }
+                    }}
+                    onDoubleClick={() => {
+                      if (entry.is_dir) {
+                        loadBrowse(relPath(workRoot, entry.path));
+                      }
+                    }}
+                  >
+                    <span className="file-icon">
+                      {entry.kind === "album"
+                        ? "💿"
+                        : entry.kind === "project"
+                          ? "🎵"
+                          : entry.is_dir
+                            ? "📁"
+                            : entry.kind === "audio"
+                              ? "🎵"
+                              : entry.kind === "image"
+                                ? "🖼"
+                                : "📄"}
+                    </span>
+                    {order > 0 && <span className="file-order">{order}</span>}
+                    <span className="file-name">{entry.name}</span>
+                    <span className="file-meta">{formatSize(entry.size)}</span>
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         </div>
 
         <div className="card studio-detail">
-          {!selectedProject ? (
+          {multiCount >= 2 ? (
+            <>
+              <div className="card-title">합본 플레이리스트 ({multiCount}곡)</div>
+              <p className="meta">
+                WHICK 서버 playlist 파이프라인과 동일: 음원 연결 · EN/KO 자막 · 챕터 설명 · 썸네일
+              </p>
+              <ol className="studio-playlist-order">
+                {selectedProjects.map((p) => (
+                  <li key={p}>{p.split(/[/\\]/).pop()}</li>
+                ))}
+              </ol>
+              <div className="form-group">
+                <label>플레이리스트 제목</label>
+                <input
+                  value={playlistTitle}
+                  onChange={(e) => setPlaylistTitle(e.target.value)}
+                  placeholder="예: Midnight Dreams Full Album"
+                />
+              </div>
+              <div className="form-group">
+                <label>부제 (선택)</label>
+                <input
+                  value={playlistSubtitle}
+                  onChange={(e) => setPlaylistSubtitle(e.target.value)}
+                  placeholder="예: Soft Pop Collection"
+                />
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>출력 단계</label>
+                  <select value={pipelineTarget} onChange={(e) => setPipelineTarget(e.target.value)}>
+                    {stages.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <button
+                  className="btn btn-primary"
+                  onClick={handleRunPlaylist}
+                  disabled={busy || !status?.ffmpeg_available}
+                >
+                  {busy ? "합본 생성 중..." : `${multiCount}곡 → 영상 하나 만들기`}
+                </button>
+              </div>
+            </>
+          ) : !selectedProject ? (
             <div className="empty-state">
               <h3>프로젝트 선택</h3>
-              <p>단계 폴더 안의 프로젝트 폴더를 클릭하세요</p>
+              <p>앨범 폴더를 연 뒤 곡(01…)을 클릭하세요</p>
               <p className="meta" style={{ marginTop: "1rem" }}>
+                여러 곡을 Ctrl/Shift로 고른 뒤 합본 영상 하나로 만들 수 있습니다.
+              </p>
+              <p className="meta" style={{ marginTop: "0.5rem" }}>
                 필요 파일: audio.*, thumbnail.* (또는 곡 페이지에서 커버 업로드 후 보내기), lyrics_en.txt
               </p>
             </div>
@@ -420,6 +620,16 @@ export default function StudioPage() {
                     disabled={busy || !status?.ffmpeg_available}
                   >
                     영상 생성 실행
+                  </button>
+                  <button
+                    className="btn btn-secondary"
+                    type="button"
+                    onClick={() => {
+                      const rel = relPath(workRoot, selectedProject!);
+                      navigate(`/editor?path=${encodeURIComponent(rel)}&step=2`);
+                    }}
+                  >
+                    8단계 편집기
                   </button>
                 </div>
                 <div className="form-row">

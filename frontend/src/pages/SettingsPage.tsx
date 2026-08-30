@@ -532,7 +532,8 @@ export default function SettingsPage() {
       <div className="card" style={{ marginBottom: "1.5rem" }}>
         <div className="card-title">YouTube 자동 게시</div>
         <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "1rem" }}>
-          Google Cloud → 사용자 인증 정보 → OAuth 클라이언트 → <strong>웹 애플리케이션</strong>으로 만들고,
+          Google Cloud → API 및 서비스 → 라이브러리에서 <strong>YouTube Data API v3</strong>를 사용 설정한 다음,
+          사용자 인증 정보 → OAuth 클라이언트 → <strong>웹 애플리케이션</strong>으로 만들고,
           아래 URI를 <strong>승인된 리디렉션 URI</strong>에 그대로 추가하세요. (localhost와 127.0.0.1은 다릅니다)
         </p>
         {youtube ? (

@@ -223,6 +223,13 @@ async def create_album(data: AlbumCreate, db: AsyncSession = Depends(get_db)):
     db.add(album)
     await db.flush()
     await db.refresh(album)
+    try:
+        from app.services.workflow_service import ensure_album_work_folder
+
+        root = await get_work_root(db)
+        ensure_album_work_folder(root, album, "music")
+    except Exception:
+        pass
     return album
 
 
@@ -247,10 +254,27 @@ async def update_album(
     album = await db.get(Album, album_id)
     if not album:
         raise HTTPException(404, "앨범을 찾을 수 없습니다")
+    old_title = album.title
     for key, value in data.model_dump(exclude_unset=True).items():
         setattr(album, key, value)
     await db.flush()
     await db.refresh(album)
+    # 제목 변경 시 작업폴더 앨범 디렉터리 이름도 맞춤
+    if album.title != old_title:
+        try:
+            from app.services.pipeline_defaults import WORKFLOW_STAGES
+            from app.services.workflow_service import album_pipeline_folder_name
+
+            root = await get_work_root(db)
+            old_name = album_pipeline_folder_name({"title": old_title})
+            new_name = album_pipeline_folder_name(album)
+            for stage in WORKFLOW_STAGES:
+                old_dir = root / stage["folder"] / old_name
+                new_dir = root / stage["folder"] / new_name
+                if old_dir.is_dir() and not new_dir.exists():
+                    old_dir.rename(new_dir)
+        except Exception:
+            pass
     return album
 
 
@@ -509,15 +533,29 @@ async def api_generate_prompt(
     model = req.model or model
 
     try:
+        from app.services.instrument_settings_service import (
+            ensure_settings,
+            serialize_settings,
+        )
+        from app.services.suno_prompt_service import resolve_track_bpm
+
+        profile_dict = _model_to_dict(profile)
+        song_dict = _model_to_dict(song)
+        lyrics = primary_lyrics(song)
         inst_settings = req.instrument_settings or song.instrument_settings
-        if req.instrument_settings:
-            song.instrument_settings = req.instrument_settings
+        data = ensure_settings(inst_settings, profile_dict)
+        if data.get("tempo_bpm") is None:
+            data["tempo_bpm"] = resolve_track_bpm(
+                profile_dict, song_dict, lyrics, None
+            )
+        inst_settings = serialize_settings(data)
+        song.instrument_settings = inst_settings
         content = await generate_suno_prompt(
             client,
-            _model_to_dict(profile),
+            profile_dict,
             _model_to_dict(album),
-            _model_to_dict(song),
-            primary_lyrics(song),
+            song_dict,
+            lyrics,
             _model_to_dict(ref) if ref else None,
             req.additional_instructions,
             model,

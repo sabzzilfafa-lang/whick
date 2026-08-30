@@ -32,6 +32,8 @@ async def _update_job(job_id: int, **kwargs):
         job = await db.get(QueueJob, job_id)
         if not job:
             return
+        if job.status == "cancelled" and kwargs.get("status") != "cancelled":
+            return
         for k, v in kwargs.items():
             setattr(job, k, v)
         job.updated_at = datetime.utcnow()
@@ -125,7 +127,9 @@ def is_stuck_running_job(job: QueueJob) -> bool:
 
 
 def recover_stuck_job(job: QueueJob) -> bool:
-    """running인데 워커가 없으면 pending으로 되돌림."""
+    """running인데 워커가 없으면 pending으로 되돌림. album_tracks 전용."""
+    if job.job_type != "album_tracks":
+        return False
     if job.status == "running" and job.id not in _active_album_jobs:
         job.status = "pending"
         job.message = "작업이 멈춰서 다시 시도합니다..."

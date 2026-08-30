@@ -18,6 +18,12 @@ export function parseInstrumentSettings(raw?: string | null): SongInstrumentSett
       return {
         preset_name: data.preset_name || "",
         mix_notes: data.mix_notes || "",
+        tempo_bpm:
+          typeof data.tempo_bpm === "number"
+            ? data.tempo_bpm
+            : data.tempo_bpm != null && data.tempo_bpm !== ""
+              ? Number(data.tempo_bpm)
+              : null,
         instruments: data.instruments,
       };
     }
@@ -100,6 +106,14 @@ export default function InstrumentEditor({ settings, onChange, presetName }: Pro
           {(presetName || settings.preset_name) && (
             <p className="instrument-preset-label">
               앨범 프리셋: {presetName || settings.preset_name}
+            </p>
+          )}
+          {settings.tempo_bpm != null && Number.isFinite(settings.tempo_bpm) && (
+            <p className="instrument-summary">
+              이 곡 BPM: {settings.tempo_bpm}
+              <span style={{ color: "var(--text-muted)", marginLeft: "0.35rem" }}>
+                (프리셋 ±5, 가사·분위기 반영)
+              </span>
             </p>
           )}
           {summary && (
