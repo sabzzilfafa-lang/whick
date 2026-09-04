@@ -12,7 +12,6 @@
 | 재생 | `WHICK_AUDIO_URL` → `/play` `/pause` | 이벤트 |
 
 **SSOT 프로토콜:** `../protocol/` · `../docs/DEVICE-CC-PROTOCOL.md`  
-**체험 참고 (read-only):** `../../music-server/agent/agent.mjs`
 
 ## 로컬 dev
 

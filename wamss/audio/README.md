@@ -15,4 +15,4 @@ CamillaDSP · ALSA → DAC (**Phase 1: HTTP stub**).
 | POST | `/stop` | |
 | POST | `/volume` | `{ volume }` 0–100 |
 
-체험 `whick-eq-*` · room PEQ → **CamillaDSP yaml** 이식 예정.
+room PEQ → **CamillaDSP yaml** 이식 예정.
