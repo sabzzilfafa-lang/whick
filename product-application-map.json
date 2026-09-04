@@ -1,0 +1,251 @@
+{
+  "schema_version": 1,
+  "name": "Whick product package application map",
+  "roots": {
+    "product": "/data/whick-ai_music_server/3_product",
+    "cc": "/data/whick-ai/2_control_center",
+    "build_staging": "/mnt/music/whick-cc/build-staging",
+    "registered": "/mnt/music/whick-cc/solutions",
+    "whick_dist": "/mnt/music/whick-cc/whick-dist"
+  },
+  "exact_mirrors": [
+    {
+      "id": "install-runtime",
+      "source": "{product}/install/runtime/scripts/install-runtime.sh",
+      "targets": [
+        "{product}/uab/live/bin/install-runtime.sh"
+      ],
+      "reason": "SSD firstboot and runtime reinstall must execute identical logic"
+    },
+    {
+      "id": "install-docker",
+      "source": "{product}/install/runtime/scripts/install-docker.sh",
+      "targets": [
+        "{product}/uab/live/bin/install-docker.sh"
+      ],
+      "reason": "SSD firstboot and runtime reinstall must execute identical logic"
+    },
+    {
+      "id": "artifact-fetch",
+      "source": "{product}/install/runtime/scripts/whick-fetch-artifact.sh",
+      "targets": [
+        "{product}/uab/live/bin/whick-fetch-artifact.sh"
+      ],
+      "reason": "All install phases must share download error and checksum handling"
+    },
+    {
+      "id": "dual-install-common",
+      "source": "{product}/install/runtime/scripts/whick-dual-install-common.sh",
+      "targets": [
+        "{product}/uab/live/bin/whick-dual-install-common.sh"
+      ],
+      "reason": "Artifact URL policy must not differ by install entrypoint"
+    },
+    {
+      "id": "host-reboot",
+      "source": "{product}/install/runtime/scripts/whick-host-reboot.sh",
+      "targets": [
+        "{product}/uab/live/bin/whick-host-reboot.sh"
+      ],
+      "reason": "Host reboot behavior must not differ by install entrypoint"
+    },
+    {
+      "id": "hardware-health",
+      "source": "{product}/install/runtime/scripts/whick-hardware-health.py",
+      "targets": [
+        "{product}/uab/live/bin/whick-hardware-health.py"
+      ],
+      "reason": "First install and reinstall must install the same health probe"
+    }
+  ],
+  "release_lock": {
+    "source": "{cc}/config/solutions/music-01.json",
+    "targets": [
+      "{cc}/config/solutions/music-01-components.json",
+      "{product}/install/runtime/components.lock.json",
+      "{product}/uab/live/lib/components.lock.json"
+    ],
+    "reason": "Version, image tags, artifact names, sizes and hashes are one release contract"
+  },
+  "artifacts": [
+    {
+      "id": "bootstrap-rootfs",
+      "lock_component": "bootstrap_rootfs",
+      "file_field": "file",
+      "sha_field": "sha256",
+      "size_field": "size_bytes",
+      "source_candidates": [
+        "{build_staging}/uab/{file}",
+        "{product}/dist/uab/{file}",
+        "{whick_dist}/uab/{file}"
+      ],
+      "serve_targets": [
+        "{build_staging}/uab/{file}",
+        "{whick_dist}/uab/{file}"
+      ],
+      "reason": "Install API (build-staging) and host product/dist symlink (whick-dist) must serve identical bootstrap bytes"
+    },
+    {
+      "id": "docker-ce",
+      "lock_component": "docker_ce",
+      "file_field": "deb_bundle",
+      "sha_field": "deb_sha256",
+      "size_field": "deb_size_bytes",
+      "source_candidates": [
+        "{build_staging}/music-01/{file}",
+        "{product}/dist/music-01/{file}",
+        "{whick_dist}/music-01/{file}",
+        "{registered}/music-01/{version}/{file}",
+        "{registered}/music-01/{version}/*_{file}"
+      ],
+      "serve_targets": [
+        "{build_staging}/music-01/{file}",
+        "{whick_dist}/music-01/{file}"
+      ],
+      "reason": "Docker offline bundle must match lock on every serve path"
+    },
+    {
+      "id": "music-01-runtime",
+      "lock_component": "runtime_bundle",
+      "file_field": "file",
+      "sha_field": "sha256",
+      "size_field": "size_bytes",
+      "source_candidates": [
+        "{build_staging}/music-01/{file}",
+        "{product}/dist/music-01/{file}",
+        "{whick_dist}/music-01/{file}",
+        "{registered}/music-01/{version}/{file}",
+        "{registered}/music-01/{version}/*_{file}"
+      ],
+      "serve_targets": [
+        "{build_staging}/music-01/{file}",
+        "{whick_dist}/music-01/{file}"
+      ],
+      "reason": "The lock may only be published when the install API can serve the exact bytes"
+    }
+  ],
+  "pipeline_hooks": [
+    {
+      "path": "{product}/scripts/build-music-runtime-bundle.sh",
+      "before": "apply --scope sources",
+      "after": "apply --scope release"
+    },
+    {
+      "path": "{product}/scripts/build-docker-ce-deb-bundle.sh",
+      "after": "apply --scope release; verify --scope all"
+    },
+    {
+      "path": "{product}/uab/scripts/build-whick-bootstrap-rootfs.sh",
+      "after": "apply --scope release; verify --scope all"
+    },
+    {
+      "path": "{product}/scripts/release-music-server.sh",
+      "before": "apply --scope sources",
+      "before_register": "verify --scope all",
+      "after_register": "apply --scope versions --version-id sales-remote-update-fallback; verify --scope versions --version-id sales-remote-update-fallback"
+    },
+    {
+      "path": "{product}/uab/scripts/build-connect-usb-package.sh",
+      "before": "apply --scope all"
+    },
+    {
+      "path": "{product}/uab/scripts/release-connect-usb.sh",
+      "before": "apply --scope versions --version-id remote-portal-ui; apply --scope versions --version-id sales-remote-ui-footer; verify --scope versions --version-id remote-portal-ui; verify --scope versions --version-id sales-remote-ui-footer"
+    },
+    {
+      "path": "{product}/packages/remote-portal/scripts/release-remote-mobile.sh",
+      "before": "apply --scope versions --version-id remote-portal-ui; verify --scope versions --version-id remote-portal-ui"
+    },
+    {
+      "path": "{cc}/scripts/register-solution-cc.sh",
+      "before_music_01_register": "apply --scope release; verify --scope all"
+    }
+  ],
+  "version_displays": [
+    {
+      "id": "remote-portal-ui",
+      "solution_code": "remote-mobile",
+      "canonical": "{cc}/config/solutions/remote-mobile.json",
+      "field": "version",
+      "reason": "Independent SSOT: remote-mobile only. Never sync from music-01/connect versions.",
+      "projections": [
+        {
+          "path": "{product}/packages/remote-portal/js/config.js",
+          "kind": "js_object_string",
+          "key": "version"
+        },
+        {
+          "path": "{product}/packages/remote-portal/index.html",
+          "kind": "html_text_ids",
+          "ids": ["portal-version", "foot-version"]
+        },
+        {
+          "path": "{product}/packages/remote-portal/index.html",
+          "kind": "regex_replace",
+          "pattern": "(\\|\\|\\s*')v\\d+\\.\\d+\\.\\d+(')",
+          "replacement": "\\g<1>{version}\\g<2>"
+        },
+        {
+          "path": "{product}/packages/remote-portal/index.html",
+          "kind": "regex_replace",
+          "pattern": "(\\?v=)v?\\d+\\.\\d+\\.\\d+",
+          "replacement": "\\g<1>{version_numeric}"
+        },
+        {
+          "path": "{product}/packages/remote-portal/js/portal_app.js",
+          "kind": "regex_replace",
+          "pattern": "(\\|\\|\\s*')v\\d+\\.\\d+\\.\\d+(')",
+          "replacement": "\\g<1>{version}\\g<2>"
+        }
+      ]
+    },
+    {
+      "id": "sales-remote-ui-footer",
+      "solution_code": "remote-mobile",
+      "canonical": "{cc}/config/solutions/remote-mobile.json",
+      "field": "version",
+      "reason": "Sales remote UI version labels — remote-mobile SSOT (settings footer + drawer foot).",
+      "projections": [
+        {
+          "path": "{product}/packages/remote/index.html",
+          "kind": "regex_replace",
+          "pattern": "(WHICK REMOTE )v\\d+\\.\\d+\\.\\d+(</div>)",
+          "replacement": "\\g<1>{version}\\g<2>"
+        },
+        {
+          "path": "{product}/packages/remote/index.html",
+          "kind": "regex_replace",
+          "pattern": "(WHICK REMOTE )v\\d+\\.\\d+\\.\\d+( · whick-remote)",
+          "replacement": "\\g<1>{version}\\g<2>"
+        }
+      ]
+    },
+    {
+      "id": "sales-remote-update-fallback",
+      "solution_code": "music-01",
+      "canonical": "{cc}/config/solutions/music-01.json",
+      "field": "version",
+      "reason": "Independent SSOT: music-01 only. Never sync from remote-mobile/connect versions.",
+      "projections": [
+        {
+          "path": "{product}/packages/remote/index.html",
+          "kind": "regex_replace",
+          "pattern": "(data\\.installed_version\\s*\\|\\|\\s*data\\.target_version\\s*\\|\\|\\s*')v\\d+\\.\\d+\\.\\d+(')",
+          "replacement": "\\g<1>{version}\\g<2>"
+        }
+      ]
+    }
+  ],
+  "independent_boundaries": [
+    {
+      "areas": [
+        "{product}/packages/remote",
+        "{cc}/site-web/public/trial-remote",
+        "{cc}/site-web/public/demo-remote",
+        "{cc}/frontend"
+      ],
+      "policy": "never_copy_sync_import_link",
+      "verification": "{cc}/scripts/guard-remote-ui-boundaries.py and {product}/scripts/guard-product-remote-separation.sh"
+    }
+  ]
+}

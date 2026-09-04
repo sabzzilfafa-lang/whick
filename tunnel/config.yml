@@ -1,0 +1,6 @@
+tunnel: 3f0c6ee9-de06-425b-9cb9-2686073e16d1
+credentials-file: /etc/cloudflared/3f0c6ee9-de06-425b-9cb9-2686073e16d1.json
+ingress:
+  - hostname: music-48.whick.org
+    service: http://player:8080
+  - service: http_status:404

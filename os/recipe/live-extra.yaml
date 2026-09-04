@@ -1,0 +1,37 @@
+# Packages only on Whick OS Live USB (not SSD rootfs)
+meta:
+  product: whick-os-live
+  updated: "2026-07-26"
+
+live_only:
+  - network-manager
+  - dmidecode
+  - smartmontools
+  - jq
+  - curtin
+  - debootstrap
+  - squashfs-tools
+  - casper
+  - lupin-casper
+  # hostapd / dnsmasq — Whick-Setup AP 폐기 (2026-07-26). 무선은 provision STA만.
+
+python_pip:
+  - "flask>=3.0,<4"
+  - "requests>=2.31,<3"
+
+net_profiles:
+  wired:
+    description: USB-LAN / eth DHCP primary (default field path)
+    hostapd: false
+  wireless:
+    description: VIP custom only — provision.json wifi_ssid/wifi_password → STA. No Whick-Setup AP.
+    hostapd: false
+    provision_required: true
+    create: uab/scripts/create-install-provision.sh
+    build: uab/scripts/build-custom-install-usb.sh
+
+size_policy:
+  usb_min_gb: 8
+  usb_recommended_gb: 16
+  img_max_bytes_legacy_2_5gib: deprecated
+  note: "유선 기본 · 무선은 소수·provision 맞춤. AP 가상공유기 폐기"

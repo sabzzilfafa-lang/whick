@@ -1,0 +1,62 @@
+USB 설치 — 고객 안내
+USB Install Guide
+====================
+
+스마트폰만으로 설치합니다. (모니터·키보드 불필요)
+Install with your smartphone only. (No monitor/keyboard needed)
+
+[준비 / Prep]
+  뮤직서버용 미니PC RAM 8GB 이상 · SSD 64GB 이상
+  Mini PC for music server: RAM 8GB+ · SSD 64GB+
+  스마트폰으로 Wi-Fi 접속 후 remote.whick.org를 열어 주세요.
+  On your phone, join Wi-Fi and open remote.whick.org.
+
+[1. USB 만들기 / Create USB]
+  VIP Room에서 설치 zip 받기 → 압축 풀기 → make-usb.bat 실행
+  Download install zip from VIP Room → unzip → run make-usb.bat
+  (무선: Wi-Fi SSID·비밀번호 입력 → 맞춤 USB 만들기)
+  (Wireless: enter Wi-Fi SSID/password → create custom USB)
+
+[2. 설치 (미니PC + 스마트폰) / Install]
+
+── 유선 설치 / Wired ──
+  ① 미니PC에 유선 LAN을 연결합니다. (필수)
+     Connect wired LAN to the mini PC. (Required)
+  ② 설치 USB를 미니PC에 꽂고, 전원을 켭니다.
+     Insert the install USB and power on.
+  ③ 미니PC 초기 설치가 진행되고 Whick 서버에 연결될 때까지 수분 걸립니다.
+     Initial setup and Whick connection may take several minutes.
+  ④ 같은 Wi-Fi에서 whick.org 로그인 · 고유 접속 주소에서 설치 안내를 따릅니다.
+     Same Wi-Fi · log in to whick.org · follow your personal install URL.
+  ⑤ 이후 설치는 원격으로 중앙관제센터 AI가 진행합니다.
+     Remaining steps run remotely via Whick Control Center AI.
+  ⑥ 설치 페이지를 닫지 마세요. 장애 시 해결 방법이 표시됩니다.
+     Do not close the install page. Fix steps appear if something fails.
+
+── 무선 설치 / Wireless ──
+  ① 개인별 맞춤 설치파일로 만든 설치 USB를 미니PC에 꽂고, 전원을 켭니다.
+     Boot with your custom wireless install USB.
+  ② 미니PC가 사전 입력 Wi-Fi에 연결되고 Whick 서버에 접속됩니다.
+     Mini PC joins the pre-entered Wi-Fi and connects to Whick.
+  ③ 같은 Wi-Fi에서 whick.org 로그인 · 고유 접속 주소에서 설치 안내를 따릅니다.
+     Same Wi-Fi · log in to whick.org · follow your personal install URL.
+  ④ 이후 설치는 원격으로 중앙관제센터 AI가 진행합니다.
+     Remaining steps run remotely via Whick Control Center AI.
+  ⑤ 설치 페이지를 닫지 마세요. 장애 시 해결 방법이 표시됩니다.
+     Do not close the install page. Fix steps appear if something fails.
+
+[3. 설치 완료 후 — 리모컨 / After install — Remote]
+  고유 접속 주소에서 리모컨으로 이관됩니다.
+  You are handed off to the remote at your personal URL.
+  리모컨 설정에서 「공유기 Wi-Fi 직접」과 「중앙관제 터널」을 자유롭게 전환할 수 있습니다.
+  In remote settings you can switch between direct router Wi-Fi and control tunnel.
+
+문의 / Contact: whick.org VIP Room
+
+[저작권·배포 / Copyright]
+  본 USB·설치 프로그램은 whick.org 공식 채널 전용입니다.
+  This USB/installer is for official whick.org channels only.
+  무단 복제·변조·재배포·Whick 명칭을 이용한 가공 배포는 금지됩니다.
+  Unauthorized copy, modification, redistribution, or misuse of the Whick name is prohibited.
+  자세한 내용: USB-저작권-배포안내.txt
+  Details: USB-저작권-배포안내.txt

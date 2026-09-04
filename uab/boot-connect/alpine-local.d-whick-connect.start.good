@@ -1,0 +1,182 @@
+#!/bin/sh
+# Alpine Live 부팅 시 자동 실행 (apkovl → local.d)
+# opt/whick-boot-connect = apkovl 내장 (Ventoy USB 마운트 불필요) · USB는 결과 저장용
+pkill -f 'getty.*tty1' 2>/dev/null || true
+echo "Whick: connect-usb build 2026062022 (kernel 6.12 · 8125/8126 · BE200 · 8852BE · MT7925)" >/dev/tty1 2>/dev/null || true
+echo "Whick: starting setup..." >/dev/tty1 2>/dev/null || true
+
+# offline tools in opt/mini — must not overlay Live /usr (fsck/libmount break)
+if [ -f /opt/whick-boot-connect/whick-env.sh ]; then
+  # shellcheck source=/dev/null
+  . /opt/whick-boot-connect/whick-env.sh
+fi
+
+# shellcheck source=/dev/null
+[ -f /opt/whick-boot-connect/whick-kernel-modules.sh ] \
+  && . /opt/whick-boot-connect/whick-kernel-modules.sh
+
+_i=0
+while [ "$_i" -lt 60 ]; do
+  if whick_ensure_modloop 2>/dev/null; then
+    whick_mount_firmware 2>/dev/null || true
+    whick_load_net_modules 2>/dev/null || true
+    break
+  fi
+  sleep 1
+  _i=$((_i + 1))
+done
+if whick_modules_ready 2>/dev/null; then
+  _eth="$(whick_wait_usb_eth 2>/dev/null || true)"
+  if [ -n "$_eth" ]; then
+    echo "Whick: kernel modules OK ($(whick_modules_kver 2>/dev/null)), eth $_eth" >/dev/tty1 2>/dev/null || true
+  else
+    echo "Whick: kernel modules OK ($(whick_modules_kver 2>/dev/null)) — no USB-LAN, Wi-Fi AP setup" >/dev/tty1 2>/dev/null || true
+  fi
+else
+  echo "Whick: WARN kernel modules not ready — check cable after reboot" >/dev/tty1 2>/dev/null || true
+fi
+
+# apkovl에 패키지 내장 — 네트워크 없을 때 fallback apk
+if ! command -v python3 >/dev/null 2>&1; then
+  for _i in 1 2 3 4 5; do
+    apk add --no-cache curl python3 dmidecode iproute2 exfat-utils ntfs-3g \
+      wpa_supplicant wireless-tools openssl iw e2fsprogs \
+      wireless-regdb util-linux-misc linux-firmware linux-firmware-intel linux-firmware-rtlwifi >/dev/null 2>&1 && break
+    sleep 2
+  done
+fi
+# 가상 AP 패키지 계정 생성 불필요 (2026-07-26 폐기)
+
+# exFAT/VFAT에는 Unix +x 없음 — -f 로 존재 확인 후 chmod
+_whick_has_setup() {
+  [ -f "$1/whick-boot-sequence.sh" ] && [ -f "$1/whick-customer-setup.py" ]
+}
+
+_mount_try() {
+  dev="$1"
+  mp="$2"
+  umount "$mp" 2>/dev/null || true
+  mount -o ro "$dev" "$mp" 2>/dev/null \
+    || mount -t exfat -o ro "$dev" "$mp" 2>/dev/null \
+    || mount -t vfat -o ro "$dev" "$mp" 2>/dev/null \
+    || mount -t ntfs -o ro "$dev" "$mp" 2>/dev/null
+}
+
+find_whick_usb_root() {
+  mp="/mnt/whick-ventoy"
+  mkdir -p "$mp"
+
+  # Ventoy VTOY_LINUX_REMOUNT → /dev/mapper/<partition>
+  if command -v udevadm >/dev/null 2>&1; then
+    udevadm trigger 2>/dev/null || true
+    sleep 1
+  fi
+  for dev in /dev/mapper/*; do
+    [ -b "$dev" ] || continue
+    case "$dev" in */ventoy*|*/Ventoy*) ;; esac
+    _mount_try "$dev" "$mp" || continue
+    if _whick_has_setup "$mp/whick-boot-connect"; then
+      echo "$mp"
+      return 0
+    fi
+    umount "$mp" 2>/dev/null || true
+  done
+
+  for label in Ventoy VENTOY ventoy VToy; do
+    for dev in "/dev/disk/by-label/$label"; do
+      [ -e "$dev" ] || continue
+      _mount_try "$dev" "$mp" || continue
+      if _whick_has_setup "$mp/whick-boot-connect"; then
+        echo "$mp"
+        return 0
+      fi
+      umount "$mp" 2>/dev/null || true
+    done
+  done
+
+  for pattern in \
+    /media/*/whick-boot-connect \
+    /media/*/*/whick-boot-connect \
+    /run/media/*/whick-boot-connect \
+    /run/media/*/*/whick-boot-connect \
+    /mnt/*/whick-boot-connect; do
+    for d in $pattern; do
+      _whick_has_setup "$d" || continue
+      echo "$(dirname "$d")"
+      return 0
+    done
+  done
+
+  for dev in /dev/disk/by-id/* /dev/sd*[0-9] /dev/vd*[0-9] /dev/nvme*p[0-9]; do
+    [ -b "$dev" ] || continue
+    _mount_try "$dev" "$mp" || continue
+    if _whick_has_setup "$mp/whick-boot-connect"; then
+      echo "$mp"
+      return 0
+    fi
+    umount "$mp" 2>/dev/null || true
+  done
+  return 1
+}
+
+# 1) apkovl 내장 (항상 우선 — Ventoy ISO 부팅에서 USB 파티션 잠금 회피)
+ROOT=""
+if _whick_has_setup /opt/whick-boot-connect; then
+  ROOT="/opt/whick-boot-connect"
+  echo "Whick: using apkovl /opt/whick-boot-connect" >/dev/tty1 2>/dev/null || true
+else
+  i=0
+  USB_MP=""
+  while [ "$i" -lt 15 ]; do
+    USB_MP="$(find_whick_usb_root)" || USB_MP=""
+    [ -n "$USB_MP" ] && break
+    i=$((i + 1))
+    echo "Whick: waiting for USB ($i/15)..." >/dev/tty1 2>/dev/null || true
+    sleep 2
+  done
+  if [ -n "$USB_MP" ] && _whick_has_setup "$USB_MP/whick-boot-connect"; then
+    ROOT="$USB_MP/whick-boot-connect"
+    echo "Whick: using USB $ROOT" >/dev/tty1 2>/dev/null || true
+  fi
+fi
+
+if [ -z "$ROOT" ]; then
+  echo "whick-boot-connect not found" >/dev/tty1 2>/dev/null || true
+  echo "check apkovl /opt/whick-boot-connect or Ventoy USB whick-boot-connect/" >/dev/tty1 2>/dev/null || true
+  exit 1
+fi
+
+_fw="/opt/whick-boot-connect/firmware"
+[ -d "$ROOT/firmware" ] && _fw="$ROOT/firmware"
+if [ -d "$_fw" ]; then
+  mkdir -p /lib/firmware
+  mount -o bind,ro "$_fw" /lib/firmware 2>/dev/null \
+    || cp -a "$_fw/." /lib/firmware/ 2>/dev/null || true
+  whick_reload_nic 2>/dev/null || true
+fi
+
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "Whick: python3 missing (apkovl build error)" >/dev/tty1 2>/dev/null || true
+  exit 1
+fi
+
+export WHICK_USB_ROOT=""
+if [ -n "${USB_MP:-}" ]; then
+  export WHICK_USB_ROOT="$USB_MP"
+else
+  USB_MP="$(find_whick_usb_root 2>/dev/null)" || USB_MP=""
+  [ -n "$USB_MP" ] && export WHICK_USB_ROOT="$USB_MP"
+fi
+export WHICK_CC_API_URL="${WHICK_CC_API_URL:-https://admin.whick.org/api/v1}"
+export WHICK_SETUP_TTY="${WHICK_SETUP_TTY:-/dev/tty1}"
+export WHICK_CONNECT_BUILD="2026062022"
+
+chmod +x "$ROOT"/*.sh "$ROOT"/*.py 2>/dev/null || true
+if command -v start-stop-daemon >/dev/null 2>&1; then
+  start-stop-daemon --start --background --make-pidfile \
+    --pidfile /run/whick-setup.pid \
+    --exec "$ROOT/whick-setup-supervisor.sh"
+else
+  "$ROOT/whick-setup-supervisor.sh" &
+fi
+exit 0

@@ -1,0 +1,38 @@
+#!/bin/sh
+set -e
+
+RESCUE_DIR="/usr/local/share/whick-rescue"
+RUNNER="/usr/local/sbin/whick-rescue-run.sh"
+
+log() { echo "[whick-rescue] $(date -Iseconds) $*" | tee -a /var/log/whick-rescue.log; }
+
+log "Rescue system starting..."
+
+# Network DHCP
+log "Bringing up network..."
+for iface in /sys/class/net/eth* /sys/class/net/en*; do
+  ifname=$(basename "$iface")
+  [ -d "$iface" ] || continue
+  udhcpc -i "$ifname" -t 10 -n -q 2>/dev/null && break
+done
+for i in $(seq 1 30); do
+  ip addr show | grep -q "inet " && break
+  sleep 2
+done
+IP=$(ip addr show | grep "inet " | grep -v 127.0.0.1 | awk '{print $2}' | head -1)
+log "Network: $IP"
+
+# Install tools
+log "Installing rescue tools..."
+apk update
+apk add --no-cache python3 py3-pip parted e2fsprogs zstd curl util-linux sfdisk lsblk
+log "Tools installed"
+
+# Run rescue runner
+if [ -x "$RUNNER" ]; then
+  log "Starting rescue runner"
+  exec "$RUNNER"
+else
+  log "FATAL: rescue runner not found"
+  exec /bin/sh
+fi

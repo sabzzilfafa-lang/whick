@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Remote">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#080c0e">
+  <meta name="description" content="Whick 뮤직서버 스마트폰 리모컨 — whick.org 홈 없이 로그인">
+  <title>Whick Remote</title>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/icons/icon-48.png" sizes="48x48" type="image/png">
+  <link rel="icon" href="/favicon.ico" sizes="any" type="image/x-icon">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" sizes="180x180">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Noto+Sans+KR:wght@400;500&display=swap" rel="stylesheet">
+  <script>
+    (function () {
+      var theme = localStorage.getItem('whick_remote_theme') || 'light';
+      document.documentElement.classList.toggle('remote-theme-light', theme==='light');
+      document.documentElement.classList.toggle('remote-theme-dark', theme==='dark');
+      var color = theme==='light' ? '#fff8f6' : theme==='dark' ? '#15171c' : '#271310';
+      document.querySelector('meta[name="theme-color"]')?.setAttribute('content', color);
+    })();
+  </script>
+  <link rel="stylesheet" href="/css/portal.css?v=0.9.33">
+</head>
+<body>
+  <div class="corner-tools">
+    <select id="lang-select" class="lang-select corner-btn" title="Language" aria-label="Language"></select>
+    <button id="theme-toggle" class="corner-btn" type="button">LIGHT</button>
+  </div>
+  <div class="shell">
+    <div class="brand">
+      <div class="brand-logo">WHICK REMOTE</div>
+      <div class="brand-sub" data-i18n="brand.sub">스마트폰 뮤직서버 리모컨</div>
+    </div>
+
+    <section id="view-loading" class="card">
+      <div class="spinner" aria-hidden="true"></div>
+      <p class="lead" style="text-align:center;margin:0" data-i18n="loading.checking">연결 확인 중…</p>
+    </section>
+
+    <section id="view-login" class="card hidden">
+      <h1 data-i18n="login.title">Whick 계정 로그인</h1>
+      <p class="lead" data-i18n-html="login.lead">Whick 계정으로 로그인하세요.<br>설치 중이면 진행 안내, 완료 후에는 뮤직서버 리모컨으로 연결됩니다.</p>
+      <form id="login-form" autocomplete="on">
+        <div class="field">
+          <label for="login" data-i18n="login.id_label">아이디 또는 이메일</label>
+          <input id="login" name="login" type="text" inputmode="email" autocomplete="username" required>
+        </div>
+        <div class="field">
+          <label for="password" data-i18n="login.pw_label">비밀번호</label>
+          <input id="password" name="password" type="password" autocomplete="current-password" required>
+        </div>
+        <button id="login-btn" class="btn" type="submit" data-i18n="login.submit">로그인</button>
+      </form>
+      <div id="login-error" class="err hidden" role="alert"></div>
+    </section>
+
+    <section id="view-install" class="hidden">
+      <div class="topbar">
+        <div id="install-user-label" class="topbar-user"></div>
+        <button id="install-logout-btn" class="btn btn-ghost" type="button" style="width:auto;padding:8px 12px;margin:0" data-i18n="common.logout">로그아웃</button>
+      </div>
+      <div class="card">
+        <h1 data-i18n="install.title">설치 진행</h1>
+        <p class="lead" data-i18n="install.lead">Whick 계정으로 로그인했습니다. USB 설치 진행 상황을 확인하세요.</p>
+        <div id="install-stage" class="install-stage"></div>
+        <div class="install-progress-wrap">
+          <div id="install-progress-bar" class="install-progress-bar"></div>
+        </div>
+        <p id="install-msg" class="install-msg"></p>
+        <p id="install-wait-hint" class="install-wait-hint hidden" role="status"></p>
+        <div id="install-consent" class="install-consent hidden"></div>
+        <p id="install-hint" class="install-hint" data-i18n="install.auto_hint">설치가 완료되면 자동으로 리모컨 화면으로 전환됩니다.</p>
+      </div>
+    </section>
+
+    <section id="view-devices" class="hidden">
+      <div class="topbar">
+        <div id="user-label" class="topbar-user"></div>
+        <button id="logout-btn" class="btn btn-ghost" type="button" style="width:auto;padding:8px 12px;margin:0" data-i18n="common.logout">로그아웃</button>
+      </div>
+      <div class="card">
+        <h1 data-i18n="devices.title">내 뮤직서버</h1>
+        <p class="lead" data-i18n="devices.lead">연결할 뮤직서버를 선택하세요.</p>
+        <div id="device-notice" class="notice hidden" role="status"></div>
+        <div id="device-list" class="device-list"></div>
+        <div id="device-empty" class="empty hidden" data-i18n-html="devices.empty">등록된 뮤직서버가 없습니다.<br>USB 설치·제품 등록을 먼저 완료해 주세요.</div>
+        <p id="portal-version" class="portal-ver">v0.9.33</p>
+      </div>
+    </section>
+
+    <section id="view-remote" class="hidden">
+      <div class="topbar">
+        <button id="back-devices" class="btn btn-ghost" type="button" style="width:auto;padding:8px 12px;margin:0" data-i18n="remote.back">← 장비 목록</button>
+      </div>
+      <div class="card">
+        <h1 id="remote-title" data-i18n="remote.title">리모컨</h1>
+        <div id="remote-link-status" class="notice notice-info hidden" role="status"></div>
+        <div id="remote-placeholder" class="placeholder"></div>
+      </div>
+    </section>
+
+    <footer class="foot">WHICK · REMOTE PORTAL · <span id="foot-version">v0.9.33</span></footer>
+  </div>
+
+  <script>window.WHICK_PORTAL_I18N_CFG={storageKey:"whick_sales_remote_lang",base:"i18n",supported:["en","ko","ja","zh","fr","de","es","it","pt","ru","hi","id","vi","th"],defaultLang:"en"};</script>
+  <script src="/js/config.js?v=0.9.33"></script>
+  <script src="/js/i18n.js?v=0.9.33"></script>
+  <script src="/js/portal_auth.js?v=0.9.33"></script>
+  <script src="/js/portal_device_link.js?v=0.9.33"></script>
+  <script src="/js/portal_app.js?v=0.9.33"></script>
+  <script>
+    (function () {
+      var ver = (window.WHICK_REMOTE_PORTAL && window.WHICK_REMOTE_PORTAL.version) || 'v0.9.33';
+      var pv = document.getElementById('portal-version');
+      var fv = document.getElementById('foot-version');
+      if (pv) pv.textContent = ver;
+      if (fv) fv.textContent = ver;
+    })();
+  </script>  <script>
+    (function () {
+      var btn = document.getElementById('theme-toggle');
+      var THEMES = ['light', 'wine', 'dark'];
+      function themeLabel(t) { return t==='light' ? 'LIGHT' : t==='dark' ? 'DARK' : 'WINE'; }
+      function currentTheme() {
+        if(document.documentElement.classList.contains('remote-theme-dark')) return 'dark';
+        if(document.documentElement.classList.contains('remote-theme-light')) return 'light';
+        return 'wine';
+      }
+      function setTheme(theme) {
+        document.documentElement.classList.toggle('remote-theme-light', theme==='light');
+        document.documentElement.classList.toggle('remote-theme-dark', theme==='dark');
+        localStorage.setItem('whick_remote_theme', theme);
+        var color = theme==='light' ? '#fff8f6' : theme==='dark' ? '#15171c' : '#271310';
+        document.querySelector('meta[name="theme-color"]')?.setAttribute('content', color);
+        if (btn) btn.textContent = themeLabel(theme);
+      }
+      setTheme(localStorage.getItem('whick_remote_theme') || 'light');
+      btn?.addEventListener('click', function () {
+        var cur = currentTheme();
+        var idx = THEMES.indexOf(cur);
+        setTheme(THEMES[(idx + 1) % THEMES.length]);
+      });
+    })();
+  </script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(function () {});
+    }
+  </script>
+</body>
+</html>

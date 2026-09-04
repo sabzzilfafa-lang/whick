@@ -1,0 +1,29 @@
+#!/sbin/openrc-run
+# modloop(/lib/modules) — Alpine squashfs modules/ 레이아웃 bind fix
+description="Mount Alpine modloop for network drivers"
+
+depend() {
+	need localmount
+	before modules
+	after modloop
+}
+
+start() {
+	# shellcheck source=/dev/null
+	[ -f /opt/whick-boot-connect/whick-kernel-modules.sh ] \
+		&& . /opt/whick-boot-connect/whick-kernel-modules.sh
+	if whick_ensure_modloop 2>/dev/null; then
+		einfo "whick-modloop OK $(whick_modules_kver 2>/dev/null)"
+		return 0
+	fi
+	for _ml in /boot/modloop-lts /boot/modloop-virt; do
+		[ -f "$_ml" ] || continue
+		mkdir -p /lib/modules
+		mount -o ro,loop "$_ml" /lib/modules 2>/dev/null && {
+			einfo "whick-modloop loop $_ml"
+			return 0
+		}
+	done
+	ewarn "whick-modloop: modules not ready"
+	return 0
+}

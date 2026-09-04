@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline'">
+<title>Whick USB Maker</title>
+<style>
+  :root { --bg:#0d1117; --card:#161b22; --card2:#1c2330; --text:#e6eaf0; --muted:#8b95a5; --acc:#4da3ff; --ok:#3dd68c; --err:#ff6b6b; --warn:#e6a700; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'Segoe UI','Malgun Gothic',sans-serif; background:var(--bg); color:var(--text); height:100vh; display:flex; flex-direction:column; overflow:hidden; user-select:none; }
+  .top { display:flex; align-items:center; justify-content:space-between; padding:16px 22px; border-bottom:1px solid #21293a; }
+  .brand { display:flex; align-items:center; gap:10px; font-weight:700; font-size:16px; }
+  .brand .dot { width:26px; height:26px; border-radius:8px; background:linear-gradient(135deg,#4da3ff,#3dd68c); display:flex; align-items:center; justify-content:center; font-size:13px; color:#fff; }
+  .lang-btns { display:flex; gap:6px; }
+  .lang-btn { padding:5px 12px; font-size:12px; border-radius:7px; border:1px solid #2a3544; background:transparent; color:var(--muted); cursor:pointer; }
+  .lang-btn.on { background:var(--acc); border-color:var(--acc); color:#fff; }
+  .main { flex:1; padding:26px 30px; overflow-y:auto; }
+  h1 { font-size:19px; margin-bottom:6px; }
+  .sub { color:var(--muted); font-size:13px; margin-bottom:22px; line-height:1.6; }
+  .usb-list { display:flex; flex-direction:column; gap:10px; margin-bottom:20px; }
+  .usb-item { display:flex; align-items:center; gap:14px; padding:14px 16px; background:var(--card); border:2px solid transparent; border-radius:12px; cursor:pointer; transition:border .15s; }
+  .usb-item:hover { border-color:#2a3544; }
+  .usb-item.sel { border-color:var(--acc); background:var(--card2); }
+  .usb-ico { width:40px; height:40px; border-radius:10px; background:#223047; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0; }
+  .usb-meta { flex:1; }
+  .usb-name { font-weight:600; font-size:14px; }
+  .usb-size { color:var(--muted); font-size:12px; margin-top:2px; }
+  .usb-check { width:22px; height:22px; border-radius:50%; border:2px solid #2a3544; flex-shrink:0; }
+  .usb-item.sel .usb-check { border-color:var(--acc); background:var(--acc); position:relative; }
+  .usb-item.sel .usb-check::after { content:"✓"; color:#fff; font-size:13px; position:absolute; top:50%; left:50%; transform:translate(-50%,-52%); }
+  .warn-box { display:none; align-items:flex-start; gap:10px; padding:13px 15px; background:#2a2418; border:1px solid #5c4a1e; border-radius:10px; font-size:13px; line-height:1.55; color:#d9c07a; margin-bottom:20px; }
+  .warn-box.show { display:flex; }
+  .agree { display:none; align-items:center; gap:9px; margin-bottom:20px; font-size:13px; cursor:pointer; }
+  .agree.show { display:flex; }
+  .agree input { width:17px; height:17px; accent-color:var(--acc); cursor:pointer; }
+  .bottom { padding:18px 30px 22px; border-top:1px solid #21293a; }
+  .progress-wrap { display:none; margin-bottom:14px; }
+  .progress-wrap.show { display:block; }
+  .progress-msg { font-size:13px; color:var(--muted); margin-bottom:8px; min-height:1.4em; }
+  .bar { height:9px; background:#21293a; border-radius:5px; overflow:hidden; }
+  .bar > i { display:block; height:100%; background:linear-gradient(90deg,var(--acc),#7cc4ff); width:0%; transition:width .3s; }
+  .pct { text-align:right; font-size:12px; color:var(--acc); font-weight:700; margin-top:6px; }
+  .btn { width:100%; padding:14px; border:0; border-radius:11px; background:var(--acc); color:#fff; font-size:15px; font-weight:700; cursor:pointer; }
+  .btn:hover:not(:disabled) { filter:brightness(1.1); }
+  .btn:disabled { background:#25304a; color:#556077; cursor:not-allowed; }
+  .result { display:none; text-align:center; padding:10px 0 4px; }
+  .result.show { display:block; }
+  .result .ok-ico { font-size:44px; margin-bottom:10px; }
+  .result h2 { font-size:18px; margin-bottom:8px; color:var(--ok); }
+  .result p { font-size:13px; color:var(--muted); line-height:1.7; }
+  .err-box { display:none; padding:13px 15px; background:#2a1818; border:1px solid #5c3030; border-radius:10px; font-size:13px; line-height:1.6; color:#ffb4b4; margin-bottom:14px; }
+  .err-box.show { display:block; }
+  .foot { text-align:center; font-size:11px; color:#5b6575; padding:0 0 14px; }
+</style>
+</head>
+<body>
+  <div class="top">
+    <div class="brand"><span class="dot">W</span><span>Whick USB Maker</span></div>
+    <div class="lang-btns">
+      <button class="lang-btn" id="langKo">한국어</button>
+      <button class="lang-btn" id="langEn">English</button>
+    </div>
+  </div>
+
+  <div class="main" id="mainSelect">
+    <h1 id="tTitle">Whick 설치 USB 만들기</h1>
+    <p class="sub" id="tSub">USB 메모리를 꽂으면 아래 목록에 나타납니다. USB를 선택하고 시작하세요.<br>
+    <span id="tIsoLine">설치 이미지:</span></p>
+
+    <div class="usb-list" id="usbList"></div>
+
+    <div class="warn-box" id="warnBox">
+      <span>⚠️</span>
+      <span id="warnText">선택한 USB의 <strong>모든 데이터가 삭제</strong>됩니다. 다른 드라이브는 선택하지 마세요.</span>
+    </div>
+
+    <label class="agree" id="agreeRow">
+      <input type="checkbox" id="agreeChk">
+      <span id="agreeText">위 경고를 이해했으며, 계속 진행합니다.</span>
+    </label>
+
+    <div class="err-box" id="errBox"></div>
+  </div>
+
+  <div class="main" id="mainProgress" style="display:none">
+    <h1 id="tProgress">USB 만드는 중…</h1>
+    <p class="sub" id="tProgressSub">USB를 빼지 마세요. 창을 닫지 마세요.</p>
+    <div class="progress-wrap show">
+      <div class="progress-msg" id="progressMsg"></div>
+      <div class="bar"><i id="progressBar"></i></div>
+      <div class="pct" id="progressPct">0%</div>
+    </div>
+  </div>
+
+  <div class="main" id="mainDone" style="display:none">
+    <div class="result show">
+      <div class="ok-ico">✅</div>
+      <h2 id="tDone">USB 제작 완료!</h2>
+      <p id="doneText">USB를 미니PC에 꽂고 전원을 켜세요. USB 부팅이 시작됩니다.<br>
+      남은 설치는 스마트폰으로 진행됩니다.</p>
+    </div>
+  </div>
+
+  <div class="bottom">
+    <button class="btn" id="btnMain" disabled>USB 만들기 시작</button>
+  </div>
+  <p class="foot" id="footText">Whick Music Server · whick.org</p>
+
+<script>
+  // ── 언어 (ko/en) — Windows UI 언어 자동 감지 + 수동 전환 ──
+  let LANG = 'ko';
+  const I18N = {
+    ko: {
+      title: 'Whick 설치 USB 만들기',
+      sub1: 'USB 메모리를 꽂으면 아래 목록에 나타납니다. USB를 선택하고 시작하세요.',
+      isoLine: '설치 이미지:',
+      loading: 'USB를 찾는 중…',
+      noUsb: 'USB를 꽂아 주세요. (8GB 이상)',
+      noUsbHint: '감지되면 목록이 자동으로 나타납니다.',
+      noIso: '설치 이미지(ISO)가 없습니다! 압축을 풀 때 ISO 파일이 함께 풀렸는지 확인해 주세요.',
+      disk: '디스크',
+      warn: '선택한 USB의 <strong>모든 데이터가 삭제</strong>됩니다. 다른 드라이브는 선택하지 마세요.',
+      agree: '위 경고를 이해했으며, 계속 진행합니다.',
+      start: 'USB 만들기 시작',
+      startIng: '만드는 중…',
+      progressTitle: 'USB 만드는 중…',
+      progressSub: 'USB를 빼지 마세요. 창을 닫지 마세요.',
+      done: 'USB 제작 완료!',
+      doneText: 'USB를 미니PC에 꽂고 전원을 켜세요. USB 부팅이 시작됩니다.<br>남은 설치는 스마트폰으로 진행됩니다.',
+      errPrefix: 'USB 만들기 실패:',
+      failNoIso: 'ISO 파일을 찾을 수 없습니다. 압축을 다시 풀어 주세요.',
+      failUsb: 'USB에 기록할 수 없습니다. USB를 다시 꽂거나 다른 USB 포트(본체 뒤쪽)에 연결해 보세요.',
+      foot: 'Whick Music Server · whick.org',
+    },
+    en: {
+      title: 'Create Whick Install USB',
+      sub1: 'Plug in your USB stick and it will appear below. Select it and start.',
+      isoLine: 'Install image:',
+      loading: 'Looking for USB…',
+      noUsb: 'Please plug in a USB stick (8GB+).',
+      noUsbHint: 'The list will appear automatically once detected.',
+      noIso: 'Install image (ISO) missing! Make sure the ISO was extracted together with this program.',
+      disk: 'Disk',
+      warn: '<strong>All data on the selected USB will be erased.</strong> Do not select other drives.',
+      agree: 'I understand the warning above and want to continue.',
+      start: 'Start creating USB',
+      startIng: 'Working…',
+      progressTitle: 'Creating USB…',
+      progressSub: 'Do not remove the USB or close this window.',
+      done: 'USB created!',
+      doneText: 'Plug the USB into the mini PC and power it on. Boot from USB starts automatically.<br>The rest of the install continues on your smartphone.',
+      errPrefix: 'USB creation failed:',
+      failNoIso: 'ISO file not found. Please re-extract the zip.',
+      failUsb: 'Cannot write to the USB. Re-plug it or try another USB port (rear ports recommended).',
+      foot: 'Whick Music Server · whick.org',
+    }
+  };
+  function t(k) { return (I18N[LANG] && I18N[LANG][k]) || I18N.ko[k] || k; }
+  function applyLang() {
+    document.documentElement.lang = LANG;
+    document.getElementById('langKo').classList.toggle('on', LANG === 'ko');
+    document.getElementById('langEn').classList.toggle('on', LANG === 'en');
+    const el = (id) => document.getElementById(id);
+    el('tTitle').textContent = t('title');
+    el('tSub').childNodes[0].textContent = t('sub1') + '\n';
+    el('tIsoLine').textContent = t('isoLine');
+    el('warnText').innerHTML = t('warn');
+    el('agreeText').textContent = t('agree');
+    el('btnMain').textContent = t('start');
+    el('tProgress').textContent = t('progressTitle');
+    el('tProgressSub').textContent = t('progressSub');
+    el('tDone').textContent = t('done');
+    el('doneText').innerHTML = t('doneText');
+    el('footText').textContent = t('foot');
+    refreshUsbList();
+  }
+  document.getElementById('langKo').onclick = () => { LANG = 'ko'; applyLang(); };
+  document.getElementById('langEn').onclick = () => { LANG = 'en'; applyLang(); };
+
+  // ── 상태 ──
+  let disks = [];
+  let selected = null;
+  let isoOk = true;
+  let phase = 'select'; // select | progress | done
+  const $ = (id) => document.getElementById(id);
+
+  function fmtList(data) {
+    disks = data.disks || [];
+    isoOk = !!data.iso_ok;
+    const isoName = data.iso || '';
+    $('tIsoLine').textContent = t('isoLine') + ' ' + isoName;
+    const list = $('usbList');
+    list.innerHTML = '';
+    if (!isoOk) {
+      list.innerHTML = '<div style="padding:14px;background:#2a1818;border:1px solid #5c3030;border-radius:10px;font-size:13px;color:#ffb4b4">' + t('noIso') + '</div>';
+      $('btnMain').disabled = true;
+      return;
+    }
+    if (!disks.length) {
+      list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px">' + t('noUsb') + '<br><span style="font-size:12px">' + t('noUsbHint') + '</span></div>';
+    }
+    disks.forEach((d) => {
+      const item = document.createElement('div');
+      item.className = 'usb-item' + (selected === d.number ? ' sel' : '');
+      item.innerHTML =
+        '<div class="usb-ico">🔌</div>' +
+        '<div class="usb-meta"><div class="usb-name">' + t('disk') + ' ' + d.number + ' — ' + (d.name || 'USB') + '</div>' +
+        '<div class="usb-size">' + d.size_gb + ' GB</div></div>' +
+        '<div class="usb-check"></div>';
+      item.onclick = () => { selected = d.number; fmtList({ disks, iso_ok: isoOk, iso: isoName }); updateBtn(); };
+      list.appendChild(item);
+    });
+    updateBtn();
+  }
+  function updateBtn() {
+    const showWarn = selected !== null && phase === 'select';
+    $('warnBox').classList.toggle('show', showWarn);
+    $('agreeRow').classList.toggle('show', showWarn);
+    $('btnMain').disabled = !(showWarn && $('agreeChk').checked && isoOk);
+  }
+  $('agreeChk').addEventListener('change', updateBtn);
+
+  function showPhase(p) {
+    phase = p;
+    $('mainSelect').style.display = p === 'select' ? '' : 'none';
+    $('mainProgress').style.display = p === 'progress' ? '' : 'none';
+    $('mainDone').style.display = p === 'done' ? '' : 'none';
+    $('btnMain').style.display = p === 'select' ? '' : 'none';
+  }
+
+  // ── 백엔드(런처) 통신 ──
+  function post(cmd, extra) {
+    try { window.chrome.webview.postMessage(Object.assign({ cmd }, extra || {})); } catch (e) {}
+  }
+  function refreshUsbList() { if (phase === 'select') post('list-usb'); }
+
+  function onHostMessage(ev) {
+    const m = ev.data || {};
+    switch (m.type) {
+      case 'state':
+        LANG = String(m.ui_culture || '').toLowerCase().indexOf('ko') === 0 ? 'ko' : 'en';
+        applyLang();
+        break;
+      case 'usb-list':
+        if (m.json) { fmtList(JSON.parse(m.json)); } else { fmtList(m); }
+        break;
+      case 'progress': {
+        showPhase('progress');
+        const msg = LANG === 'en' ? (m.message_en || m.message_ko) : (m.message_ko || m.message_en);
+        $('progressMsg').textContent = msg || '';
+        const pct = (m.pct != null && m.pct >= 0) ? m.pct : null;
+        if (pct != null) {
+          $('progressBar').style.width = pct + '%';
+          $('progressPct').textContent = pct + '%';
+        } else {
+          $('progressBar').style.width = '45%';
+          $('progressPct').textContent = '…';
+        }
+        break;
+      }
+      case 'write-complete':
+        showPhase('done');
+        break;
+      case 'write-error': {
+        const msg = LANG === 'en' ? (m.message_en || m.message_ko) : (m.message_ko || m.message_en);
+        $('errBox').textContent = t('errPrefix') + ' ' + (msg || '');
+        $('errBox').classList.add('show');
+        showPhase('select');
+        refreshUsbList();
+        break;
+      }
+    }
+  }
+  try {
+    window.chrome.webview.addEventListener('message', onHostMessage);
+  } catch (e) { window.addEventListener('message', onHostMessage); }
+
+  $('btnMain').onclick = () => {
+    if (selected === null) return;
+    $('errBox').classList.remove('show');
+    $('btnMain').disabled = true;
+    $('btnMain').textContent = t('startIng');
+    post('write-usb', { disk: selected });
+  };
+
+  // 초기화 — 문화권 요청 1회 + 목록은 2초마다 항상 갱신 (USB 꽂는 즉시 반영)
+  post('get-state');
+  setInterval(refreshUsbList, 2000);
+  applyLang();
+</script>
+</body>
+</html>

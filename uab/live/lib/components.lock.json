@@ -1,0 +1,71 @@
+{
+  "solution_code": "music-01",
+  "version": "v0.9.99",
+  "channel": "stable",
+  "build": "2026090355",
+  "release_notes": "AI 추천 날씨·시간대 영문화: weather_context.py 카테고리 반환값 영문화(Dawn/Morning/Afternoon/Evening/Night · Sunny/Cloudy/Rainy/Snowy/Windy) + play_history 기존 한글 이력 영문 변환. remote UI _pdT 영문값 매핑 추가(한국어 UI 역변환 유지).",
+  "host_os": {
+    "distro": "ubuntu-server",
+    "release": "26.04",
+    "codename": "resolute",
+    "variant": "whick-os",
+    "bootstrap_suite": "resolute",
+    "kernel": "linux-image-generic"
+  },
+  "components": {
+    "bootstrap_rootfs": {
+      "file": "whick-bootstrap-rootfs.tar.xz",
+      "sha256": "73b357023de9d6b7a9f1cd3d3e259fc5a128bdddb980d17016379e0cdc029741",
+      "size_bytes": 1134164220,
+      "suite": "resolute",
+      "whick_os": "whick-os-rootfs.tar.xz",
+      "kernel": "linux-image-generic"
+    },
+    "runtime_bundle": {
+      "file": "music-01-runtime-v0.9.99.tar.zst",
+      "sha256": "07d58e4160be90b56ff43f05b6d8ef8688729fd27b8c532c3af52f1de530e4ca",
+      "size_bytes": 4854959746
+    },
+    "docker_ce": {
+      "package": "docker-ce",
+      "version": "5:29.6.0-1~ubuntu.26.04~resolute",
+      "deb_bundle": "docker-ce-resolute-amd64.tar.gz",
+      "deb_sha256": "747727262036b256f2ca6f648a8e03c563e251c2171579630a99ddf2eb001a12",
+      "deb_size_bytes": 124492877
+    },
+    "docker_compose_plugin": {
+      "package": "docker-compose-plugin",
+      "version": "5.1.4-1~ubuntu.26.04~resolute"
+    },
+    "images": {
+      "whick/agent": "v1.0.28",
+      "whick/audio": "v1.0.2",
+      "whick/monitor": "v1.0.5",
+      "whick/player": "v1.0.76",
+      "pgvector/pgvector": "pg16",
+      "tecnativa/docker-socket-proxy": "0.3.0",
+      "cloudflare/cloudflared": "2026.6.1",
+      "ollama/ollama": "0.32.1"
+    },
+    "ollama_image": {
+      "file": "ollama-ollama-0.32.1.tar.zst",
+      "tag": "ollama/ollama:0.32.1",
+      "sha256": "197392bcecb19ffd6cd053421defbc2cd1b95f7163645cb482624b88a47c1835",
+      "size_bytes": 3234197016,
+      "note": "ensure-music01-release-artifacts.sh 가 채움 · CC 우선 설치"
+    },
+    "player_image": {
+      "file": "whick_player_v1.0.25.tar.zst",
+      "sha256": "54645010f4f8113179ab1f09187de8420324cb6a54fcb00a5970d683c499f66c",
+      "size_bytes": 272670145,
+      "gz_file": "whick_player_v1.0.25.tar.gz",
+      "gz_sha256": "635ccbdf2858a1e10577f542626398ae67b6c067cb06a49750f220219e6c7d2c",
+      "gz_size_bytes": 273410451
+    },
+    "remote_portal_image": {
+      "version": "v1.0.15",
+      "file": "whick-remote-portal-v1.0.14.tar.zst",
+      "size_bytes": 24956108
+    }
+  }
+}

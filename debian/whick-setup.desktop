@@ -1,0 +1,12 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Whick Setup
+Name[ko]=Whick 설치
+Comment=Whick music server install (needs whick-3product tar.gz in Downloads)
+Comment[ko]=Whick 뮤직서버 설치 (다운로드 폴더에 압축 필요)
+Exec=/usr/lib/whick/launch-install.sh
+Icon=system-software-install
+Terminal=true
+Categories=Utility;
+StartupNotify=true

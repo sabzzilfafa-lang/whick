@@ -1,0 +1,24 @@
+# Secrets — never commit
+.env
+*.pem
+*.key
+install-credentials.json
+runtime-state.json
+
+# Music library & media (SSOT: HDD /mnt/music only)
+seed-music/
+video/
+*.wav
+!remote/docker/log-sweep.wav
+
+# Build artifacts
+dist/
+*.zip
+*.tar.gz
+*.iso
+
+# Runtime / local
+node_modules/
+__pycache__/
+*.pyc
+.DS_Store

@@ -1,0 +1,38 @@
+{
+    "control": [
+        { "VTOY_DEFAULT_MENU_MODE": "0" },
+        { "VTOY_MENU_TIMEOUT": "0" },
+        { "VTOY_DEFAULT_IMAGE": "/alpine-live.iso" },
+        { "VTOY_MAX_SEARCH_LEVEL": "0" },
+        { "VTOY_FILT_DOT_UNDERSCORE_FILE": "1" },
+        { "VTOY_SECONDARY_BOOT_MENU": "0" },
+        { "VTOY_LINUX_REMOUNT": "1" }
+    ],
+    "theme": {
+        "gfxmode": "max",
+        "display_mode": "GUI",
+        "ventoy_left": "100%",
+        "ventoy_top": "100%",
+        "ventoy_color": "#000000"
+    },
+    "image": [
+        {
+            "image": "/alpine-live.iso",
+            "class": "alpine"
+        }
+    ],
+    "conf_replace_uefi": [
+        {
+            "iso": "/alpine-live.iso",
+            "org": "/boot/grub/grub.cfg",
+            "new": "/ventoy/alpine-grub.cfg"
+        }
+    ],
+    "conf_replace_legacy": [
+        {
+            "iso": "/alpine-live.iso",
+            "org": "/boot/syslinux/syslinux.cfg",
+            "new": "/ventoy/alpine-syslinux.cfg"
+        }
+    ]
+}

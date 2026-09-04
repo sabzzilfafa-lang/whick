@@ -1,0 +1,19 @@
+# Whick connect-usb — headless (smartphone only, no monitor login)
+::sysinit:/sbin/openrc sysinit
+::sysinit:/sbin/openrc boot
+::wait:/sbin/openrc default
+
+# All getty/login disabled — customer has no keyboard
+#tty1::respawn:/sbin/getty 38400 tty1
+#tty2::respawn:/sbin/getty 38400 tty2
+#tty3::respawn:/sbin/getty 38400 tty3
+#tty4::respawn:/sbin/getty 38400 tty4
+#tty5::respawn:/sbin/getty 38400 tty5
+#tty6::respawn:/sbin/getty 38400 tty6
+#ttyS0::respawn:/sbin/getty -L 115200 ttyS0 vt100
+
+# Status on tty1 (optional monitor — no login)
+tty1::respawn:/opt/whick-boot-connect/whick-tty-keeper.sh
+
+::ctrlaltdel:/sbin/reboot
+::shutdown:/sbin/openrc shutdown

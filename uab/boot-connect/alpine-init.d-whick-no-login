@@ -1,0 +1,19 @@
+#!/sbin/openrc-run
+# Disable all console login prompts before default runlevel (headless install)
+description="Whick headless console (no getty login)"
+
+depend() {
+	need localmount
+	before default local
+}
+
+start() {
+	# shellcheck source=/dev/null
+	[ -f /opt/whick-boot-connect/whick-headless-console.sh ] \
+		&& . /opt/whick-boot-connect/whick-headless-console.sh
+	if command -v whick_disable_console_login >/dev/null 2>&1; then
+		whick_disable_console_login
+	fi
+	einfo "whick headless console — no login"
+	return 0
+}

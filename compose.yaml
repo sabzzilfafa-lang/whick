@@ -1,0 +1,212 @@
+# Whick customer runtime — dev/PoC
+# agent/monitor: host network (CC가 127.0.0.1:8090 전용)
+# SSD deploy: /opt/whick/runtime/compose.yaml
+# 시간: docs/TIMEZONE-KST.md
+
+name: whick-runtime
+
+services:
+  docker-socket-proxy:
+    image: tecnativa/docker-socket-proxy:0.3.0
+    container_name: whick-docker-proxy
+    restart: unless-stopped
+    environment:
+      # 컨테이너 내부 0.0.0.0:2375 + 호스트 publish 127.0.0.1만 (whick_net 미연결 → bridge 스택에서 API 비노출)
+      BIND: 0.0.0.0:2375
+      CONTAINERS: 1
+      IMAGES: 1
+      NETWORKS: 1
+      POST: 1
+      DELETE: 1
+      EXEC: 1
+      VOLUME: 1
+      PRIVILEGED: 0
+      BUILD: 0
+      COMMIT: 0
+      SWARM: 0
+      SYSTEM: 0
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    ports:
+      - '127.0.0.1:2375:2375'
+
+  audio:
+    image: whick/audio:dev
+    build:
+      context: .
+      dockerfile: audio/Dockerfile
+    container_name: whick-audio
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      TZ: Asia/Seoul
+      WHICK_CAMILLA_PROFILE: /var/lib/whick/camilla/profile.yml
+    ports:
+      - '127.0.0.1:8787:8787'
+    volumes:
+      - whick-data:/var/lib/whick:ro
+    networks: [whick_net]
+
+  agent:
+    image: whick/agent:dev
+    build:
+      context: .
+      dockerfile: agent/Dockerfile
+    container_name: whick-agent
+    restart: unless-stopped
+    network_mode: host
+    env_file: .env
+    environment:
+      TZ: Asia/Seoul
+      WHICK_CC_API_URL: ${WHICK_CC_API_URL:-https://admin.whick.org/api/v1}
+      WHICK_AGENT_CMD_WS: ${WHICK_AGENT_CMD_WS:-1}
+      WHICK_DEVICE_SERIAL: ${WHICK_DEVICE_SERIAL:-}
+      WHICK_OWNER_MB_ID: ${WHICK_OWNER_MB_ID:-}
+      WHICK_AUDIO_URL: http://127.0.0.1:8787
+      # host network — Docker DNS 이름 불가, player publish 포트 사용
+      WHICK_PLAYER_URL: ${WHICK_PLAYER_URL:-http://127.0.0.1:8080}
+      WHICK_STATE_PATH: /var/lib/whick/runtime-state.json
+      WHICK_COMPOSE_DIR: /opt/whick/runtime
+      WHICK_HOST_RUNTIME_DIR: ${WHICK_RUNTIME_HOST_DIR:-}
+      WHICK_HTTPS_TAR: ${WHICK_HTTPS_TAR:-https://whick.org/whick-content/customer/whick-3product-20260612-pullfix.tar.gz}
+      DOCKER_HOST: tcp://127.0.0.1:2375
+    volumes:
+      - whick-data:/var/lib/whick
+      - ./packages:/opt/whick/packages:ro
+      - ${WHICK_RUNTIME_HOST_DIR:-.}:/opt/whick/runtime:ro
+    depends_on:
+      - audio
+      - docker-socket-proxy
+
+  monitor:
+    image: whick/monitor:dev
+    build:
+      context: .
+      dockerfile: monitor/Dockerfile
+    container_name: whick-monitor
+    restart: unless-stopped
+    network_mode: host
+    env_file: .env
+    environment:
+      TZ: Asia/Seoul
+      WHICK_CC_API_URL: ${WHICK_CC_API_URL:-https://admin.whick.org/api/v1}
+      WHICK_MONITOR_INTERVAL_SEC: '30'
+      WHICK_LIBRARY_INCOMING: /var/lib/whick/library/incoming
+      WHICK_STATE_PATH: /var/lib/whick/runtime-state.json
+    volumes:
+      - whick-data:/var/lib/whick
+    depends_on:
+      - agent
+
+  player-db:
+    image: postgres:16-alpine
+    container_name: whick-player-db
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Seoul
+      POSTGRES_USER: whick
+      POSTGRES_PASSWORD: ${WHICK_PLAYER_DB_PASSWORD:-whick_player_dev}
+      POSTGRES_DB: whickdb
+    volumes:
+      - player-db-data:/var/lib/postgresql/data
+      - ./remote/api/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    networks: [whick_net]
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'pg_isready -U whick -d whickdb && psql -U whick -d whickdb -tAc "SELECT to_regclass(''public.tracks'')" | grep -q tracks',
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+      start_period: 30s
+
+  player:
+    image: whick/player:dev
+    build:
+      context: .
+      dockerfile: remote/Dockerfile
+    container_name: whick-player
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      TZ: Asia/Seoul
+      DATABASE_URL: postgresql://whick:${WHICK_PLAYER_DB_PASSWORD:-whick_player_dev}@player-db:5432/whickdb
+      WHICK_MUSIC_DIR: /var/lib/whick/library/music
+      WHICK_LIBRARY_INCOMING: /var/lib/whick/library/incoming
+      WHICK_LIBRARY_SCAN_PATHS: ${WHICK_LIBRARY_SCAN_PATHS:-/var/lib/whick/library/music}
+      WHICK_LIBRARY_SCAN_ON_START: ${WHICK_LIBRARY_SCAN_ON_START:-1}
+      WHICK_CC_API_URL: ${WHICK_CC_API_URL:-https://admin.whick.org/api/v1}
+      WHICK_STATE_PATH: /var/lib/whick/runtime-state.json
+      WHICK_PLAYER_EXTERNAL_PROVIDERS: ${WHICK_PLAYER_EXTERNAL_PROVIDERS:-0}
+      WHICK_STREAMING_LAB: ${WHICK_STREAMING_LAB:-0}
+      WHICK_CAMILLA_ENABLED: ${WHICK_CAMILLA_ENABLED:-1}
+      WHICK_ALSA_DEVICE_MODE: ${WHICK_ALSA_DEVICE_MODE:-hw}
+      WHICK_BITPERFECT_MIXER: ${WHICK_BITPERFECT_MIXER:-auto}
+      WHICK_DAC_MAX_SAMPLE_RATE: ${WHICK_DAC_MAX_SAMPLE_RATE:-384000}
+      WHICK_DAC_PROBE_MAX_SAMPLE_RATE: ${WHICK_DAC_PROBE_MAX_SAMPLE_RATE:-768000}
+      WHICK_DSP_PIPE_RATE: ${WHICK_DSP_PIPE_RATE:-192000}
+      WHICK_DSP_PIPE_BITS: ${WHICK_DSP_PIPE_BITS:-32}
+      WHICK_QUEUE_ALIGN_SR: ${WHICK_QUEUE_ALIGN_SR:-0}
+      WHICK_LIBRESPOT_AUTOSTART: ${WHICK_LIBRESPOT_AUTOSTART:-0}
+      WHICK_AUDIO_URL: http://audio:8787
+      WHICK_SEED_DEMO: ${WHICK_PLAYER_SEED_DEMO:-0}
+      OLLAMA_URL: ${OLLAMA_URL:-http://ollama:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-gemma4:e2b}
+      # 0=CPU(내장GPU 모델). 외장 GPU 모델은 install-runtime이 auto로 설정.
+      OLLAMA_NUM_GPU: ${OLLAMA_NUM_GPU:-0}
+      # 고객 고정 위치 (터널/공인IP가 서울로 잡힐 때 Open-Meteo 보정용)
+      WHICK_GEO_LAT: ${WHICK_GEO_LAT:-}
+      WHICK_GEO_LON: ${WHICK_GEO_LON:-}
+      WHICK_GEO_CITY: ${WHICK_GEO_CITY:-}
+      WHICK_GEO_REGION: ${WHICK_GEO_REGION:-}
+      # 기상청 공공데이터 (초단기실황) — Open-Meteo 폴백
+      WHICK_KMA_SERVICE_KEY: ${WHICK_KMA_SERVICE_KEY:-}
+      WHICK_KMA_BASE_URL: ${WHICK_KMA_BASE_URL:-https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0}
+      WHICK_WEATHER_PROVIDER: ${WHICK_WEATHER_PROVIDER:-kma}
+      CORS_ORIGINS: ${WHICK_PLAYER_CORS:-*}
+    ports:
+      - '${WHICK_PLAYER_PORT_BIND:-127.0.0.1:8080}:8080'
+      # IP만 입력(기본 :80) → 동일 player. 리테일 .env 는 0.0.0.0:80
+      - '${WHICK_PLAYER_PORT80_BIND:-127.0.0.1:80}:8080'
+    volumes:
+      - whick-data:/var/lib/whick
+    depends_on:
+      player-db:
+        condition: service_healthy
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    networks: [whick_net]
+
+  # 리모컨 외부·LTE named tunnel(cloudflared)은 install-runtime 이 프로비저닝 번들 존재 시
+  # compose.tunnel.override.yaml 로 주입한다(미프로비저닝 기기는 무동작). compose.yaml 엔 미정의.
+
+  # gemma4:e2b — 외장 GPU 모델만 compose.gpu.override.yaml로 /dev/dri·NVIDIA 노출 (내장GPU는 CPU)
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ${WHICK_OLLAMA_CONTAINER_NAME:-whick-ollama}
+    profiles: [local-ai]
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Seoul
+      # Intel GPU는 런타임 감지 시 WHICK_OLLAMA_INTEL_GPU=1로 자동 설정 가능.
+      OLLAMA_INTEL_GPU: ${WHICK_OLLAMA_INTEL_GPU:-0}
+      CUDA_VISIBLE_DEVICES: ${WHICK_OLLAMA_CUDA_VISIBLE_DEVICES:-}
+      HIP_VISIBLE_DEVICES: ${WHICK_OLLAMA_HIP_VISIBLE_DEVICES:-}
+      ROCR_VISIBLE_DEVICES: ${WHICK_OLLAMA_ROCR_VISIBLE_DEVICES:-}
+    volumes:
+      - ollama-data:/root/.ollama
+    networks: [whick_net]
+
+networks:
+  whick_net:
+    driver: bridge
+
+volumes:
+  # 기본은 named volume. /mnt/music 바인드는 install-runtime 이
+  # compose.music-data.override.yaml 로만 주입 (여기 driver_opts 금지 —
+  # 기존 whick-runtime_whick-data 와 충돌 → recreate/agent 기동 실패).
+  whick-data:
+  player-db-data:
+  ollama-data:

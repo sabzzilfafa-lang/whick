@@ -1,0 +1,49 @@
+/* OWNER SSOT: sales — do not sync across remote UIs */
+/* Whick Remote — 공간음향 마법사 (모바일) */
+.sp-wizard{padding:14px 16px 24px;}
+.sp-hero{text-align:center;padding:18px 12px 14px;background:var(--panel);border:1px solid var(--border2);border-radius:16px;margin-bottom:14px;}
+.sp-hero__ic{font-size:42px;margin-bottom:8px;}
+.sp-hero__t{font-size:17px;font-weight:600;margin:0 0 8px;}
+.sp-hero__d{font-size:12px;color:var(--text2);line-height:1.65;margin:0;}
+.sp-pill-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+.sp-pill{display:inline-flex;align-items:center;gap:6px;font-size:11px;padding:6px 10px;border-radius:99px;border:1px solid var(--border);color:var(--text2);background:var(--bg2);}
+.sp-pill.on{border-color:var(--border2);color:var(--teal);background:var(--teal-dim);}
+.sp-actions{display:flex;flex-direction:column;gap:10px;margin-bottom:12px;}
+.sp-btn{display:block;width:100%;padding:14px 16px;border-radius:12px;border:1px solid var(--border2);font-size:14px;font-weight:500;cursor:pointer;font-family:var(--font-k);background:var(--bg3);color:var(--text);}
+.sp-btn--primary{background:linear-gradient(135deg,var(--teal),var(--blue));color:var(--bg);border:none;box-shadow:0 4px 14px var(--teal-glow);}
+.sp-btn--ghost{background:transparent;color:var(--text2);}
+.sp-btn--sm{padding:10px 12px;font-size:12px;width:auto;display:inline-block;}
+.sp-btn:disabled{opacity:.45;pointer-events:none;}
+.sp-note{font-size:11px;color:var(--text3);line-height:1.55;text-align:center;}
+.sp-hint{font-size:12px;color:var(--text2);line-height:1.6;margin:0 0 12px;}
+.sp-hint--ok{color:var(--teal);}
+.sp-progress{margin-bottom:14px;}
+.sp-progress__bar{height:4px;background:var(--bg4);border-radius:99px;overflow:hidden;}
+.sp-progress__bar span{display:block;height:100%;background:linear-gradient(90deg,var(--teal),var(--blue));transition:width .3s;}
+.sp-pos-callout{text-align:center;padding:18px 16px;margin-bottom:14px;border-radius:14px;background:linear-gradient(160deg,var(--teal-dim),rgba(56,189,248,.1));border:2px solid var(--teal);box-shadow:0 4px 18px var(--teal-glow);}
+.sp-pos-callout__step{display:block;font-size:12px;font-weight:700;color:var(--teal);letter-spacing:.06em;margin-bottom:8px;font-family:var(--font-d);text-transform:uppercase;}
+.sp-pos-callout__label{margin:0;font-size:22px;font-weight:700;color:var(--text);line-height:1.35;}
+.sp-pos-callout__hint{margin:8px 0 0;font-size:13px;font-weight:600;color:var(--teal);line-height:1.4;}
+.sp-measure .sp-pos-callout{margin-top:4px;text-align:center;}
+.sp-measure__status{font-size:13px;color:var(--text2);margin:0 0 4px;}
+.sp-alert{padding:10px 12px;border-radius:10px;background:rgba(255,77,106,.08);border:1px solid rgba(255,77,106,.25);color:#ffb4c0;font-size:12px;line-height:1.5;margin-bottom:12px;}
+.sp-measure{text-align:center;padding:36px 16px;}
+.sp-measure__pulse{width:64px;height:64px;margin:0 auto 16px;border-radius:50%;background:var(--teal-dim);border:2px solid var(--teal);animation:sp-pulse 1.2s ease infinite;}
+@keyframes sp-pulse{0%,100%{transform:scale(1);opacity:.7}50%{transform:scale(1.08);opacity:1}}
+.sp-table{width:100%;border-collapse:collapse;font-size:12px;margin:12px 0 16px;}
+.sp-table th,.sp-table td{padding:8px 6px;border-bottom:1px solid var(--border);text-align:left;}
+.sp-table th{color:var(--text2);font-family:var(--font-d);font-size:10px;text-transform:uppercase;}
+.sp-result__t{margin:0 0 8px;font-size:15px;}
+.sp-done{text-align:center;padding:32px 16px;}
+.sp-done__ic{font-size:48px;margin-bottom:12px;}
+.sp-speaker-block{margin-bottom:16px;padding:14px;border:1px solid var(--border);border-radius:12px;background:var(--panel);}
+.sp-speaker-dir{display:flex;gap:10px;margin-bottom:12px;}
+.sp-speaker-dir--3 .sp-btn--dir{flex:1;padding:16px 8px;font-size:15px;font-weight:600;}
+.sp-btn--swap{border-color:rgba(255,180,80,.35);color:#ffc896;}
+.sp-btn--swap.sp-btn--on{border-color:var(--teal);color:var(--teal);background:var(--teal-dim);}
+.sp-btn--busy{opacity:.7;}
+.sp-speaker-block .sp-btn--primary{margin-top:4px;}
+.sp-speaker-choices{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
+.sp-btn--warn{border-color:rgba(255,180,80,.35);color:#ffc896;}
+.sp-swap-row{display:flex;align-items:flex-start;gap:10px;font-size:12px;color:var(--text2);margin:14px 0;padding:10px 12px;border-radius:10px;background:var(--bg2);border:1px solid var(--border);}
+.sp-swap-row input{margin-top:2px;accent-color:var(--teal);}

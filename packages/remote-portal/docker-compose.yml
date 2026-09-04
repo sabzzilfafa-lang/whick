@@ -1,0 +1,23 @@
+# Whick Remote Portal — standalone (no CC dependency)
+# device linking · tunnel provisioning은 whick-home network 내에서 처리
+
+services:
+  remote-portal:
+    build:
+      context: ..
+      dockerfile: remote-portal/Dockerfile
+    container_name: whick-remote-portal
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Seoul
+      CC_API_URL: ${CC_API_URL:-https://admin.whick.org}
+      CC_API_HOST: ${CC_API_HOST:-admin.whick.org}
+    ports:
+      - "127.0.0.1:8097:80"
+    networks:
+      - whick-home
+
+networks:
+  whick-home:
+    external: true
+    name: whick_home_net

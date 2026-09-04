@@ -1,0 +1,9 @@
+[Unit]
+Description=Whick agent watchdog (heartbeat-stale → restart agent → reboot)
+After=docker.service network-online.target
+Wants=docker.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=-/opt/whick/runtime/.env
+ExecStart=/usr/local/sbin/whick-agent-watchdog.sh

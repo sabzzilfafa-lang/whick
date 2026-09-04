@@ -1,0 +1,42 @@
+USB 설치 — 고객 안내 (무선)
+USB Install Guide (Wireless)
+==========================
+
+스마트폰만으로 설치합니다. (모니터·키보드 불필요)
+Install with your smartphone only. (No monitor/keyboard needed)
+
+[준비 / Prep]
+  뮤직서버용 미니PC RAM 8GB 이상 · SSD 64GB 이상
+  Mini PC for music server: RAM 8GB+ · SSD 64GB+
+  스마트폰으로 Wi-Fi 접속 후 remote.whick.org를 열어 주세요.
+  On your phone, join Wi-Fi and open remote.whick.org.
+
+[1. USB 만들기 / Create USB]
+  VIP Room에서 Wi-Fi SSID·비밀번호 입력 → «맞춤 USB 만들기» → zip → make-usb.bat
+  On VIP Room enter Wi-Fi SSID/password → “Create custom USB” → zip → make-usb.bat
+
+[2. 무선 설치 (미니PC + 스마트폰) / Wireless install]
+  ① 맞춤 USB로 미니PC 부팅 — 사전 입력 Wi-Fi에 자동 연결 (Whick-Setup·whick.setup 불필요)
+     Boot with the custom USB — auto-joins the Wi-Fi you entered (no Whick-Setup portal)
+  ② Whick 서버 연결까지 수분 소요
+     Connecting to Whick may take several minutes
+  ③ 같은 Wi-Fi · whick.org 로그인 · 고유 접속 주소에서 설치 안내
+     Same Wi-Fi · log in to whick.org · follow install guide at your personal URL
+  ④ 원격 설치는 중앙관제센터 AI가 진행
+     Remote install is handled by Whick Control Center AI
+  ⑤ 설치 페이지를 닫지 마세요
+     Do not close the install page
+
+[3. 리모컨 / Remote]
+  설치 완료 후 리모컨 설정에서 공유기 직접 / 관제 터널 연결 방식을 전환할 수 있습니다.
+  After install, switch between direct router / control-tunnel mode in remote settings.
+
+문의 / Contact: whick.org VIP Room
+
+[저작권·배포 / Copyright]
+  본 USB·설치 프로그램은 whick.org 공식 채널 전용입니다.
+  This USB/installer is for official whick.org channels only.
+  무단 복제·변조·재배포·Whick 명칭을 이용한 가공 배포는 금지됩니다.
+  Unauthorized copy, modification, redistribution, or misuse of the Whick name is prohibited.
+  자세한 내용: USB-저작권-배포안내.txt
+  Details: USB-저작권-배포안내.txt

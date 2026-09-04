@@ -1,0 +1,18 @@
+[Unit]
+Description=Whick UAB Bootstrap (USB Live)
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=/opt/whick-uab/boot.sh
+
+[Service]
+Type=simple
+Environment=WHICK_CC_API_URL=https://admin.whick.org/api/v1
+Environment=WHICK_INSTALL_PATH=diy
+ExecStart=/opt/whick-uab/boot.sh
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal+console
+StandardError=journal+console
+
+[Install]
+WantedBy=multi-user.target

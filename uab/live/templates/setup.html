@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Whick 설치</title>
+  <style>
+    :root { --bg:#0f1419; --card:#1a2332; --text:#e8ecf1; --muted:#8b95a5; --accent:#4da3ff; --ok:#3dd68c; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; background:var(--bg); color:var(--text); line-height:1.5; }
+    .wrap { max-width:420px; margin:0 auto; padding:20px 16px 40px; }
+    h1 { font-size:22px; margin:0 0 4px; }
+    .sub { color:var(--muted); font-size:13px; margin-bottom:20px; }
+    .code { text-align:center; font-size:28px; letter-spacing:.2em; font-weight:700; color:var(--accent); margin:16px 0; }
+    .card { background:var(--card); border-radius:12px; padding:16px; margin-bottom:14px; }
+    label { display:block; font-size:12px; color:var(--muted); margin:10px 0 4px; }
+    input { width:100%; padding:12px; border:1px solid #2a3544; border-radius:8px; background:#0d1117; color:var(--text); font-size:16px; }
+    button { width:100%; margin-top:16px; padding:14px; border:0; border-radius:10px; background:var(--accent); color:#fff; font-size:16px; font-weight:600; }
+    button:disabled { opacity:.5; }
+    .chk { display:flex; gap:10px; align-items:flex-start; margin:10px 0; font-size:13px; }
+    .chk input { width:auto; margin-top:3px; }
+    .step { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; }
+    .ok { color:var(--ok); text-align:center; padding:20px; display:none; }
+    .err { color:#ff6b6b; font-size:13px; margin-top:8px; display:none; }
+    a { color:var(--accent); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <p class="step">Whick 뮤직서버 설치</p>
+    <h1>스마트폰으로 연결</h1>
+    <p class="sub">모니터·키보드 없이 진행합니다. whick.org 계정으로 로그인하세요.</p>
+
+    <div class="card">
+      <div style="text-align:center;font-size:12px;color:var(--muted)">장비 코드</div>
+      <div class="code" id="deviceCode">{{ device_code }}</div>
+      <p style="font-size:12px;color:var(--muted);text-align:center;margin:0">
+        이 기기 IP: {{ setup_ip }} · 안내는 whick.org 고유 주소 또는 LAN URL
+      </p>
+    </div>
+
+    <div id="formCard" class="card">
+      <p style="font-size:13px;margin:0 0 12px">
+        <a href="https://whick.org/bbs/login.php" target="_blank" rel="noopener">whick.org</a> 회원 (솔루션 구입 Lv3+)
+      </p>
+      <label for="email">이메일 또는 아이디</label>
+      <input id="email" type="text" autocomplete="username" placeholder="whick.org 로그인">
+      <label for="password">비밀번호</label>
+      <input id="password" type="password" autocomplete="current-password">
+      <label for="serverName">서버 이름 (매장명)</label>
+      <input id="serverName" type="text" placeholder="예: 홍대점 뮤직서버">
+
+      <div class="chk">
+        <input type="checkbox" id="wipeOk">
+        <label for="wipeOk" style="margin:0">미니PC 저장장치(SSD) 데이터 삭제에 동의합니다.</label>
+      </div>
+      <div class="chk">
+        <input type="checkbox" id="termsOk">
+        <label for="termsOk" style="margin:0">Whick 이용약관·저작권·배포 안내에 동의합니다. (공식 whick.org 경로 외 재배포 금지)</label>
+      </div>
+
+      <button type="button" id="btnStart">연결하고 설치 시작</button>
+      <p class="err" id="err"></p>
+    </div>
+
+    <div id="doneCard" class="card ok">
+      <p style="font-size:18px;font-weight:600">연결 완료</p>
+      <p>미니PC와 스마트폰이 서버에 등록되었습니다.</p>
+      <p><a href="https://whick.org/" id="remoteLink">whick.org 리모컨 열기</a></p>
+      <p style="font-size:12px;color:var(--muted)">설치가 백그라운드에서 계속됩니다. USB는 완료 후 제거하세요.</p>
+    </div>
+  </div>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    $('btnStart').onclick = async () => {
+      $('err').style.display = 'none';
+      if (!$('wipeOk').checked || !$('termsOk').checked) {
+        $('err').textContent = '동의 항목을 체크해 주세요.';
+        $('err').style.display = 'block';
+        return;
+      }
+      $('btnStart').disabled = true;
+      try {
+        await fetch('/api/consent', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ wipe_ok: true, terms_ok: true }),
+        });
+        const r = await fetch('/api/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: $('email').value.trim(),
+            password: $('password').value,
+            server_name: $('serverName').value.trim() || 'Whick Music Server',
+          }),
+        });
+        const j = await r.json();
+        if (!r.ok || !j.ok) throw new Error(j.error || '등록 실패');
+        $('formCard').style.display = 'none';
+        $('doneCard').style.display = 'block';
+      } catch (e) {
+        $('err').textContent = e.message || String(e);
+        $('err').style.display = 'block';
+        $('btnStart').disabled = false;
+      }
+    };
+    fetch('/api/status').then(r => r.json()).then(s => {
+      if (s.device_code) $('deviceCode').textContent = s.device_code;
+      if (s.registered) {
+        $('formCard').style.display = 'none';
+        $('doneCard').style.display = 'block';
+      }
+    }).catch(() => {});
+  </script>
+</body>
+</html>

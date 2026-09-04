@@ -1,0 +1,7 @@
+{
+  "name": "whick-audio",
+  "version": "0.1.0-dev",
+  "private": true,
+  "type": "module",
+  "description": "Whick audio engine stub — play/pause/volume until CamillaDSP"
+}

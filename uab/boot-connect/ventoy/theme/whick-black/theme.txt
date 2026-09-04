@@ -1,0 +1,25 @@
+# Whick connect USB — black screen, menu hidden (VTOY_MENU_TIMEOUT=0 auto-boot)
+title-text: ""
+title-color: "#000000"
+message-color: "#000000"
+message-bg-color: "#000000"
+desktop-color: "#000000"
+
++ boot_menu {
+  visible = "false"
+  left = 0
+  top = 0
+  width = 0
+  height = 0
+}
+
++ progress_bar {
+  id = "__timeout__"
+  left = 100%
+  top = 100%
+  width = 0
+  height = 0
+  text_color = "#000000"
+  bar_style = "*"
+  highlight_style = "*"
+}

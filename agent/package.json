@@ -1,0 +1,7 @@
+{
+  "name": "whick-agent",
+  "version": "0.1.0-dev",
+  "private": true,
+  "type": "module",
+  "description": "Whick customer runtime agent — CC register · heartbeat · remote_cmd"
+}

@@ -1,0 +1,41 @@
+# Whick OS denylist — never install on SSD runtime (mask if pulled in)
+meta:
+  product: whick-os
+  updated: "2026-07-26"
+
+never_install:
+  - ubuntu-desktop
+  - gnome-shell
+  - gdm3
+  - snapd
+  - pipewire
+  - pipewire-pulse
+  - pulseaudio
+  - network-manager  # SSD only; OK on Live
+  - modemmanager
+  - cups
+  - bluez
+  - cloud-init
+  - landscape-client
+  - unattended-upgrades  # managed via Whick OS channel, not auto apt
+  - ollama
+  - cloudflared
+
+mask_units_if_present:
+  - snapd.service
+  - snapd.socket
+  - ModemManager.service
+  - cups.service
+  - bluetooth.service
+  - cloud-init.service
+  - cloud-init-local.service
+  - cloud-config.service
+  - cloud-final.service
+  - apt-daily.service
+  - apt-daily-upgrade.service
+  - apt-daily.timer
+  - apt-daily-upgrade.timer
+
+kernel_forbidden:
+  - linux-image-virtual
+  - linux-image-kvm

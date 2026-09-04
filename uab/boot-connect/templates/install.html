@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Whick 설치</title>
+  <style>
+    :root { --bg:#0f1419; --card:#1a2332; --text:#e8ecf1; --muted:#8b95a5; --accent:#4da3ff; --ok:#3dd68c; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; background:var(--bg); color:var(--text); line-height:1.55; }
+    .wrap { max-width:420px; margin:0 auto; padding:22px 16px 48px; }
+    h1 { font-size:21px; margin:0 0 6px; }
+    .sub { color:var(--muted); font-size:14px; margin-bottom:18px; }
+    .card { background:var(--card); border-radius:12px; padding:16px; margin-bottom:14px; }
+    .step { font-size:11px; color:var(--muted); letter-spacing:.06em; margin-bottom:4px; }
+    button { width:100%; margin-top:14px; padding:14px; border:0; border-radius:10px; background:var(--accent); color:#fff; font-size:16px; font-weight:600; }
+    button:disabled { opacity:.45; }
+    .note { font-size:13px; color:var(--muted); background:#15202b; border-radius:10px; padding:12px; margin-bottom:12px; }
+    .note strong { color:var(--text); }
+    .bar { height:8px; background:#2a3544; border-radius:4px; overflow:hidden; margin:12px 0 8px; }
+    .bar > i { display:block; height:100%; background:var(--accent); width:0%; transition:width .4s; }
+    .msg { font-size:14px; min-height:1.4em; white-space:pre-line; }
+    .sub, .note, .err-title, .err-msg, .err-steps li, h1, .steps span, .login-banner strong, .login-banner .hint { white-space:pre-line; }
+    .en { display:block; margin-top:4px; color:var(--muted); font-size:0.92em; font-weight:400; line-height:1.45; }
+    .code { text-align:center; font-size:26px; letter-spacing:.15em; font-weight:700; color:var(--accent); margin:12px 0; }
+    .err { color:#ff6b6b; font-size:13px; margin-top:8px; display:none; }
+    .hide { display:none !important; }
+    .ok { color:var(--ok); }
+    .err-panel { border:1px solid #5c3030; background:#1f1518; border-radius:12px; padding:14px; margin-bottom:14px; }
+    .err-badge { display:inline-block; font-size:11px; font-weight:700; letter-spacing:.04em; color:#ffb4b4; background:#3d2020; padding:4px 8px; border-radius:6px; margin-bottom:10px; }
+    .err-title { font-size:17px; font-weight:700; color:#ff8a8a; margin:0 0 8px; }
+    .err-msg { font-size:14px; color:var(--text); margin:0 0 12px; }
+    .err-steps { margin:0; padding-left:18px; font-size:13px; color:var(--muted); }
+    .err-steps li { margin-bottom:8px; }
+    .err-steps li strong { color:var(--text); font-weight:600; }
+    .btn-outline { background:transparent; border:1px solid #2a3544; color:var(--text); margin-top:10px; }
+    .contact { font-size:12px; color:var(--muted); margin-top:14px; text-align:center; }
+    .legal-note { font-size:11px; line-height:1.55; margin-top:18px; padding-top:12px; border-top:1px solid #2a3544; text-align:center; color:var(--muted); }
+    .steps { display:flex; gap:6px; margin-bottom:16px; flex-wrap:wrap; }
+    .steps span { flex:1; min-width:68px; text-align:center; font-size:10px; padding:8px 4px; border-radius:8px; background:#15202b; color:var(--muted); line-height:1.35; }
+    .steps span.on { background:#1a3348; color:var(--accent); font-weight:600; }
+    .steps span.done { background:#152820; color:var(--ok); }
+    .login-banner { background:#1a3348; border:2px solid var(--accent); border-radius:12px; padding:14px 16px; margin-bottom:14px; }
+    .login-banner.hide { display:none !important; }
+    .login-banner strong { display:block; font-size:15px; margin-bottom:8px; color:var(--text); }
+    .login-banner a { color:var(--accent); font-size:17px; font-weight:700; word-break:break-all; }
+    .login-banner .hint { font-size:12px; color:var(--muted); margin-top:8px; }
+    .btn-copy { width:auto; display:inline-block; margin-top:10px; padding:10px 16px; font-size:14px; }
+    .login-banner-card { border-color:#3dd68c; background:#152820; }
+    #localPushBar {
+      position:fixed; top:0; left:0; right:0; z-index:9999;
+      background:#1a4d38; border-bottom:2px solid #3dd68c;
+      color:#fff; padding:14px 16px; text-align:center;
+      font-size:15px; font-weight:600; line-height:1.45;
+      box-shadow:0 4px 20px rgba(0,0,0,.35);
+    }
+    #localPushBar.hide { display:none !important; }
+    #localPushBar small { display:block; font-weight:400; color:#b8e6cf; margin-top:4px; font-size:13px; }
+    body.has-push-bar { padding-top:72px; }
+    body.has-push-bar .wrap { padding-top:10px; }
+    .lang-bar { display:flex; gap:8px; justify-content:flex-end; margin-bottom:10px; }
+    .lang-btn { width:auto; margin:0; padding:7px 14px; font-size:13px; font-weight:600; border-radius:8px; border:1px solid #2a3544; background:transparent; color:var(--muted); }
+    .lang-btn.on { background:var(--accent); border-color:var(--accent); color:#fff; }
+  </style>
+</head>
+<body>
+  <div id="localPushBar" class="hide" role="alert">
+    Whick 설치
+    <small id="localPushBody">고유 접속 주소에서 설치 진행을 확인하세요.<span class="en">Check install progress at your personal install URL.</span></small>
+  </div>
+  <div class="wrap">
+    <div class="lang-bar">
+      <button type="button" id="langKo" class="lang-btn" onclick="setInstallLang('ko')">한국어</button>
+      <button type="button" id="langEn" class="lang-btn" onclick="setInstallLang('en')">English</button>
+    </div>
+    <p class="step">Whick 뮤직서버</p>
+    <h1 id="title">설치를 시작합니다<span class="en">Starting install</span></h1>
+    <p class="sub" id="subtitle">스마트폰으로 진행합니다.<span class="en">Continue on your smartphone.</span></p>
+
+    <div class="note hide" id="noteHomeWifiFirst" style="margin-bottom:14px;line-height:1.65">
+      사용하시는 Wi-Fi에 연결된 상태에서 설치를 계속해 주세요.
+      <span class="en">Stay connected to your Wi-Fi to continue the install.</span>
+    </div>
+
+    <div id="phoneLoginBanner" class="login-banner hide">
+      <strong id="bannerTitle">스마트폰에서 설치 주소를 열어 주세요<span class="en">Open the install URL on your phone</span></strong>
+      <a id="bannerUrl" href="#">—</a>
+      <p class="hint" id="bannerHint">미니PC와 같은 공유기 Wi-Fi에 연결한 뒤, 위 주소를 브라우저에 입력하세요.<span class="en">Join the same router Wi-Fi as the mini PC, then open the URL above.</span></p>
+      <button type="button" id="btnCopyUrl" class="btn-copy">주소 복사 / Copy</button>
+      <button type="button" id="btnOpenUrl" class="btn-copy">브라우저에서 열기 / Open</button>
+    </div>
+
+    <div class="steps" id="stepBar">
+      <span id="step1">① 연결<span class="en">Link</span></span>
+      <span id="step2">② 준비<span class="en">Prep</span></span>
+      <span id="step3">③ 재연결<span class="en">Rejoin</span></span>
+      <span id="step4">④ 등록<span class="en">Register</span></span>
+    </div>
+
+    <div id="panelWelcome" class="card">
+      <p class="msg" style="font-size:16px;font-weight:600;margin:0 0 10px">Whick 설치<span class="en">Whick Install</span></p>
+      <div class="note" style="margin-bottom:12px;border-color:#3dd68c;background:#152820">
+        <strong>미니PC 부팅 전</strong> — 스마트폰·PC에서 <strong>whick.org 로그인</strong>과 <strong>솔루션 결제</strong>를 먼저 해 두세요.<br>
+        <span class="en">Before booting the mini PC — log in to whick.org and complete solution payment on your phone/PC.</span><br>
+        <span style="font-size:12px;color:var(--muted)">LTE·Wi-Fi 모두 가능 · 3레벨 이상 · 집 Wi-Fi는 미니PC가 공유기에 연결된 뒤 필요합니다.<span class="en">LTE/Wi-Fi OK · Lv3+ · Home Wi-Fi needed after the mini PC joins the router.</span></span>
+      </div>
+      <div class="note" id="welcomeNote">
+        미니PC는 사용하시는 Wi-Fi에 자동으로 연결합니다.<br>
+        스마트폰은 <strong>같은 공유기 Wi-Fi</strong>에서 <strong>고유 접속 주소</strong>(또는 LAN 주소)로 설치를 이어 가세요.
+        <span class="en">The mini PC joins your Wi-Fi automatically. On your phone, continue via the personal install URL (or LAN URL) on the same router Wi-Fi.</span>
+      </div>
+      <p class="msg" id="netMsg">Whick 준비 중…
+Preparing Whick…</p>
+    </div>
+
+    <div id="panelLan" class="card hide">
+      <p class="msg"><strong>스마트폰으로 같은 Wi-Fi에 연결해 주세요.</strong>
+<span class="en">Connect your phone to the same Wi-Fi.</span>
+미니PC와 <strong>같은 공유기 Wi-Fi</strong> (또는 유선으로 같은 스위치)
+<span class="en">Same router Wi-Fi as the mini PC (or same switch if wired).</span></p>
+      <p class="msg" id="lanHint">미니PC 주소 확인 중…
+Checking mini PC address…</p>
+      <p class="msg" id="lanUrl" style="word-break:break-all;font-size:16px;color:var(--accent);font-weight:600"></p>
+      <p class="msg" style="font-size:13px;color:var(--muted)">설치 안내 메일은 <strong>whick.org에 로그인한 계정</strong>(같은 Wi-Fi)으로 발송됩니다. 메일함·스팸함을 확인하세요.
+<span class="en">Install guide email goes to the whick.org account logged in on the same Wi-Fi. Check inbox/spam.</span></p>
+      <button type="button" id="btnLanOpen" class="hide">설치 도우미 열기 / Open helper</button>
+    </div>
+
+    <div id="panelPhoneLogin" class="card hide login-banner-card">
+      <p class="msg" style="font-size:16px;font-weight:600;margin:0 0 10px">스마트폰에서 아래 주소를 열어 주세요<span class="en">Open this URL on your phone</span></p>
+      <p class="msg" id="phoneLoginMsg">Whick 설치 주소가 준비되었습니다.
+Your Whick install URL is ready.</p>
+      <p class="msg" id="phoneLoginUrl" style="word-break:break-all;font-size:18px;color:var(--accent);font-weight:700"></p>
+      <p class="msg" style="font-size:13px;color:var(--muted)">같은 공유기 Wi-Fi · 설치 진행 상태 확인
+<span class="en">Same router Wi-Fi · check install progress</span></p>
+      <button type="button" id="btnPhoneLoginOpen">브라우저에서 열기 / Open</button>
+      <button type="button" id="btnPhoneLoginCopy" class="btn-outline">주소 복사 / Copy</button>
+    </div>
+
+    <div id="panelReconnect" class="card hide">
+      <p class="msg"><strong>사용하시는 Wi-Fi에 다시 로그인해 주세요.</strong>
+<span class="en">Reconnect to your Wi-Fi.</span>
+설치 안내 메일을 확인하세요.
+<span class="en">Check the install guide email.</span>
+Wi-Fi 설정 → <strong id="homeSsid">집 Wi-Fi</strong>
+<span class="en">Wi-Fi settings → your home Wi-Fi</span></p>
+      <p class="msg" id="reconnectUrlDisplay" style="word-break:break-all;margin:12px 0;font-size:15px"></p>
+      <button type="button" id="btnContinue">설치 계속하기 / Continue</button>
+    </div>
+
+    <div id="panelProgress" class="card hide">
+      <p class="msg" id="progressMsg">Whick에 연결하는 중…
+Connecting to Whick…</p>
+      <p class="msg" id="progressPct" style="font-size:24px;font-weight:700;color:var(--accent);margin:4px 0 8px">0%</p>
+      <div class="bar"><i id="progressBar"></i></div>
+      <p class="msg" id="progressDetail"></p>
+      <p class="msg" style="font-size:12px;color:var(--muted);margin-top:10px">설치 도우미를 닫지 마세요. 장애가 있으면 해결 방법이 표시됩니다.
+<span class="en">Keep this helper open. If something fails, fix steps will appear.</span></p>
+    </div>
+
+    <div id="panelRegister" class="card hide">
+      <p class="msg" id="regStatusMsg">Whick 서버 연결이 완료되었습니다.
+장비 등록을 자동으로 진행합니다.
+<span class="en">Connected to Whick.
+Registering the device automatically.</span></p>
+      <p class="msg" style="font-size:13px;color:var(--muted)">장비코드 / Device code: <strong id="regDeviceCode">—</strong></p>
+      <div class="bar"><i id="regProgressBar"></i></div>
+      <p class="msg" id="regProgressDetail"></p>
+      <p class="msg" id="regAccountHint" style="font-size:13px;color:var(--muted);display:none"></p>
+      <p class="err" id="errRegister"></p>
+    </div>
+
+    <div id="panelReinstallConsent" class="card hide">
+      <div class="note" style="border-color:#e6a700;background:#2a2418;margin-bottom:12px">
+        <strong>재설치가 감지되었습니다<span class="en">Reinstall detected</span></strong><br>
+        <span style="font-size:13px;color:var(--muted)">이미 Whick이 설치된 미니PC입니다. 재설치하려면 동의가 필요합니다.
+<span class="en">This mini PC already has Whick. Consent is required to reinstall.</span></span>
+      </div>
+      <p class="msg" id="reinstallConsentMsg">모바일 설치 페이지에서 재설치에 동의해 주세요. 동의 전까지 설치는 진행되지 않습니다.
+<span class="en">Agree to reinstall on this page. Install will not continue until you consent.</span></p>
+      <p class="msg" style="font-size:13px;color:var(--muted)">장비코드 / Device code: <strong id="reinstallDeviceCode">—</strong></p>
+      <button type="button" id="btnReinstallAgree">재설치에 동의합니다 / I agree to reinstall</button>
+      <button type="button" id="btnReinstallDeny" class="btn-outline">동의하지 않습니다 (USB 제거) / Decline (remove USB)</button>
+      <p class="err" id="errReinstallConsent"></p>
+      <p class="msg" style="font-size:12px;color:var(--muted);margin-top:12px">
+        동의하지 않으시면 설치 USB를 <strong>제거</strong>하고 미니PC 전원을 껐다 켜 주세요.
+        <span class="en">If you decline, remove the install USB and power-cycle the mini PC.</span>
+      </p>
+    </div>
+
+    <div id="panelReinstallDenied" class="card hide">
+      <div class="note" style="border-color:#ff6b6b;background:#2a1818">
+        <strong>재설치가 취소되었습니다<span class="en">Reinstall cancelled</span></strong>
+      </div>
+      <p class="msg" style="font-size:16px;font-weight:600;margin:12px 0">설치 USB를 제거하고 미니PC를 재부팅해 주세요.
+<span class="en">Remove the install USB and reboot the mini PC.</span></p>
+      <p class="msg" style="font-size:13px;color:var(--muted)">기존 Whick 뮤직서버는 USB를 제거한 뒤 재부팅하면 그대로 사용할 수 있습니다.
+<span class="en">After removing the USB and rebooting, your existing Whick music server should work as before.</span></p>
+    </div>
+
+    <div id="panelComplete" class="card hide">
+      <p class="ok" style="font-size:18px;font-weight:600;margin:0 0 8px">설치 완료<span class="en">Install complete</span></p>
+      <p class="msg">Whick Music Server 설치가 모두 끝났습니다.
+<span class="en">Whick Music Server install is finished.</span></p>
+      <p class="msg" style="font-size:13px;color:var(--muted);margin:0 0 4px">고객번호 / Member No.</p>
+      <div class="code" id="memberNo">—</div>
+      <p class="msg" style="font-size:13px;color:var(--muted);margin:12px 0 4px">장비코드 / Device code</p>
+      <div class="code" id="deviceCode" style="font-size:20px">—</div>
+      <p class="msg" style="font-size:15px;font-weight:600;color:var(--ok);margin-top:16px">USB를 제거하고 미니PC를 재부팅하세요.
+<span class="en">Remove the USB and reboot the mini PC.</span></p>
+      <p class="msg" style="font-size:13px;color:var(--muted)">재부팅 후에는 USB 없이 정상 구동됩니다.
+<span class="en">After reboot it runs without the USB.</span></p>
+    </div>
+
+    <div id="panelError" class="card hide">
+      <div class="err-panel">
+        <span class="err-badge">장애 발생 / Error</span>
+        <p class="err-title" id="errorTitle">설치 중 문제가 발생했습니다
+<span class="en">A problem occurred during install</span></p>
+        <p class="err-msg" id="errorMsg"></p>
+        <p class="msg" style="font-size:13px;margin:0 0 8px;color:var(--text)"><strong>해결 방법<span class="en">How to fix</span></strong></p>
+        <ol class="err-steps" id="errorSteps"></ol>
+      </div>
+      <button type="button" id="btnRetry">다시 시도 / Try again</button>
+      <p class="contact">문제가 계속되면 whick.org 다운로드 메뉴 또는 고객센터로 문의해 주세요.
+<span class="en">If it continues, contact support via Downloads or Customer Center on whick.org.</span></p>
+    </div>
+
+    <p class="legal-note">
+      Whick 소프트웨어는 whick.org 공식 채널에서만 배포됩니다.<br>
+      <span class="en">Whick software is distributed only through official whick.org channels.</span><br>
+      무단 복제·변조·재배포·Whick 명칭을 이용한 가공 배포는 금지됩니다.<br>
+      <span class="en">Unauthorized copy, modification, redistribution, or misuse of the Whick name is prohibited.</span><br>
+      공식 등록·하드웨어 바인딩이 없는 복제본은 실행·관제·업데이트가 되지 않습니다.
+      <span class="en">Copies without official registration/hardware binding cannot run, be managed, or update.</span>
+    </p>
+  </div>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    let reconnectUrl = '';
+    const LS_RECONNECT = 'whick_reconnect_url';
+    const LS_HOME_SSID = 'whick_home_ssid';
+    const LS_LANG = 'whick_install_lang';
+
+    // ── 설치 언어 (ko/en) — 폰 브라우저 언어 자동 감지 + 수동 선택 유지 ──
+    let installLang = 'ko';
+    function detectInstallLang() {
+      try {
+        const q = new URLSearchParams(location.search).get('lang');
+        if (q === 'ko' || q === 'en') return q;
+        const s = localStorage.getItem(LS_LANG);
+        if (s === 'ko' || s === 'en') return s;
+        const dls = localStorage.getItem('wamss_git_lang'); // 다운로드 사이트 선택 언어
+        if (dls === 'ko' || dls === 'en') return dls;
+      } catch (e) {}
+      try {
+        const c = document.cookie.match(/(?:^|;\s*)wamss_git_lang=(ko|en)/);
+        if (c) return c[1];
+      } catch (e2) {}
+      const nav = (navigator.languages && navigator.languages[0]) || navigator.language || 'ko';
+      return String(nav).toLowerCase().indexOf('ko') === 0 ? 'ko' : 'en';
+    }
+    function L(ko, en) { return installLang === 'en' ? en : ko; }
+    // 서버 이중언어 메시지("한국어\nEnglish") → 선택 언어만 남김
+    function stripBilingual(txt) {
+      const s = String(txt == null ? '' : txt);
+      if (s.indexOf('\n') < 0) return s;
+      const lines = s.split('\n').map((x) => x.trim()).filter(Boolean);
+      if (lines.length < 2) return s;
+      const hasHangul = (t) => /[\u3131-\uD79D]/.test(t);
+      if (installLang === 'ko') {
+        const kept = lines.filter((l) => hasHangul(l) || !/[a-zA-Z]{2,}/.test(l));
+        return kept.join('\n') || lines[0];
+      }
+      const keptEn = lines.filter((l) => !hasHangul(l));
+      return keptEn.join('\n') || lines[lines.length - 1];
+    }
+    function setInstallLang(lang, save) {
+      installLang = (lang === 'en') ? 'en' : 'ko';
+      if (save) { try { localStorage.setItem(LS_LANG, installLang); } catch (e) {} }
+      applyInstallLang();
+    }
+    // 한국어 모드: 영어 문장(.en) 숨김 / 영어 모드: 한국어 문장 숨김 + "한국어 / English" 이중 라벨 분리
+    function applyInstallLang() {
+      document.documentElement.lang = installLang;
+      const hideKo = (installLang === 'en');
+      const showKo = !hideKo;
+      document.querySelectorAll('span.en').forEach((el) => {
+        el.style.display = showKo ? '' : 'none';
+      });
+      // 텍스트 노드의 "한국어 / English" 형태 — 영어 모드면 "/" 뒤만 남김
+      if (window.__installLangObs) window.__installLangObs.disconnect();
+      document.querySelectorAll('button, .btn-copy, span.err-badge').forEach((el) => {
+        const html = el.innerHTML;
+        if (html.indexOf(' / ') < 0) return;
+        if (!el.dataset.koEn) { el.dataset.koEn = html; }
+        const pair = el.dataset.koEn;
+        el.innerHTML = showKo ? pair : pair.replace(/^([^<]*?)\s*\/\s*([^<]*)$/, '$2');
+      });
+      document.getElementById('langKo').classList.toggle('on', showKo);
+      document.getElementById('langEn').classList.toggle('on', hideKo);
+    }
+
+    const PANELS = ['panelWelcome','panelLan','panelPhoneLogin','panelReconnect','panelProgress','panelRegister','panelReinstallConsent','panelReinstallDenied','panelComplete','panelError'];
+    let lastPhoneAlertId = 0;
+    let installCompleteNotified = false;
+
+    function isInstallComplete(s) {
+      return s && (s.phase === 'done' || s.cc_phase === 'complete');
+    }
+
+    function setInstallProgress(s, fallbackPct) {
+      const pct = Math.max(0, Math.min(100, Number(s && s.progress_pct != null ? s.progress_pct : fallbackPct || 0)));
+      if ($('progressPct')) $('progressPct').textContent = pct + '%';
+      if ($('progressBar')) $('progressBar').style.width = pct + '%';
+      if ($('progressMsg')) {
+        $('progressMsg').textContent = (s && s.progress_msg) || L('설치 진행 중…', 'Install in progress…');
+      }
+      if ($('progressDetail')) {
+        const detail = (s && (s.progress_detail || s.progress_msg)) || '';
+        $('progressDetail').textContent = detail || ((s && s.device_code) ? (L('장비코드 ', 'Device code ') + s.device_code) : '');
+      }
+    }
+
+    function portalSubtitle(s, fallback) {
+      if (s && s.install_portal_url) return L('고유 접속 주소에서 진행', 'Continue via your personal install URL');
+      if (s && (s.lan_url || s.phone_login_url || s.setup_url_fixed || s.setup_url_fixed_ip)) {
+        return L('LAN·고유 접속 주소로 진행', 'Continue via LAN or personal install URL');
+      }
+      return fallback || L('고유 접속 주소에서 진행', 'Continue via your personal install URL');
+    }
+
+    function loginUrlFrom(s) {
+      if (s && s.setup_url_fixed) return s.setup_url_fixed;
+      if (s && s.setup_url_fixed_ip) return s.setup_url_fixed_ip;
+      return (s && (s.install_portal_url || s.phone_login_url || s.reconnect_url || s.lan_url)) || reconnectUrl || '';
+    }
+
+    function shouldShowRegister(s) {
+      const rc = s.reinstall_consent || {};
+      if (rc.blocks_register) return false;
+      const phase = s.phase || s.cc_phase || '';
+      if (phase === 'reinstall_consent_pending' || phase === 'reinstall_consent_denied') return false;
+      return phase === 'register_needed'
+        || phase === 'reinstall_consent_done'
+        || (!s.ap_ok && s.phone_seen && s.device_code && ['await_phone', 'lan_setup', 'phone_login_ready', 'welcome'].includes(phase));
+    }
+
+    function showReinstallConsentPanel(s) {
+      setSteps('register');
+      show('panelReinstallConsent');
+      $('title').textContent = s.portal_stage_label || L('재설치 동의 필요', 'Reinstall consent required');
+      $('subtitle').textContent = L('동의 전까지 설치가 중지됩니다', 'Install is paused until you consent');
+      if (s.device_code) $('reinstallDeviceCode').textContent = s.device_code;
+      $('reinstallConsentMsg').textContent = s.progress_msg || L('모바일 설치 페이지에서 재설치에 동의해 주세요.', 'Agree to reinstall on this page.');
+      $('errReinstallConsent').style.display = 'none';
+    }
+
+    function showReinstallDeniedPanel(s) {
+      setSteps('register');
+      show('panelReinstallDenied');
+      $('title').textContent = s.portal_stage_label || L('재설치 취소', 'Reinstall cancelled');
+      $('subtitle').textContent = L('USB를 제거하고 재부팅해 주세요', 'Remove the USB and reboot');
+    }
+
+    async function submitReinstallConsent(agreed) {
+      $('errReinstallConsent').style.display = 'none';
+      $('btnReinstallAgree').disabled = true;
+      $('btnReinstallDeny').disabled = true;
+      try {
+        const r = await fetch('/api/reinstall-consent', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ agreed }),
+        });
+        const j = await r.json();
+        if (!r.ok || !j.ok) {
+          $('errReinstallConsent').textContent = stripBilingual(j.error) || L('동의 처리 실패', 'Consent request failed');
+          $('errReinstallConsent').style.display = 'block';
+          $('btnReinstallAgree').disabled = false;
+          $('btnReinstallDeny').disabled = false;
+          return;
+        }
+        poll();
+      } catch (e) {
+        $('errReinstallConsent').textContent = L('네트워크 오류 — 다시 시도해 주세요', 'Network error — please try again');
+        $('errReinstallConsent').style.display = 'block';
+        $('btnReinstallAgree').disabled = false;
+        $('btnReinstallDeny').disabled = false;
+      }
+    }
+
+    function showRegisterPanel(s) {
+      setSteps('register');
+      show('panelRegister');
+      $('title').textContent = L('장비 등록', 'Device registration');
+      $('subtitle').textContent = L('자동으로 진행됩니다 — 이 화면을 닫지 마세요', 'Runs automatically — keep this page open');
+      if (s.device_code) $('regDeviceCode').textContent = s.device_code;
+      $('regStatusMsg').innerHTML = escHtml(s.progress_msg || L('Whick 연결 완료 — 장비 등록을 자동으로 진행합니다', 'Connected to Whick — registering the device automatically')).replace(/\n/g, '<br>');
+      $('regProgressBar').style.width = (s.progress_pct || 75) + '%';
+      $('regProgressDetail').textContent = s.progress_detail || '';
+      const hint = $('regAccountHint');
+      if (s.mb_id) {
+        hint.style.display = 'block';
+        hint.textContent = L('확인된 계정: ', 'Verified account: ') + s.mb_id;
+      } else if (s.auto_register_error) {
+        hint.style.display = 'block';
+        hint.textContent = s.auto_register_error;
+      } else {
+        hint.style.display = 'block';
+        hint.textContent = L('whick.org 로그인 계정(같은 Wi-Fi)으로 자동 연결됩니다.', 'Links automatically to your whick.org login account (same Wi-Fi).');
+      }
+      const err = $('errRegister');
+      if (s.auto_register_error && !s.mb_id) {
+        err.textContent = s.auto_register_error;
+        err.style.display = 'block';
+      } else {
+        err.style.display = 'none';
+      }
+      updateLoginBanner(s, true);
+    }
+
+    function updateWelcomeNote(s) {
+      const el = $('welcomeNote');
+      if (!el) return;
+      void (s && s.ap_ssid);
+      if (s.install_portal_url || s.lan_url || s.phone_login_url) {
+        const u = s.install_portal_url || s.lan_url || s.phone_login_url;
+        if (s.install_portal_url || (u && u.indexOf('whick.org/page/') >= 0)) {
+          el.innerHTML = L('같은 Wi-Fi에서 whick.org에 로그인한 뒤 <strong>고유 접속 주소</strong>에서 설치를 진행하세요.<br>',
+              'On the same Wi-Fi, log in to whick.org and continue via your <strong>personal install URL</strong>.<br>')
+            + '<a href="' + escHtml(u) + '" style="color:var(--accent)">' + escHtml(u) + '</a>';
+        } else {
+          el.innerHTML = L('스마트폰을 <strong>집 Wi-Fi</strong>에 연결한 뒤 <strong>LAN·고유 접속 주소</strong>로 접속하세요.<br>',
+              'Connect your phone to your <strong>home Wi-Fi</strong>, then open the <strong>LAN or personal install URL</strong>.<br>')
+            + '<a href="' + escHtml(u) + '" style="color:var(--accent)">' + escHtml(u) + '</a>';
+        }
+      } else {
+        el.innerHTML = L('미니PC는 사용하시는 Wi-Fi에 자동으로 연결합니다.<br>'
+          + '스마트폰은 같은 공유기에서 <strong>고유 접속 주소</strong> 또는 LAN 주소를 준비 중입니다…',
+          'The mini PC joins your Wi-Fi automatically.<br>'
+          + 'Preparing your <strong>personal install URL</strong> or LAN URL on the same router…');
+      }
+    }
+
+    function onSameLoginHost(url) {
+      if (!url) return false;
+      try {
+        const u = new URL(url);
+        return window.location.host === u.host;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    async function copyLoginUrl(url) {
+      if (!url) return;
+      try {
+        await navigator.clipboard.writeText(url);
+        $('bannerHint').textContent = L('주소가 복사되었습니다. 브라우저 주소창에 붙여넣기 하세요.', 'Copied. Paste it into your browser address bar.');
+      } catch (e) {
+        $('bannerHint').textContent = L('복사 실패 — 주소를 길게 눌러 직접 복사해 주세요.', 'Copy failed — long-press the URL to copy it manually.');
+      }
+    }
+
+    async function ensureNotifyPermission() {
+      if (!('Notification' in window)) return false;
+      if (Notification.permission === 'granted') return true;
+      if (Notification.permission === 'default') {
+        try { return (await Notification.requestPermission()) === 'granted'; } catch (e) {}
+      }
+      return Notification.permission === 'granted';
+    }
+
+    function showLocalPushBar(body) {
+      const bar = $('localPushBar');
+      if (!bar) return;
+      $('localPushBody').textContent = stripBilingual(body) || L('고유 접속 주소에서 설치 진행을 확인하세요.', 'Check install progress at your personal install URL.');
+      bar.classList.remove('hide');
+      document.body.classList.add('has-push-bar');
+      try { if (navigator.vibrate) navigator.vibrate([180, 80, 180]); } catch (e) {}
+    }
+
+    function hideLocalPushBar() {
+      $('localPushBar').classList.add('hide');
+      document.body.classList.remove('has-push-bar');
+    }
+
+    function firePhoneNotification(s, force) {
+      const id = s.phone_alert_id || 0;
+      const title = stripBilingual(s.phone_alert_title) || L('Whick 설치', 'Whick install');
+      const body = stripBilingual(s.phone_alert_body) || L('고유 접속 주소에서 설치 진행을 확인하세요.', 'Check install progress at your personal install URL.');
+      if (!force && (!id || id === lastPhoneAlertId)) return;
+      if (id) lastPhoneAlertId = id;
+      if ('Notification' in window && Notification.permission === 'granted') {
+        try {
+          const n = new Notification(title, {
+            body,
+            tag: 'whick-phone-login-' + (id || 'portal'),
+            requireInteraction: true,
+          });
+          n.onclick = () => { window.focus(); n.close(); };
+        } catch (e) {}
+      }
+    }
+
+    function updateLoginBanner(s, onRegisterPanel) {
+      const url = loginUrlFrom(s);
+      const banner = $('phoneLoginBanner');
+      if (onRegisterPanel || !url || s.phase === 'register_done' || isInstallComplete(s)) {
+        banner.classList.add('hide');
+        return;
+      }
+      const onTarget = onSameLoginHost(url);
+      if (onTarget && !shouldShowRegister(s)) {
+        banner.classList.add('hide');
+        return;
+      }
+      banner.classList.remove('hide');
+      banner.classList.remove('login-banner-card');
+      $('bannerTitle').textContent = stripBilingual(s.phone_alert_title) || L('스마트폰에서 설치 주소를 열어 주세요', 'Open the install URL on your phone');
+      $('bannerUrl').textContent = url;
+      $('bannerUrl').href = url;
+      $('bannerHint').textContent = stripBilingual(s.phone_alert_body) || L('미니PC와 같은 공유기 Wi-Fi에 연결한 뒤 위 주소를 여세요.', 'Join the same router Wi-Fi as the mini PC, then open the URL above.');
+      firePhoneNotification(s);
+    }
+
+    function saveReconnect(url, ssid) {
+      if (url) {
+        reconnectUrl = url;
+        try { localStorage.setItem(LS_RECONNECT, url); } catch (e) {}
+      }
+      if (ssid) {
+        try { localStorage.setItem(LS_HOME_SSID, ssid); } catch (e) {}
+      }
+    }
+
+    function loadStoredReconnect() {
+      try {
+        const u = localStorage.getItem(LS_RECONNECT);
+        if (u) reconnectUrl = u;
+        const ssid = localStorage.getItem(LS_HOME_SSID);
+        if (ssid && $('homeSsid')) $('homeSsid').textContent = ssid;
+      } catch (e) {}
+    }
+
+    function updateReconnectUrlDisplay(url) {
+      const el = $('reconnectUrlDisplay');
+      if (!url) {
+        el.innerHTML = '<span style="color:var(--muted)">' + L('Wi-Fi 연결 중… 주소가 곧 표시됩니다.', 'Connecting to Wi-Fi… the URL will appear shortly.') + '</span>';
+        $('btnContinue').disabled = true;
+        return;
+      }
+      el.innerHTML = '<strong>' + L('설치 주소', 'Install URL') + '</strong><br><a href="' + escHtml(url) + '" style="color:var(--accent);word-break:break-all;font-size:16px;font-weight:600">' + escHtml(url) + '</a>';
+      $('btnContinue').disabled = false;
+    }
+
+    function showReconnectPanel(s) {
+      show('panelReconnect');
+      setSteps('reconnect');
+      if (s.home_ssid) $('homeSsid').textContent = s.home_ssid;
+      const url = (s && s.reconnect_url) || reconnectUrl || '';
+      if (url) saveReconnect(url, s && s.home_ssid);
+      else if (s && s.home_ssid) saveReconnect('', s.home_ssid);
+      updateReconnectUrlDisplay(url);
+    }
+
+    function show(id) {
+      PANELS.forEach(p => $(p).classList.toggle('hide', p !== id));
+    }
+
+    function setSteps(active) {
+      const keys = ['ap','wifi','reconnect','register'];
+      ['step1','step2','step3','step4'].forEach((id, i) => {
+        const el = $(id);
+        el.classList.remove('on', 'done');
+        const idx = keys.indexOf(active);
+        if (i < idx) el.classList.add('done');
+        else if (i === idx) el.classList.add('on');
+      });
+    }
+
+    let lastAutoRetryAt = 0;
+
+    function retriableInstallError(s) {
+      const code = s.error_code || 'unknown';
+      if (['wifi_auth', 'wifi_failed', 'hw_not_authorized', 'install_complete', 'ap_failed'].includes(code)) {
+        return false;
+      }
+      return true;
+    }
+
+    function showError(s) {
+      show('panelError');
+      $('title').textContent = L('설치 중 문제 발생', 'Install problem');
+      $('subtitle').textContent = L('아래 안내를 확인해 주세요.', 'Please follow the guide below.');
+      $('errorTitle').textContent = stripBilingual(s.error_title) || L('설치 중 문제가 발생했습니다', 'A problem occurred during install');
+      $('errorMsg').textContent = stripBilingual(s.error || s.error_message) || '';
+      const steps = s.error_steps || [];
+      const ol = $('errorSteps');
+      ol.replaceChildren();
+      steps.forEach((t) => {
+        const li = document.createElement('li');
+        li.textContent = stripBilingual(t) || '';
+        ol.appendChild(li);
+      });
+    }
+
+    function escHtml(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    }
+
+    function showWaitingProgress(s, title, subtitle, pct) {
+      setSteps('wifi');
+      show('panelProgress');
+      $('title').textContent = title;
+      $('subtitle').textContent = subtitle;
+      setInstallProgress(s, pct);
+      $('noteHomeWifiFirst').classList.remove('hide');
+    }
+
+    async function poll() {
+      try {
+        const r = await fetch('/api/status');
+        const s = await r.json();
+        const loginUrl = loginUrlFrom(s);
+        if (loginUrl) saveReconnect(loginUrl, s.home_ssid);
+        if (s.wan_ok || s.setup_url_ssot === 'lan' || s.install_portal_url || s.lan_url) hideLocalPushBar();
+        if (s.phone_alert_id) firePhoneNotification(s);
+        updateLoginBanner(s);
+
+        const phase = s.phase || s.cc_phase || '';
+        if (phase === 'reinstall_consent_pending' || s.portal_stage === 'reinstall_consent') {
+          showReinstallConsentPanel(s);
+          setTimeout(poll, 2000);
+          return;
+        }
+        if (phase === 'reinstall_consent_denied' || s.portal_stage === 'reinstall_denied') {
+          showReinstallDeniedPanel(s);
+          return;
+        }
+
+        if (shouldShowRegister(s)) {
+          showRegisterPanel(s);
+          if (!isInstallComplete(s)) setTimeout(poll, 1500);
+          return;
+        }
+
+        if (s.phase === 'welcome' || s.phase === 'network_scan' || s.phase === 'await_phone' || s.phase === 'booting') {
+          if ((s.lan_url || loginUrl) && s.setup_url_ssot === 'lan') {
+            setSteps('ap');
+            show('panelLan');
+            $('title').textContent = L('스마트폰 연결', 'Connect your phone');
+            $('subtitle').textContent = L('집 Wi-Fi와 같은 네트워크', 'Same network as your home Wi-Fi');
+            $('lanHint').textContent = stripBilingual(s.progress_msg) || L('미니PC와 같은 공유기 Wi-Fi에 연결하세요.', 'Join the same router Wi-Fi as the mini PC.');
+            const u = loginUrl || s.lan_url;
+            if (u) {
+              $('lanUrl').innerHTML = '<a href="' + escHtml(u) + '" style="color:var(--accent)">' + escHtml(u) + '</a>';
+              reconnectUrl = u;
+              $('btnLanOpen').classList.remove('hide');
+            }
+            updateLoginBanner(s);
+            setTimeout(poll, 1500);
+            return;
+          }
+          setSteps('ap');
+          show('panelWelcome');
+          updateWelcomeNote(s);
+          $('noteHomeWifiFirst').classList.remove('hide');
+          let html = '';
+          if (s.phone_seen) {
+            html = '<span class="ok">' + L('✓ 연결됨 — 설치 도우미가 열렸습니다.', '✓ Connected — the install helper is open.') + '</span>';
+            $('title').textContent = L('Whick 설치', 'Whick install');
+            $('subtitle').textContent = L('스마트폰으로 계속 진행합니다.', 'Continue on your smartphone.');
+          } else if (loginUrl || s.install_portal_url || s.lan_url) {
+            const u = loginUrl || s.install_portal_url || s.lan_url;
+            html = L('스마트폰에서 <strong>고유 접속 주소</strong> 또는 LAN 주소로 접속하세요.<br>',
+                'On your phone, open the <strong>personal install URL</strong> or LAN URL.<br>')
+              + '<a href="' + escHtml(u) + '" style="color:var(--accent)">' + escHtml(u) + '</a>';
+            $('title').textContent = 'Whick 설치';
+            $('subtitle').textContent = portalSubtitle(s, '고유 접속 주소에서 진행');
+          } else {
+            html = stripBilingual(s.progress_msg) || L('미니PC Wi-Fi 연결·고유 접속 주소 준비 중…', 'Connecting the mini PC and preparing your install URL…');
+          }
+          if (s.phase === 'network_scan') {
+            html = L('Whick 서버 연결 준비 중… 잠시만 기다려 주세요.', 'Preparing the Whick server connection… please wait.');
+          }
+          $('netMsg').innerHTML = html;
+        } else if (s.phase === 'wifi_needed' || s.phase === 'wifi_connecting') {
+          showWaitingProgress(s, 'Whick 설치', portalSubtitle(s), s.phase === 'wifi_connecting' ? 12 : 8);
+          firePhoneNotification(s);
+        } else if (s.phase === 'phone_login_ready') {
+          setSteps('ap');
+          show('panelPhoneLogin');
+          $('title').textContent = L('스마트폰 접속', 'Open on your phone');
+          $('subtitle').textContent = L('같은 Wi-Fi에서 고유 접속 주소 열기', 'Open your personal install URL on the same Wi-Fi');
+          const url = loginUrlFrom(s);
+          $('phoneLoginMsg').textContent = stripBilingual(s.progress_msg) || L('설치 주소가 준비되었습니다.', 'Your install URL is ready.');
+          $('phoneLoginUrl').textContent = url || L('주소 확인 중…', 'Looking up the URL…');
+          if (url) {
+            $('phoneLoginUrl').innerHTML = '<a href="' + escHtml(url) + '" style="color:var(--accent)">' + escHtml(url) + '</a>';
+          }
+        } else if (s.phase === 'lan_setup') {
+          setSteps('ap');
+          show('panelLan');
+          $('title').textContent = L('스마트폰 연결', 'Connect your phone');
+          $('subtitle').textContent = L('같은 공유기 Wi-Fi', 'Same router Wi-Fi');
+          $('lanHint').textContent = stripBilingual(s.progress_msg) || '';
+          if (s.lan_url || loginUrl) {
+            const u = loginUrl || s.lan_url;
+            $('lanUrl').innerHTML = '<a href="' + escHtml(u) + '" style="color:var(--accent)">' + escHtml(u) + '</a>';
+            reconnectUrl = u;
+            $('btnLanOpen').classList.remove('hide');
+          }
+        } else if (s.phase === 'booting' || s.phase === 'connecting') {
+          setSteps('ap');
+          show('panelProgress');
+          $('title').textContent = L('Whick 설치 중', 'Installing Whick');
+          $('subtitle').textContent = portalSubtitle(s, L('잠시만 기다려 주세요', 'Please wait'));
+          setInstallProgress(s, 10);
+        } else if (s.phase === 'wifi_reconnect' && !s.ap_sta) {
+          setSteps('reconnect');
+          showReconnectPanel(s);
+          $('title').textContent = 'Whick 설치';
+          $('subtitle').textContent = portalSubtitle(s);
+          firePhoneNotification(s);
+        } else if (s.phase === 'install_linux' || s.phase === 'install_docker' || s.phase === 'install_runtime') {
+          setSteps('register');
+          show('panelProgress');
+          $('title').textContent = L('Whick 원격 설치 중', 'Whick remote install in progress');
+          $('subtitle').textContent = L('Whick이 장비에 솔루션을 설치합니다 — USB·전원·인터넷을 유지하세요', 'Whick is installing the solution — keep the USB, power, and internet connected');
+          setInstallProgress(s, 20);
+          setTimeout(poll, 1200);
+          return;
+        } else if (s.phase === 'register_done') {
+          setSteps('register');
+          show('panelProgress');
+          $('title').textContent = L('Whick 원격 설치 준비', 'Preparing Whick remote install');
+          $('subtitle').textContent = L('등록 완료 — Linux·Docker·런타임 설치를 시작합니다', 'Registered — starting Linux, Docker, and runtime install');
+          $('progressMsg').textContent = stripBilingual(s.progress_msg) || L('원격 설치 준비 중… (잠시만 기다려 주세요)', 'Preparing remote install… (please wait)');
+          setInstallProgress(s, 95);
+          if (s.member_no) $('progressDetail').textContent = L('고객번호 ', 'Member No. ') + s.member_no;
+          setTimeout(poll, 1500);
+          return;
+        } else if (isInstallComplete(s)) {
+          show('panelComplete');
+          $('title').textContent = L('설치 완료', 'Install complete');
+          $('subtitle').textContent = L('USB 제거 후 재부팅', 'Remove the USB and reboot');
+          if (s.member_no) $('memberNo').textContent = s.member_no;
+          if (s.device_code) $('deviceCode').textContent = s.device_code;
+          if (!installCompleteNotified) {
+            installCompleteNotified = true;
+            firePhoneNotification({
+              phone_alert_title: L('Whick 설치 완료', 'Whick install complete'),
+              phone_alert_body: L('설치가 끝났습니다. USB를 제거하고 미니PC를 재부팅하세요.', 'Install finished. Remove the USB and reboot the mini PC.'),
+              phone_alert_id: Date.now(),
+            }, true);
+          }
+          return;
+        } else if (s.phase === 'error') {
+          showError(s);
+          const canRetry = (s.wan_ok || s.wired_ok || s.lan_url) && retriableInstallError(s);
+          const now = Date.now();
+          if (canRetry && now - lastAutoRetryAt > 10000) {
+            lastAutoRetryAt = now;
+            const msg = $('errorMsg');
+            if (msg) msg.textContent = (stripBilingual(s.error || s.error_message) || '') + L(' — 자동 재시도 중…', ' — retrying automatically…');
+            doRetry();
+          }
+          setTimeout(poll, 4000);
+          return;
+        }
+
+        if (!isInstallComplete(s)) {
+          setTimeout(poll, 1500);
+        }
+      } catch (e) {
+        setTimeout(poll, 3000);
+      }
+    }
+
+    async function doRetry() {
+      $('btnRetry').disabled = true;
+      try {
+        const r = await fetch('/api/retry', { method: 'POST' });
+        const j = await r.json();
+        if (j.ok) poll();
+      } catch (e) {
+        poll();
+      }
+      $('btnRetry').disabled = false;
+    }
+
+    $('btnRetry').onclick = () => doRetry();
+    $('btnReinstallAgree').onclick = () => submitReinstallConsent(true);
+    $('btnReinstallDeny').onclick = () => submitReinstallConsent(false);
+
+    $('btnContinue').onclick = () => {
+      if (reconnectUrl) window.location.href = reconnectUrl;
+      else poll();
+    };
+
+    $('btnLanOpen').onclick = () => {
+      if (reconnectUrl) window.location.href = reconnectUrl;
+    };
+
+    $('btnCopyUrl').onclick = () => copyLoginUrl($('bannerUrl').textContent);
+    $('btnOpenUrl').onclick = () => {
+      const u = $('bannerUrl').href;
+      if (u && u !== '#') window.location.href = u;
+    };
+    $('btnPhoneLoginOpen').onclick = () => {
+      if (reconnectUrl) window.location.href = reconnectUrl;
+    };
+    $('btnPhoneLoginCopy').onclick = () => copyLoginUrl(reconnectUrl);
+
+    $('localPushBar').onclick = async () => {
+      await ensureNotifyPermission();
+      firePhoneNotification({
+        phone_alert_title: L('Whick 설치', 'Whick install'),
+        phone_alert_body: $('localPushBody').textContent,
+        phone_alert_id: Date.now(),
+      }, true);
+    };
+
+    loadStoredReconnect();
+    ensureNotifyPermission();
+    // ── 언어 초기화: 저장값 → 폰 브라우저 언어 → ko (다운로드 사이트 선택도 존중) ──
+    setInstallLang(detectInstallLang(), false);
+    // 서버가 주는 이중언어 메시지("한국어\nEnglish")를 선택 언어에 맞게 필터링
+    (function () {
+      const stripTo = stripBilingual;
+      const origSetInstallProgress = setInstallProgress;
+      setInstallProgress = function (s, fallbackPct) {
+        origSetInstallProgress(s, fallbackPct);
+        const el = $('progressMsg');
+        if (el) el.textContent = stripTo(el.textContent);
+        const d = $('progressDetail');
+        if (d) d.textContent = stripTo(d.textContent);
+      };
+      const origShowError = showError;
+      showError = function (s) {
+        const wrap = s ? {
+          ...s,
+          error_title: stripTo(s.error_title),
+          error: stripTo(s.error || s.error_message),
+          error_steps: (s.error_steps || []).map(stripTo),
+        } : s;
+        origShowError(wrap);
+      };
+      const origShowReinstallConsent = showReinstallConsentPanel;
+      showReinstallConsentPanel = function (s) {
+        origShowReinstallConsent(s);
+        const el = $('reinstallConsentMsg');
+        if (el) el.textContent = stripTo(el.textContent);
+      };
+      const origShowRegister = showRegisterPanel;
+      showRegisterPanel = function (s) {
+        origShowRegister(s);
+        const el = $('regStatusMsg');
+        if (el) el.textContent = stripTo(el.textContent);
+      };
+    })();
+    if (reconnectUrl) {
+      showReconnectPanel({ home_ssid: '', reconnect_url: reconnectUrl });
+      setSteps('reconnect');
+      $('title').textContent = L('설치 계속', 'Continue install');
+      $('subtitle').textContent = L('저장된 주소로 이어갑니다.', 'Resuming with your saved URL.');
+    }
+    poll();
+  </script>
+</body>
+</html>

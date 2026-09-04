@@ -1,0 +1,18 @@
+# Customer mini-PC — ALSA passthrough for MiniPC/DAC playback.
+# privileged: true required for /proc/asound access (ALSA device detection inside container).
+# /lib/modules:ro required so entrypoint's ensure-aloop.sh `modprobe snd-aloop` can actually find
+# the module (privileged alone grants CAP_SYS_MODULE but not the module files) — without this,
+# modprobe silently fails every boot/reinstall and Camilla falls back to fifo (MPD hang risk).
+# volumes MUST repeat whick-data (named bind mount) to prevent compose merge from dropping it.
+services:
+  player:
+    privileged: true
+    volumes:
+      - /dev/snd:/dev/snd
+      - /lib/modules:/lib/modules:ro
+      - whick-data:/var/lib/whick
+    group_add:
+      - audio
+    environment:
+      WHICK_CAMILLA_ENABLED: "1"
+      WHICK_CAMILLA_ALSA_DEVICE: ${WHICK_CAMILLA_ALSA_DEVICE:-auto}

@@ -1,0 +1,60 @@
+# Whick OS package allowlist (SSD runtime + shared base)
+# Live-only extras: live-extra.yaml
+meta:
+  product: whick-os
+  ubuntu: "26.04"
+  suite: resolute
+  arch: amd64
+  updated: "2026-07-26"
+
+kernel:
+  image: linux-image-generic
+  firmware: linux-firmware
+  # linux-image-virtual 금지 — 미니PC NIC/USB DAC
+
+base:
+  - systemd-sysv
+  - initramfs-tools
+  - grub-efi-amd64
+  - shim-signed
+  - iproute2
+  - openssh-server
+  - curl
+  - ca-certificates
+  - python3
+  - sudo
+  - zstd
+  - tar
+  - udev
+
+network_ssd:
+  - systemd-networkd  # via systemd; enable unit in rootfs
+  # NetworkManager — Live only (see live-extra.yaml)
+
+docker:
+  bake: true
+  source: components.lock docker_ce deb_bundle
+  packages:
+    - docker-ce
+    - docker-ce-cli
+    - containerd.io
+    - docker-compose-plugin
+    - docker-buildx-plugin
+
+audio_host:
+  note: ALSA kernel only — no PipeWire/Pulse packages
+  udev_rules:
+    - 99-whick-usb-dac.rules
+  modules:
+    - snd-usb-audio
+    - snd-aloop
+
+host_units:
+  - whick-install-firstboot.service
+  - whick-agent-watchdog.timer  # installed by music-01 runtime
+  - whick-hardware-health.timer
+
+paths:
+  - /opt/whick/runtime
+  - /var/lib/whick
+  - /mnt/music

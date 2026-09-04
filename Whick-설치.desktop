@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Whick 설치
+Name[ko]=Whick 설치 (원클릭)
+Comment=압축 해제 후 이 폴더에서 실행 — 전원·Docker·관제·agent
+Exec=bash -lc './install-whick.sh'
+Icon=utilities-terminal
+Terminal=true
+Categories=Utility;
+StartupNotify=true

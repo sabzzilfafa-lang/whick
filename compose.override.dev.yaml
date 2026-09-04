@@ -1,0 +1,8 @@
+# 개발·CI 전용 — 체험 sample FLAC (고객 설치 번들·UAB prod 에 포함하지 않음)
+services:
+  player:
+    environment:
+      WHICK_LIBRARY_SCAN_PATHS: /var/lib/whick/library/music:/var/lib/whick/library/samples/flac
+    volumes:
+      - whick-data:/var/lib/whick
+      - ${WHICK_SAMPLE_AUDIO_PATH:-../5_site/content/sample-audio}:/var/lib/whick/library/samples:ro
