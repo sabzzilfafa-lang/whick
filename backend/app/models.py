@@ -87,6 +87,9 @@ class Song(Base):
     audio_path: Mapped[Optional[str]] = mapped_column(String(500))
     image_path: Mapped[Optional[str]] = mapped_column(String(500))
     pipeline_path: Mapped[Optional[str]] = mapped_column(String(500))
+    music_profile_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("music_profiles.id"), nullable=True
+    )
     reference_song_id: Mapped[Optional[int]] = mapped_column(
         ForeignKey("songs.id"), nullable=True
     )

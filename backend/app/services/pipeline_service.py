@@ -113,6 +113,7 @@ def find_ffmpeg() -> str | None:
             ["ffmpeg", "-version"],
             capture_output=True,
             text=True,
+            encoding="utf-8", errors="replace",
             timeout=10,
         )
         if r.returncode == 0:
@@ -120,6 +121,34 @@ def find_ffmpeg() -> str | None:
     except (FileNotFoundError, subprocess.TimeoutExpired):
         pass
     return None
+
+
+def _encoder_actually_works(encoder: str) -> bool:
+    """ffmpeg에 인코더가 '있는지'가 아니라 실제 1프레임 인코딩이 '되는지' 확인.
+
+    NVIDIA GPU가 없어도 ffmpeg 바이너리에는 h264_nvenc가 포함되어 있어
+    실제 인코딩 시점에 Cannot load nvcuda.dll 로 실패한다.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        out = Path(tmp) / "enc_test.mp4"
+        try:
+            r = subprocess.run(
+                [
+                    "ffmpeg", "-y", "-hide_banner", "-loglevel", "error",
+                    "-f", "lavfi", "-i", "testsrc=duration=0.1:size=320x240:rate=15",
+                    "-frames:v", "2",
+                    "-c:v", encoder,
+                    "-pix_fmt", "yuv420p",
+                    str(out),
+                ],
+                capture_output=True,
+                text=True,
+                encoding="utf-8", errors="replace",
+                timeout=60,
+            )
+            return r.returncode == 0 and out.exists() and out.stat().st_size > 0
+        except (subprocess.TimeoutExpired, OSError):
+            return False
 
 
 def detect_video_encoder(preferred: str = "auto") -> str:
@@ -132,13 +161,15 @@ def detect_video_encoder(preferred: str = "auto") -> str:
         ["ffmpeg", "-hide_banner", "-encoders"],
         capture_output=True,
         text=True,
+        encoding="utf-8", errors="replace",
         timeout=15,
     )
     encoders = r.stdout or ""
-    if "h264_amf" in encoders:
-        return "h264_amf"
-    if "h264_nvenc" in encoders:
-        return "h264_nvenc"
+    # 우선순위: NVIDIA NVENC → AMD AMF → Intel QSV → Intel MF → CPU libx264
+    # 단, 인코더가 나열되어 있는 것만으로 부족 — 실제 인코딩 가능 여부까지 검증
+    for enc in ("h264_nvenc", "h264_amf", "h264_qsv", "h264_mf"):
+        if enc in encoders and _encoder_actually_works(enc):
+            return enc
     return "libx264"
 
 
@@ -156,6 +187,7 @@ def probe_duration(audio_path: Path) -> float:
         ],
         capture_output=True,
         text=True,
+        encoding="utf-8", errors="replace",
         timeout=30,
     )
     if r.returncode != 0:
@@ -227,7 +259,7 @@ def remaster_audio(input_path: Path, output_path: Path, config: dict) -> Path:
 
 def _video_encode_args(encoder: str, config: dict, *, preview_fast: bool = False) -> list[str]:
     if preview_fast:
-        return ["-c:v", "libx264", "-crf", "28", "-preset", "ultrafast"]
+        return ["-c:v", "libx264", "-crf", "28", "-preset", "ultrafast", "-pix_fmt", "yuv420p"]
     video = config.get("video", {})
     # YouTube 최종본: 고화질 (CRF 낮을수록 고화질)
     crf = str(min(int(video.get("crf", 17)), 17))
@@ -241,6 +273,7 @@ def _video_encode_args(encoder: str, config: dict, *, preview_fast: bool = False
             "-qp_i", crf,
             "-qp_p", crf,
             "-qp_b", str(min(int(crf) + 2, 28)),
+            "-pix_fmt", "yuv420p",
         ]
     if encoder == "h264_nvenc":
         nv_preset = str(video.get("nvenc_preset", "p7"))
@@ -251,6 +284,7 @@ def _video_encode_args(encoder: str, config: dict, *, preview_fast: bool = False
             "-cq", crf,
             "-b:v", "0",
             "-profile:v", "high",
+            "-pix_fmt", "yuv420p",
         ]
     return [
         "-c:v", "libx264",
@@ -293,7 +327,7 @@ def _eq_overlay_fc(
     else:
         pos = f"x={int(eq_x)}:y={int(eq_y)}"
     tail = ",format=yuv420p" if yuv else ""
-    ov = f"{main}[eq]overlay={pos}:format=auto:shortest=1{tail}[{out}]"
+    ov = f"{main}[eq]overlay={pos}:format=yuv420:shortest=1{tail}[{out}]"
     return f"{sized};{ov}"
 
 
@@ -498,6 +532,12 @@ def run_full_pipeline(
     if not assets["audio_paths"]:
         raise ValueError("음원 파일이 없습니다")
 
+    # 사전 점검: 커버·가사 누락 시 인코딩 전에 중단.
+    # 자막 모드가 요구하는 언어 가사(both→en+ko, en→en, ko→ko)도 함께 검사.
+    from app.services.preflight_service import preflight_single_track
+
+    preflight_single_track(project_dir, (cfg.get("subtitle") or {}).get("mode"))
+
     audio_in = Path(assets["audio_paths"][0])
     cover = pick_track_cover(assets)
     if not cover:
@@ -514,7 +554,7 @@ def run_full_pipeline(
     from app.services.lyric_timing_service import align_track_lyrics, get_whisper_model
 
     _prog("가사 싱크(Whisper) 준비...")
-    whisper = get_whisper_model(size="tiny")
+    whisper = get_whisper_model()
     _prog("가사 싱크 정렬 중...")
     timed = align_track_lyrics(
         remastered,
@@ -525,6 +565,24 @@ def run_full_pipeline(
         cache_source=audio_in,
         whisper_model=whisper,
     )
+
+    # 사후 검증: 큐 0개 / 커버리지 부족 / 역전·겹침 — 인코딩 전에 중단
+    from app.services.preflight_service import validate_aligned_cues
+
+    single_track_ctx = [
+        {
+            "start": 0.0,
+            "end": duration,
+            "title": title,
+            "lyrics_en": assets.get("lyrics_en"),
+            "lyrics_ko": assets.get("lyrics_ko"),
+        }
+    ]
+    absolute_cues = [
+        {**c, "start": float(c["start"]), "end": float(c["end"])} for c in timed
+    ]
+    validate_aligned_cues(absolute_cues, single_track_ctx)
+
     cfg_with_cues = {**cfg, "_timed_cues": timed}
     from app.services.ass_subtitle_service import infer_album_and_track
 
@@ -570,7 +628,21 @@ def run_full_pipeline(
 
 
 def _run(cmd: list[str]) -> None:
-    r = subprocess.run(cmd, capture_output=True, text=True, timeout=3600)
+    r = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=3600)
     if r.returncode != 0:
-        err = (r.stderr or r.stdout or "")[-2000:]
-        raise RuntimeError(f"FFmpeg 실패: {err}")
+        err = (r.stderr or r.stdout or "")
+        # swscaler 경고, 폰트 선택, Using font provider 등 잡음 제거 — 진짜 에러만
+        lines = []
+        for line in err.splitlines():
+            low = line.lower()
+            if "deprecated pixel format" in low:
+                continue
+            if "fontselect:" in low:
+                continue
+            if "using font provider" in low:
+                continue
+            lines.append(line)
+        clean = "\n".join(lines).strip()
+        if not clean:
+            clean = err[-2000:]
+        raise RuntimeError(f"FFmpeg 실패: {clean}")

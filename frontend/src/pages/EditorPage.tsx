@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   api,
   BrowseEntry,
+  ChannelBrand,
   EditorConfig,
   EditorConfigResponse,
   YoutubeDraft,
@@ -52,6 +53,15 @@ function pathsFromSearch(params: URLSearchParams): string[] {
   if (many) return many.split("|").map((s) => s.trim()).filter(Boolean);
   const one = params.get("path");
   return one ? [one] : [];
+}
+
+/**
+ * 프로젝트 로드 실패가 "폴더가 정말 없음"인지 판별.
+ * 백엔드가 "프로젝트 폴더가 아닙니다"(400)를 반환할 때만 폴더 문제로 간주하고,
+ * 네트워크 오류·서버 재시작(빈 응답, Failed to fetch 등)은 일시적 오류로 재시도 대상이 된다.
+ */
+function isStaleProjectError(err: unknown): boolean {
+  return err instanceof Error && err.message.includes("프로젝트 폴더가 아닙니다");
 }
 
 function readEditorSession(): { paths: string[]; step: number } | null {
@@ -182,6 +192,8 @@ export default function EditorPage() {
     return restored.current?.paths ?? [];
   });
   const projectPath = selectedPaths[0] || "";
+  const projectPathRef = useRef(projectPath);
+  projectPathRef.current = projectPath;
   const [config, setConfig] = useState<EditorConfig | null>(null);
   const configRef = useRef<EditorConfig | null>(null);
   configRef.current = config;
@@ -192,6 +204,12 @@ export default function EditorPage() {
   const [renderJobId, setRenderJobId] = useState<number | null>(null);
   const [renderEncoding, setRenderEncoding] = useState(false);
   const [renderProgress, setRenderProgress] = useState("");
+  // 스타일 프리셋 (곡별)
+  const [presets, setPresets] = useState<{ id: string; name: string; created_at: string }[]>([]);
+  const [presetId, setPresetId] = useState("");
+  const [presetName, setPresetName] = useState("");
+  // 채널 브랜드 (표시용 읽기 전용 — 편집은 사용자 설정 페이지)
+  const [brand, setBrand] = useState<ChannelBrand | null>(null);
   const [privacy, setPrivacy] = useState<"private" | "unlisted" | "public">("private");
   const [uploadUrl, setUploadUrl] = useState("");
   const [uploadFile, setUploadFile] = useState<NonNullable<YoutubeProjectMeta["upload_file"]> | null>(null);
@@ -204,6 +222,8 @@ export default function EditorPage() {
   const [serverPreviewKey, setServerPreviewKey] = useState(0);
   const [videoFailed, setVideoFailed] = useState(false);
   const [previewPlaying, setPreviewPlaying] = useState(false);
+  const [videoPlaying, setVideoPlaying] = useState(false);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
   const [previewReady, setPreviewReady] = useState(false);
   const [previewEncoding, setPreviewEncoding] = useState(false);
   const previewVideoRef = useRef<HTMLVideoElement | null>(null);
@@ -249,16 +269,53 @@ export default function EditorPage() {
     setEntries(data.entries);
   }, []);
 
-  const loadProject = useCallback(async (path: string) => {
+  const loadProject = useCallback(async (path: string, attempt = 0) => {
     if (!path) return;
-    const [ed, ytDraft] = await Promise.all([
-      api.getEditorConfig(path),
-      api.getYoutubeDraft(path),
-    ]);
-    setConfig(ed.config);
-    setDraft(ytDraft);
-    setImagePaths(ed.assets.image_paths || []);
-    setAlbumImages(ed.assets.album_images || []);
+    let ed: Awaited<ReturnType<typeof api.getEditorConfig>>;
+    try {
+      const [edRes, ytDraft] = await Promise.all([
+        api.getEditorConfig(path),
+        api.getYoutubeDraft(path),
+      ]);
+      // 응답을 기다리는 사이 사용자가 다른 곡을 선택했으면 폐기
+      // (재시도 응답이 새 곡 화면을 옛 데이터로 덮어쓰는 것 방지)
+      if (projectPathRef.current !== path && projectPathRef.current) return;
+      ed = edRes;
+      setConfig(ed.config);
+      setDraft(ytDraft);
+      setImagePaths(ed.assets.image_paths || []);
+      setAlbumImages(ed.assets.album_images || []);
+    } catch (err) {
+      if (projectPathRef.current && projectPathRef.current !== path) return; // 이미 다른 곳으로 이동
+      if (isStaleProjectError(err)) {
+        // 폴더명 변경/삭제 등 실제로 폴더가 사라진 경우 → 선택에서 제외하고 안내
+        setConfig(null);
+        setSelectedPaths((prev) => {
+          const next = prev.filter((p) => p !== path);
+          syncSelectionParams(next);
+          return next;
+        });
+        setMessage(
+          `폴더를 불러올 수 없습니다: ${path.split(/[\\/]/).pop()} — 1단계에서 곡을 다시 선택하세요 (이름이 바뀐 폴더일 수 있습니다)`,
+        );
+        return;
+      }
+      // 서버 재시작 등 일시적 오류 → 선택을 유지하고 자동 재시도
+      if (attempt < 4) {
+        setMessage(
+          `백엔드 서버가 준비 중입니다 — 잠시 후 자동으로 다시 시도합니다 (${attempt + 1}/4)...`,
+        );
+        setTimeout(() => {
+          // 재시도 시점에도 사용자가 이 경로를 선택 중일 때만
+          if (projectPathRef.current === path) void loadProject(path, attempt + 1);
+        }, 1500);
+        return;
+      }
+      setMessage(
+        "서버에 연결할 수 없습니다. 백엔드 실행 상태를 확인한 뒤 페이지를 새로고침하세요. (곡 선택은 유지되었습니다)",
+      );
+      return;
+    }
     setPreviewKey((k) => k + 1);
     setVideoFailed(false);
     setPreviewPlaying(false);
@@ -276,8 +333,22 @@ export default function EditorPage() {
         }
       }
     }
-  }, [urlHadStep]);
+    // syncSelectionParams/loadProject는 안정적인 래퍼 — 실패 시 선택 정리에 사용
+  }, [urlHadStep, syncSelectionParams]);
 
+  // loadBrowse는 안정적(의존성 없음). loadProject는 ref로 접근해
+  // 재생성과 무관하게 최신 로직을 사용한다.
+  const loadProjectRef = useRef(loadProject);
+  loadProjectRef.current = loadProject;
+
+  useEffect(() => {
+    if (projectPath) loadProjectRef.current(projectPath);
+    // projectPath가 실제로 바뀔 때만 프로젝트를 다시 로드.
+    // loadProject를 의존성에 넣으면 매 렌더링마다 재실행되어
+    // 6단계에서 입력 중인 유튜브 설명이 서버 값으로 덮어써진다.
+  }, [projectPath]);
+
+  // work_root 로드 + 초기 브라우징
   useEffect(() => {
     api.getPipelineStages().then((s) => {
       setWorkRoot(s.work_root);
@@ -285,9 +356,10 @@ export default function EditorPage() {
     });
   }, [loadBrowse]);
 
+  // 곡 로드 시 그 곡에 할당된 프리셋을 드롭다운에 반영
   useEffect(() => {
-    if (projectPath) loadProject(projectPath);
-  }, [projectPath, loadProject]);
+    setPresetId(config?.style_preset_id ?? "");
+  }, [config?.style_preset_id, projectPath]);
 
   useEffect(() => {
     if (step !== 7 || !projectPath) return;
@@ -305,6 +377,72 @@ export default function EditorPage() {
     // 최초 진입 시 저장된 세션을 주소에 반영
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // ===== 스타일 프리셋 (곡별) =====
+  const refreshPresets = useCallback(async () => {
+    try {
+      const res = await api.listStylePresets();
+      setPresets(res.presets || []);
+    } catch {
+      /* 프리셋 목록 실패는 치명적이지 않음 */
+    }
+  }, []);
+
+  // 채널 브랜드 로드 (표시용 — 편집은 사용자 설정 페이지에서)
+  const refreshBrand = useCallback(async () => {
+    try {
+      setBrand(await api.getBrand());
+    } catch {
+      /* 브랜드 로드 실패 시 기본값으로 표시 */
+    }
+  }, []);
+
+  // 프리셋 목록 로드 (정의 후 실행)
+  useEffect(() => {
+    void refreshPresets();
+  }, [refreshPresets]);
+
+  // 브랜드 로드
+  useEffect(() => {
+    void refreshBrand();
+  }, [refreshBrand]);
+
+  const savePreset = async () => {
+    if (!projectPath || !configRef.current || !presetName.trim()) return;
+    try {
+      await api.createStylePreset(projectPath, presetName.trim(), configRef.current);
+      setPresetName("");
+      await refreshPresets();
+      setMessage(`프리셋 "${presetName.trim()}" 저장됨`);
+    } catch (e) {
+      setMessage(String(e));
+    }
+  };
+
+  const applyPreset = async (id: string) => {
+    setPresetId(id);
+    if (!projectPath) return;
+    if (!id) {
+      // 기본 스타일(전역)로 되돌리기 — 곡에 저장된 프리셋 할당을 제거해야
+      // 재진입 시 이전 프리셋이 자동 재적용되지 않는다.
+      try {
+        await api.saveEditorConfig(projectPath, { style_preset_id: "" });
+        setConfig((c) => (c ? { ...c, style_preset_id: undefined } : c));
+        setMessage("곡 프리셋 해제 — 전역 스타일을 따릅니다.");
+      } catch (e) {
+        setMessage(String(e));
+      }
+      return;
+    }
+    try {
+      const res = await api.applyStylePreset(projectPath, id);
+      setConfig(res.config);
+      setMessage("프리셋 적용됨 — 저장을 눌러 확정하세요");
+    } catch (e) {
+      setMessage(String(e));
+    }
+  };
+  // ===== /스타일 프리셋 =====
 
   const startFresh = () => {
     writeEditorSession([], 1);
@@ -521,6 +659,8 @@ export default function EditorPage() {
       templateId,
       selectedPaths.length || 1,
       names,
+      undefined,
+      brand?.copyright_line || "",
     );
     setThumbCanvas(next);
     setSelectedBoxId(null);
@@ -625,6 +765,7 @@ export default function EditorPage() {
     if (!projectPath || !draft) return;
     setBusy(true);
     try {
+      const autoBlock = (draft.auto_block || "").trim();
       let next: YoutubeDraft = {
         ...draft,
         mode: selectedPaths.length > 1 ? "playlist" : "single",
@@ -633,6 +774,8 @@ export default function EditorPage() {
       if (!keepPreview && selectedPaths.length > 1) {
         const ch = await api.regenerateYoutubeChapters(projectPath, selectedPaths);
         next = { ...next, tracks: ch.tracks, description_locked: false };
+        // 트랙 재생성 시 사용자가 편집한 자동 블록 유지 (비어있으면 서버가 자동 생성)
+        next.auto_block = autoBlock;
       }
       const res = await api.saveYoutubeDraft(projectPath, next);
       setDraft({
@@ -649,6 +792,36 @@ export default function EditorPage() {
     } finally {
       setBusy(false);
     }
+  };
+
+  /** 왼쪽 입력(제목·소개·자동블록)을 즉시 오른쪽 미리보기에 반영 (서버 왕복 없음) */
+  const composePreviewLocal = (d: YoutubeDraft, single: boolean): string => {
+    const introParts: string[] = [];
+    const en = (d.description_en || "").trim();
+    const ko = (d.description_ko || "").trim();
+    if (en) introParts.push(en);
+    if (ko && ko !== en) introParts.push(ko);
+    const intro = introParts.join("\n\n");
+    const autoBlock = (d.auto_block || "").trim();
+    const parts: string[] = [];
+    if (intro) parts.push(intro, "");
+    if (autoBlock) {
+      parts.push(autoBlock);
+    } else if (!single) {
+      // 자동 블록이 비었고 재생목록이면 트랙 목록이라도 즉시 반영
+      const tl = (d.tracks || [])
+        .map((t) => {
+          const sec = Number(t.start_sec || 0);
+          const m = Math.floor(sec / 60);
+          const s = Math.floor(sec % 60);
+          return `${m}:${String(s).padStart(2, "0")} ${t.title}`;
+        })
+        .join("\n");
+      if (tl) parts.push("🎵 Tracklist", tl);
+    }
+    const heading = !intro && (d.title || "").trim() ? (single ? d.title.trim() : "") : "";
+    if (heading) parts.unshift(heading, "");
+    return parts.join("\n").replace(/^\n+/, "").slice(0, 4900);
   };
 
   const uploadYoutube = async () => {
@@ -671,9 +844,11 @@ export default function EditorPage() {
       setUploadUrl(res.url);
       const size = res.file_size_mb ? `${res.file_size_mb} MB` : "";
       const dur = fmtDuration(res.duration_sec);
-      setMessage(
-        `업로드 완료${size ? ` · ${size}` : ""}${dur ? ` · ${dur}` : ""}: ${res.url}`
-      );
+      let msg = `업로드 완료${size ? ` · ${size}` : ""}${dur ? ` · ${dur}` : ""}: ${res.url}`;
+      if (res.thumbnail_error) {
+        msg += `\n(⚠ 썸네일 설정 실패: ${res.thumbnail_error})`;
+      }
+      setMessage(msg);
     } catch (e) {
       setMessage(String(e));
     } finally {
@@ -1003,6 +1178,41 @@ export default function EditorPage() {
           <div className="editor-step editor-sub-layout editor-compact">
             <div className="editor-panel editor-panel-narrow">
               <section className="editor-section">
+                <h3 className="editor-section-title">스타일 프리셋 (곡별)</h3>
+                <div className="editor-preset-row">
+                  <select
+                    value={presetId}
+                    onChange={(e) => void applyPreset(e.target.value)}
+                  >
+                    <option value="">— 기본 스타일 (전역) —</option>
+                    {presets.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="text"
+                    placeholder="새 프리셋 이름"
+                    value={presetName}
+                    onChange={(e) => setPresetName(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    disabled={!presetName.trim()}
+                    onClick={() => void savePreset()}
+                  >
+                    이 곡 스타일 저장
+                  </button>
+                </div>
+                <p className="editor-hint">
+                  프리셋을 선택하면 이 곡에만 그 스타일(자막·EQ·리마스터·썸네일)이 적용됩니다.
+                  다른 곡에도 같은 프리셋을 쓰려면 각 곡에서 선택하세요.
+                </p>
+              </section>
+
+              <section className="editor-section">
                 <div className="editor-section-head">
                   <h3 className="editor-section-title">트랙 제목</h3>
                   <label className="editor-check">
@@ -1013,7 +1223,7 @@ export default function EditorPage() {
                         setConfig({ ...config, subtitle: { ...sub, track_header_enabled: e.target.checked } })
                       }
                     />
-                    상단에 표시
+                    <span className="editor-check-label">상단에 표시</span>
                   </label>
                 </div>
                 {sub.track_header_enabled && (
@@ -1073,8 +1283,7 @@ export default function EditorPage() {
               </section>
 
               <section className="editor-section">
-                <h3 className="editor-section-title">자막</h3>
-                <label>언어</label>
+                <label>자막 언어</label>
                 <select
                   value={sub.mode}
                   onChange={(e) =>
@@ -1147,8 +1356,7 @@ export default function EditorPage() {
               </section>
 
               <section className="editor-section">
-                <h3 className="editor-section-title">스펙트럼</h3>
-                <label>종류</label>
+                <label>스펙트럼 종류</label>
                 <select
                   value={eqStyleId}
                   onChange={(e) => {
@@ -1528,13 +1736,37 @@ export default function EditorPage() {
               {renderEncoding ? (
                 <div className="sub-live-media sub-live-empty">인코딩 중… 끝나면 여기에 재생됩니다.</div>
               ) : !videoFailed ? (
-                <video
-                  key={`fv-${previewKey}`}
-                  className="sub-live-media"
-                  controls
-                  src={api.editorVideoUrl(projectPath) + `&k=${previewKey}`}
-                  onError={() => setVideoFailed(true)}
-                />
+                <div className="yt-style-player">
+                  {!videoPlaying && (
+                    <button
+                      type="button"
+                      className="yt-thumb-cover"
+                      onClick={() => {
+                        videoRef.current?.load();
+                        void videoRef.current?.play();
+                        setVideoPlaying(true);
+                      }}
+                      aria-label="재생"
+                    >
+                      <img
+                        src={api.editorThumbnailPreviewUrl(projectPath) + `&k=${previewKey}`}
+                        alt="썸네일"
+                      />
+                      <span className="yt-thumb-play">▶</span>
+                    </button>
+                  )}
+                  <video
+                    ref={videoRef}
+                    key={`fv-${previewKey}`}
+                    className="sub-live-media"
+                    controls={videoPlaying}
+                    src={api.editorVideoUrl(projectPath) + `&k=${previewKey}`}
+                    onPlay={() => setVideoPlaying(true)}
+                    onPause={() => setVideoPlaying(false)}
+                    onEnded={() => setVideoPlaying(false)}
+                    onError={() => setVideoFailed(true)}
+                  />
+                </div>
               ) : (
                 <div className="sub-live-media sub-live-empty">전체 영상이 없습니다. 렌더를 실행하세요.</div>
               )}
@@ -1553,19 +1785,28 @@ export default function EditorPage() {
                 <label>업로드 제목</label>
                 <input
                   value={draft.title}
-                  onChange={(e) => setDraft({ ...draft, title: e.target.value, description_locked: false })}
+                  onChange={(e) => {
+                    const next = { ...draft, title: e.target.value, description_locked: false };
+                    setDraft({ ...next, description_preview: composePreviewLocal(next, selectedPaths.length <= 1) });
+                  }}
                 />
                 <label>영어 소개</label>
                 <textarea
                   rows={6}
                   value={draft.description_en}
-                  onChange={(e) => setDraft({ ...draft, description_en: e.target.value, description_locked: false })}
+                  onChange={(e) => {
+                    const next = { ...draft, description_en: e.target.value, description_locked: false };
+                    setDraft({ ...next, description_preview: composePreviewLocal(next, selectedPaths.length <= 1) });
+                  }}
                 />
                 <label>한글 소개</label>
                 <textarea
                   rows={6}
                   value={draft.description_ko}
-                  onChange={(e) => setDraft({ ...draft, description_ko: e.target.value, description_locked: false })}
+                  onChange={(e) => {
+                    const next = { ...draft, description_ko: e.target.value, description_locked: false };
+                    setDraft({ ...next, description_preview: composePreviewLocal(next, selectedPaths.length <= 1) });
+                  }}
                 />
                 <div className="editor-actions">
                   <button
@@ -1576,18 +1817,44 @@ export default function EditorPage() {
                   >
                     저장
                   </button>
+                  <button type="button" className="btn" onClick={() => navigate("/settings")}>
+                    채널 브랜드 · 설명 구성 설정
+                  </button>
                 </div>
               </div>
               <div className="editor-panel">
                 <h3 className="editor-panel-title">자동 (트랙리스트·스펙·태그)</h3>
-                <p className="editor-hint">저장하면 왼쪽 소개 아래에 이 내용이 붙습니다.</p>
-                <pre className="yt-auto-block">{draft.auto_block || "저장하면 트랙 시작 시각과 재생시간이 채워집니다."}</pre>
+                <p className="editor-hint">블록 구성은 사용자 설정 → 「유튜브 설명 위젯」에서, 내용은 여기서 직접 고칠 수 있습니다.</p>
+                <textarea
+                  className="yt-auto-block"
+                  rows={Math.max(8, (draft.auto_block || "").split("\n").length + 2)}
+                  value={draft.auto_block || ""}
+                  placeholder="저장하면 트랙 시작 시각과 재생시간이 채워집니다."
+                  onChange={(e) => {
+                    const next = { ...draft, auto_block: e.target.value, description_locked: false };
+                    setDraft({ ...next, description_preview: composePreviewLocal(next, selectedPaths.length <= 1) });
+                  }}
+                />
+                <div className="editor-actions">
+                  <button
+                    type="button"
+                    className="btn"
+                    disabled={busy}
+                    onClick={() => {
+                      // 편집한 자동 블록을 해제 — 저장 시 자동 재생성
+                      const next = { ...draft, auto_block: "", description_locked: false };
+                      setDraft({ ...next, description_preview: composePreviewLocal(next, selectedPaths.length <= 1) });
+                    }}
+                  >
+                    자동 블록 초기화
+                  </button>
+                </div>
               </div>
             </div>
             <div className="yt-watch">
               <div className="yt-watch-kicker">유튜브 설명 미리보기 · 여기서 고친 뒤 저장하면 배포에 쓰입니다</div>
               <h2 className="yt-watch-title">{draft.title || "제목"}</h2>
-              <p className="yt-watch-meta">WHICK Official · {draft.char_count} / 5000</p>
+              <p className="yt-watch-meta">{brand?.channel_name || "채널"} · {draft.char_count} / 5000</p>
               <textarea
                 className="yt-watch-desc"
                 rows={Math.max(18, draft.description_preview.split("\n").length + 2)}

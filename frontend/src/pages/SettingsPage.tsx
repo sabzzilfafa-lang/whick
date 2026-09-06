@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, AIProvider, AIModelOption, AppSettings, YoutubeStatus } from "../api";
 import { getFallbackModels, mergeModels, VALUE_MODELS, VALUE_TEMPERATURES } from "../lib/aiModels";
+import { BrandSettingsTab, DescBlocksSettingsTab } from "../components/BrandSettings";
 
 const TASK_CONFIG = [
   { key: "lyrics" as const, label: "가사 생성" },
@@ -122,6 +123,7 @@ export default function SettingsPage() {
   const [ytRedirectHost, setYtRedirectHost] = useState<"localhost" | "127.0.0.1">("127.0.0.1");
   const [ytConnecting, setYtConnecting] = useState(false);
   const [ytSaving, setYtSaving] = useState(false);
+  const [tab, setTab] = useState<"api" | "youtube" | "desc" | "backup">("api");
 
   const loadModelsForProvider = async (
     providerId: string,
@@ -413,19 +415,47 @@ export default function SettingsPage() {
     );
   }
 
+  const tabs = [
+    { id: "api", label: "API · 작업별 AI" },
+    { id: "youtube", label: "유튜브 자동 게시" },
+    { id: "desc", label: "유튜브 설명 위젯" },
+    { id: "backup", label: "백업 · 복원" },
+  ] as const;
+
+  const notify = (msg: string, isErr = false) => {
+    setMessage(isErr ? "" : msg);
+    setError(isErr ? msg : "");
+  };
+
   return (
     <div>
       <div className="page-header">
         <div>
           <h2>사용자 설정</h2>
-          <p>사용 중인 AI 서비스 API 키를 등록하고, 작업별로 제공업체와 모델을 선택하세요</p>
+          <p>API 키·AI 모델, 유튜브 자동 게시, 설명 자동 구성, 백업을 한 곳에서 관리합니다</p>
         </div>
+      </div>
+
+      <div className="settings-tabs" role="tablist">
+        {tabs.map((t) => (
+          <button
+            key={t.id}
+            role="tab"
+            aria-selected={tab === t.id}
+            className={`settings-tab${tab === t.id ? " active" : ""}`}
+            onClick={() => setTab(t.id)}
+          >
+            {t.label}
+          </button>
+        ))}
       </div>
 
       {error && <div className="error">{error}</div>}
       {message && <div className="success-banner">{message}</div>}
 
-      <div className="card" style={{ marginBottom: "1.5rem" }}>
+      {tab === "api" && (
+        <>
+          <div className="card" style={{ marginBottom: "1.5rem" }}>
         <div className="card-title">AI 제공업체 API 키</div>
         <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "1rem" }}>
           사용하는 서비스만 입력하면 됩니다. 연결 테스트 후 해당 서비스의 모델 목록이 자동으로 채워집니다.
@@ -527,10 +557,15 @@ export default function SettingsPage() {
             </div>
           );
         })}
-      </div>
+        </div>
+      </>
+      )}
 
-      <div className="card" style={{ marginBottom: "1.5rem" }}>
-        <div className="card-title">YouTube 자동 게시</div>
+      {tab === "youtube" && (
+        <>
+          <BrandSettingsTab notify={notify} />
+          <div className="card" style={{ marginTop: "1.5rem", marginBottom: "1.5rem" }}>
+            <div className="card-title">YouTube 채널 연결 (OAuth)</div>
         <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "1rem" }}>
           Google Cloud → API 및 서비스 → 라이브러리에서 <strong>YouTube Data API v3</strong>를 사용 설정한 다음,
           사용자 인증 정보 → OAuth 클라이언트 → <strong>웹 애플리케이션</strong>으로 만들고,
@@ -603,24 +638,36 @@ export default function SettingsPage() {
         <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginTop: "0.75rem" }}>
           스튜디오에서 영상 생성 후 「유튜브 비공개 업로드」→ 검수 후 「유튜브 공개」 순서로 사용합니다.
         </p>
-      </div>
+          </div>
+        </>
+      )}
 
-      <div className="card" style={{ marginBottom: "1.5rem" }}>
-        <div className="card-title">백업 / 복원</div>
-        <div style={{ display: "flex", gap: "0.5rem" }}>
-          <button className="btn btn-secondary" onClick={() => api.exportBackup()}>
-            백업보내기
-          </button>
-          <label className="btn btn-secondary" style={{ cursor: "pointer" }}>
-            백업 가져오기
-            <input type="file" accept=".zip" onChange={handleImportBackup} hidden />
-          </label>
+      {tab === "desc" && <DescBlocksSettingsTab notify={notify} />}
+
+      {tab === "backup" && (
+        <div className="card" style={{ marginBottom: "1.5rem" }}>
+          <div className="card-title">백업 / 복원</div>
+          <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "1rem" }}>
+            데이터베이스·채널 브랜드·스타일 프리셋·업로드 파일을 zip 하나로 백업하고,
+            다른 PC에서 그대로 복원할 수 있습니다.
+          </p>
+          <div style={{ display: "flex", gap: "0.5rem" }}>
+            <button className="btn btn-secondary" onClick={() => api.exportBackup()}>
+              백업 보내기
+            </button>
+            <label className="btn btn-secondary" style={{ cursor: "pointer" }}>
+              백업 가져오기
+              <input type="file" accept=".zip" onChange={handleImportBackup} hidden />
+            </label>
+          </div>
         </div>
-      </div>
+      )}
 
-      <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
-        {saving ? "저장 중..." : "설정 저장"}
-      </button>
+      {tab === "api" && (
+        <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
+          {saving ? "저장 중..." : "설정 저장"}
+        </button>
+      )}
     </div>
   );
 }

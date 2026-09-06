@@ -4,17 +4,18 @@ from __future__ import annotations
 
 import json
 import re
+import secrets
 import shutil
 import subprocess
 import tempfile
 from copy import deepcopy
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 from app.services.pipeline_defaults import get_default_config
 from app.services.playlist_pipeline_service import (
     _same_block,
-    build_description_auto_block,
     build_playlist_description,
     format_hashtags_csv,
 )
@@ -79,27 +80,8 @@ DEFAULT_EDITOR_CONFIG: dict[str, Any] = {
         "description_ko": "",
         "description_en": "",
         "include_lyrics_in_description": False,
-        "tags": [
-            "WHICK",
-            "WHICK Official",
-            "playlist",
-            "full album",
-            "full playlist",
-            "acoustic",
-            "instrumental",
-            "relaxing music",
-            "study music",
-            "cafe music",
-            "chill music",
-            "original music",
-            "플레이리스트",
-            "어쿠스틱",
-            "인스트루멘탈",
-            "공부음악",
-            "카페음악",
-            "힐링음악",
-        ],
-        "hashtags": "#WHICK, #Playlist, #Acoustic, #Instrumental, #StudyMusic",
+        "tags": [],
+        "hashtags": "",
         "tracks": [],
         "description_locked": False,
     },
@@ -127,6 +109,13 @@ def user_style_path() -> Path:
     d = settings.data_dir
     d.mkdir(parents=True, exist_ok=True)
     return d / "editor_user_style.json"
+
+
+def preset_library_path() -> Path:
+    """스타일 프리셋 라이브러리 — 곡마다 다른 프리셋 지정용."""
+    d = settings.data_dir
+    d.mkdir(parents=True, exist_ok=True)
+    return d / "editor_style_presets.json"
 
 
 def extract_user_style(cfg: dict) -> dict:
@@ -167,6 +156,81 @@ def save_user_style(cfg: dict) -> None:
         json.dumps(extract_user_style(cfg), ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
+
+
+# ============ 스타일 프리셋 라이브러리 ============
+
+def _load_preset_library() -> list[dict]:
+    path = preset_library_path()
+    if not path.is_file():
+        return []
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return []
+    return data if isinstance(data, list) else []
+
+
+def _save_preset_library(presets: list[dict]) -> None:
+    path = preset_library_path()
+    path.write_text(
+        json.dumps(presets, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+
+
+def list_style_presets() -> list[dict]:
+    """프리셋 목록 (id/name/생성시각만 — 실제 스타일은 적용 시 로드)."""
+    return [
+        {
+            "id": p.get("id"),
+            "name": p.get("name"),
+            "created_at": p.get("created_at"),
+        }
+        for p in _load_preset_library()
+    ]
+
+
+def create_style_preset(name: str, cfg: dict) -> dict:
+    """현재 곡의 스타일(자막·오버레이·리마스터·썸네일 레이아웃)을 이름 붙여 저장."""
+    name = (name or "").strip()
+    if not name:
+        raise ValueError("프리셋 이름을 입력하세요")
+    presets = _load_preset_library()
+    # 같은 이름이면 덮어쓰기
+    entry = {
+        "id": secrets.token_hex(4),
+        "name": name,
+        "created_at": datetime.now().isoformat(),
+        "style": extract_user_style(cfg),
+    }
+    presets = [p for p in presets if p.get("name") != name]
+    presets.append(entry)
+    _save_preset_library(presets)
+    return {"id": entry["id"], "name": entry["name"], "created_at": entry["created_at"]}
+
+
+def delete_style_preset(preset_id: str) -> dict:
+    presets = _load_preset_library()
+    remaining = [p for p in presets if p.get("id") != preset_id]
+    if len(remaining) == len(presets):
+        raise ValueError("프리셋을 찾을 수 없습니다")
+    _save_preset_library(remaining)
+    return {"ok": True, "remaining": len(remaining)}
+
+
+def apply_style_preset(project_dir: Path, preset_id: str) -> dict:
+    """프리셋을 특정 곡에 적용해 저장 + 그 곡에 preset_id 기록."""
+    presets = _load_preset_library()
+    preset = next((p for p in presets if p.get("id") == preset_id), None)
+    if not preset:
+        raise ValueError("프리셋을 찾을 수 없습니다")
+    editor = load_editor_config(project_dir)
+    styled = apply_user_style(editor, preset.get("style") or {})
+    styled["style_preset_id"] = preset_id
+    # 이 곡의 저장본에 기록 — 전역 프리셋(auto style)보다 곡별 프리셋이 우선
+    save_editor_config(project_dir, styled)
+    return load_editor_config(project_dir)
 
 
 def apply_user_style(cfg: dict, style: dict) -> dict:
@@ -259,18 +323,58 @@ def default_editor_config(project_dir: Path, assets: dict | None = None) -> dict
     return cfg
 
 
+def _load_assigned_preset(editor: dict) -> dict:
+    """곡에 style_preset_id가 지정돼 있으면 해당 프리셋 스타일을 반환 (없으면 {})."""
+    pid = editor.get("style_preset_id")
+    if not pid:
+        return {}
+    for p in _load_preset_library():
+        if p.get("id") == pid:
+            return p.get("style") or {}
+    return {}
+
+
 def load_editor_config(project_dir: Path) -> dict:
     path = editor_config_path(project_dir)
     assets = find_project_assets(project_dir)
-    base = apply_user_style(default_editor_config(project_dir, assets), load_user_style())
+    base = default_editor_config(project_dir, assets)
     if not path.exists():
+        base = apply_user_style(base, load_user_style())
         return _ensure_thumbnail_canvas(base, project_dir, assets)
     try:
         stored = json.loads(path.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, OSError):
+        base = apply_user_style(base, load_user_style())
         return _ensure_thumbnail_canvas(base, project_dir, assets)
+    # 저장본에 곡별 프리셋 지정이 있으면 전역 스타일 대신 그 프리셋 사용
+    assigned = _load_assigned_preset(stored)
+    if assigned:
+        base = apply_user_style(base, assigned)
+    else:
+        base = apply_user_style(base, load_user_style())
     merged = _deep_merge(base, stored)
+    merged = _prune_stale_project_paths(merged, project_dir)
     return _ensure_thumbnail_canvas(merged, project_dir, assets)
+
+
+def _prune_stale_project_paths(editor: dict, project_dir: Path) -> dict:
+    """project_paths에서 존재하지 않는 폴더(이름 변경/삭제)를 제거.
+
+    폴더명 변경 후 옛 경로가 선택 목록에 남아 프로젝트 로드(400)와
+    인코딩(폴더 없음)을 연쇄 실패시키는 것을 방지.
+    """
+    paths = editor.get("project_paths")
+    if not isinstance(paths, list) or not paths:
+        return editor
+    pruned = [p for p in paths if Path(str(p)).is_dir()]
+    removed = len(paths) - len(pruned)
+    if removed:
+        editor = dict(editor)
+        editor["project_paths"] = pruned
+        # 첫 항목(기준 프로젝트)이 사라졌으면 현재 폴더로 대체
+        if not pruned and project_dir.is_dir():
+            editor["project_paths"] = [str(project_dir)]
+    return editor
 
 
 def save_editor_config(project_dir: Path, updates: dict) -> dict:
@@ -279,6 +383,10 @@ def save_editor_config(project_dir: Path, updates: dict) -> dict:
     incoming_boxes = None
     if isinstance(incoming_thumb, dict) and isinstance(incoming_thumb.get("boxes"), list):
         incoming_boxes = deepcopy(incoming_thumb["boxes"])
+    # style_preset_id=""는 프리셋 해제 의미 — 빈 문자열 저장 대신 키 삭제
+    if updates.get("style_preset_id") == "":
+        current.pop("style_preset_id", None)
+        updates = {k: v for k, v in updates.items() if k != "style_preset_id"}
     merged = _deep_merge(current, updates)
     if incoming_boxes is not None:
         merged.setdefault("thumbnail", {})["boxes"] = incoming_boxes
@@ -374,10 +482,23 @@ def merge_editor_into_pipeline(project_dir: Path, global_config: dict) -> dict:
 
 
 def _run_ffmpeg(cmd: list[str]) -> None:
-    r = subprocess.run(cmd, capture_output=True, text=True, timeout=3600)
+    r = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=3600)
     if r.returncode != 0:
-        err = (r.stderr or r.stdout or "")[-2000:]
-        raise RuntimeError(f"FFmpeg 실패: {err}")
+        err = (r.stderr or r.stdout or "")
+        lines = []
+        for line in err.splitlines():
+            low = line.lower()
+            if "deprecated pixel format" in low:
+                continue
+            if "fontselect:" in low:
+                continue
+            if "using font provider" in low:
+                continue
+            lines.append(line)
+        clean = "\n".join(lines).strip()
+        if not clean:
+            clean = err[-2000:]
+        raise RuntimeError(f"FFmpeg 실패: {clean}")
 
 
 def preview_remaster_audio(
@@ -403,27 +524,25 @@ def preview_remaster_audio(
 
 
 def resolve_youtube_tags(raw) -> list[str]:
+    from app.services.brand_service import brand_hashtag_defaults
+
+    defaults, _ = brand_hashtag_defaults()
     tags = [str(t).strip() for t in (raw or []) if str(t).strip()]
-    stale = {
-        ("Music", "Acoustic", "Instrumental"),
-        ("Suno", "AI Music", "Music", "Playlist"),
-    }
-    if not tags or tuple(tags) in stale:
-        return list(DEFAULT_EDITOR_CONFIG["youtube"]["tags"])
+    # 구버전 WHICK 하드코딩 태그 세트 — 브랜드 기본값으로 교체
+    if not tags or any("whick" in t.lower() for t in tags):
+        return list(defaults)
     return tags[:30]
 
 
 def resolve_youtube_hashtags(raw, tags=None) -> str:
-    stale = {
-        "#Music #Acoustic #Instrumental",
-        "#Music, #Acoustic, #Instrumental",
-        "#Playlist #Music #Suno #AIMusic #WHICK",
-        "#Playlist, #Music, #Suno, #AIMusic, #WHICK",
-    }
+    from app.services.brand_service import brand_hashtag_defaults
+
+    _, default_hashtags = brand_hashtag_defaults()
+    fallback = default_hashtags or "#Playlist, #Acoustic, #Instrumental, #StudyMusic"
     text = (raw or "").strip() if isinstance(raw, str) else ""
-    if not text or text in stale:
-        return DEFAULT_EDITOR_CONFIG["youtube"]["hashtags"]
-    return format_hashtags_csv(raw or tags, DEFAULT_EDITOR_CONFIG["youtube"]["hashtags"])
+    if not text or "whick" in text.lower():
+        return fallback
+    return format_hashtags_csv(raw or tags, fallback)
 
 
 def _subtitle_mode(editor: dict | None, youtube: dict | None = None) -> str:
@@ -435,33 +554,30 @@ def _subtitle_mode(editor: dict | None, youtube: dict | None = None) -> str:
 
 
 def build_single_description(project_dir: Path, youtube: dict, assets: dict, editor: dict | None = None) -> str:
+    """단곡 설명 — 위젯 구성(desc_blocks) SSOT으로 생성."""
     title = (youtube.get("title") or assets.get("track_title") or project_dir.name).strip()
-    ko = youtube.get("description_ko") or ""
-    en = youtube.get("description_en") or ""
     from app.services.pipeline_service import probe_duration
+    from app.services.desc_blocks_service import build_description_from_blocks
 
     audio = (assets.get("audio_paths") or [None])[0]
     runtime = probe_duration(Path(audio)) if audio else 0.0
-    intro_parts: list[str] = []
-    if en.strip():
-        intro_parts.append(en)
-    if ko.strip() and not _same_block(ko, en):
-        intro_parts.append(ko)
-    parts: list[str] = []
-    for block in intro_parts:
-        parts.extend([block, ""])
-    auto = build_description_auto_block(
-        [{"start": 0, "duration": runtime, "title": assets.get("track_title") or title}],
-        hashtags=youtube.get("hashtags") or youtube.get("tags"),
-        subtitle_mode=_subtitle_mode(editor),
-    )
-    parts.append(auto)
-    if youtube.get("include_lyrics_in_description"):
-        if assets.get("lyrics_ko"):
-            parts.extend(["", "[가사]", assets["lyrics_ko"][:2500]])
-        elif assets.get("lyrics_en"):
-            parts.extend(["", "[Lyrics]", assets["lyrics_en"][:2500]])
-    return "\n".join(parts).strip()[:4900]
+    ctx = {
+        "album_title": title,
+        "description_en": youtube.get("description_en") or "",
+        "description_ko": youtube.get("description_ko") or "",
+        "tracks": [{"start": 0, "duration": runtime, "title": assets.get("track_title") or title}],
+        "subtitle_mode": _subtitle_mode(editor),
+        "hashtags": youtube.get("hashtags") or youtube.get("tags"),
+        "include_lyrics_in_description": bool(youtube.get("include_lyrics_in_description")),
+        "lyrics_ko": assets.get("lyrics_ko") or "",
+        "lyrics_en": assets.get("lyrics_en") or "",
+        "runtime": runtime,
+    }
+    text = build_description_from_blocks(ctx)
+    if text:
+        return text
+    # 위젯 구성이 전부 빈 블록이면 헤딩이라도 유지
+    return title
 
 
 def _tracks_need_chapters(tracks: list, path_count: int) -> bool:
@@ -504,16 +620,53 @@ def _playlist_description_text(title: str, subtitle: str, youtube: dict, editor:
     )
 
 
+def _playlist_intro_text(youtube: dict) -> str:
+    """재생목록 설명의 소개부(영어+한글). 자동 블록과 분리해 조립한다."""
+    parts: list[str] = []
+    en = (youtube.get("description_en") or "").strip()
+    ko = (youtube.get("description_ko") or "").strip()
+    if en:
+        parts.append(en)
+    if ko and (not parts or ko != en):
+        parts.append(ko)
+    return "\n\n".join(parts)
+
+
+def build_single_intro_text(youtube: dict, assets: dict) -> str:
+    """단곡 설명의 소개부. 비어 있으면 트랙 제목 헤딩 한 줄."""
+    intro = _playlist_intro_text(youtube)
+    if intro:
+        return intro
+    heading = (youtube.get("title") or assets.get("track_title") or "").strip()
+    return heading
+
+
+def _desc_block_ctx(youtube: dict, editor: dict, tracks: list[dict], assets: dict | None = None, *, runtime: float = 0.0) -> dict:
+    """desc_blocks_service 조립 컨텍스트 — 위젯 구성(desc_blocks) 기반 설명 생성용."""
+    a = assets or {}
+    album_title = (youtube.get("title") or "").strip() or (a.get("track_title") or "").strip()
+    return {
+        "album_title": album_title,
+        "description_en": youtube.get("description_en") or "",
+        "description_ko": youtube.get("description_ko") or "",
+        "tracks": _desc_tracks(tracks),
+        "subtitle_mode": _subtitle_mode(editor),
+        "hashtags": youtube.get("hashtags") or youtube.get("tags"),
+        "include_lyrics_in_description": bool(youtube.get("include_lyrics_in_description")),
+        "lyrics_ko": a.get("lyrics_ko") or "",
+        "lyrics_en": a.get("lyrics_en") or "",
+        "runtime": runtime,
+    }
+
+
 def _auto_block_text(youtube: dict, editor: dict, tracks: list[dict], *, single_title: str = "", runtime: float = 0.0) -> str:
-    if tracks:
-        packed = _desc_tracks(tracks)
-    else:
-        packed = [{"start": 0, "duration": runtime, "title": single_title}]
-    return build_description_auto_block(
-        packed,
-        hashtags=youtube.get("hashtags") or youtube.get("tags"),
-        subtitle_mode=_subtitle_mode(editor),
-    )
+    """위젯 구성에서 intro를 제외한 자동 블록들만 모은 문자열."""
+    from app.services.desc_blocks_service import build_description_from_blocks, selected_blocks
+
+    ids = [i for i in selected_blocks() if i != "intro"]
+    packed = tracks or [{"start": 0, "duration": runtime, "title": single_title}]
+    ctx = _desc_block_ctx(youtube, editor, packed, None, runtime=runtime)
+    return build_description_from_blocks(ctx, ids)
 
 
 def _load_saved_description(project_dir: Path) -> str | None:
@@ -535,7 +688,11 @@ def build_youtube_draft(project_dir: Path) -> dict[str, Any]:
         mode = "playlist"
         editor["mode"] = mode
 
-    title = yt.get("title") or assets.get("track_title") or project_dir.name
+    if mode == "playlist":
+        # 플레이리스트(앨범)는 폴더명 = 앨범명이 기본 제목. 첫 트랙 제목을 쓰지 않는다.
+        title = yt.get("title") or project_dir.name
+    else:
+        title = yt.get("title") or assets.get("track_title") or project_dir.name
     tracks = list(yt.get("tracks") or [])
     if mode == "playlist":
         tracks = ensure_playlist_tracks(project_dir, editor)
@@ -566,9 +723,14 @@ def build_youtube_draft(project_dir: Path) -> dict[str, Any]:
 
     audio = (assets.get("audio_paths") or [None])[0]
     runtime = probe_duration(Path(audio)) if audio else 0.0
-    draft["auto_block"] = _auto_block_text(
-        yt_merged, editor, tracks, single_title=assets.get("track_title") or title, runtime=runtime
-    )
+    # 사용자가 자동 블록을 직접 편집해 저장해뒀으면 그것을 우선 표시한다
+    custom_block = (yt.get("auto_block") or "").strip()
+    if custom_block:
+        draft["auto_block"] = custom_block
+    else:
+        draft["auto_block"] = _auto_block_text(
+            yt_merged, editor, tracks, single_title=assets.get("track_title") or title, runtime=runtime
+        )
 
     if saved:
         draft["description_preview"] = saved
@@ -576,14 +738,11 @@ def build_youtube_draft(project_dir: Path) -> dict[str, Any]:
         draft["char_count"] = len(saved)
         return draft
 
-    if mode == "playlist" and draft["tracks"]:
-        draft["description_preview"] = _playlist_description_text(
-            draft["title"], draft["subtitle"], yt_merged, editor, draft["tracks"]
-        )
-    else:
-        draft["description_preview"] = build_single_description(
-            project_dir, {**yt_merged, "title": title}, assets, editor
-        )
+    # 위젯 구성(desc_blocks) 기반 전체 조립 — 소개·트랙리스트·스펙·저작권·해시태그·가사·자유블록
+    ctx = _desc_block_ctx(yt_merged, editor, draft["tracks"], assets, runtime=runtime)
+    from app.services.desc_blocks_service import build_description_from_blocks
+
+    draft["description_preview"] = build_description_from_blocks(ctx)
 
     draft["char_count"] = len(draft["description_preview"])
     return draft
@@ -595,6 +754,7 @@ def save_youtube_draft(project_dir: Path, payload: dict) -> dict[str, Any]:
     for key in (
         "title", "subtitle", "description_ko", "description_en",
         "include_lyrics_in_description", "tags", "hashtags", "tracks", "description_locked",
+        "auto_block",
     ):
         if key in payload:
             yt[key] = payload[key]
@@ -619,37 +779,32 @@ def save_youtube_draft(project_dir: Path, payload: dict) -> dict[str, Any]:
     save_editor_config(project_dir, editor)
 
     assets = find_project_assets(project_dir)
+    from app.services.pipeline_service import probe_duration
+
+    audio = (assets.get("audio_paths") or [None])[0]
+    runtime = probe_duration(Path(audio)) if audio else 0.0
     if editor.get("mode") == "playlist":
         tracks = ensure_playlist_tracks(project_dir, editor)
         editor = load_editor_config(project_dir)
         yt = editor.get("youtube") or yt
-        auto = _auto_block_text(yt, editor, tracks)
-        if use_preview:
-            text = preview
-        else:
-            text = _playlist_description_text(
-                yt.get("title") or assets.get("track_title") or project_dir.name,
-                yt.get("subtitle") or "",
-                yt,
-                editor,
-                tracks,
-            )
     else:
-        from app.services.pipeline_service import probe_duration
+        tracks = []
 
-        audio = (assets.get("audio_paths") or [None])[0]
-        runtime = probe_duration(Path(audio)) if audio else 0.0
-        auto = _auto_block_text(
-            yt,
-            editor,
-            [],
-            single_title=assets.get("track_title") or yt.get("title") or project_dir.name,
-            runtime=runtime,
-        )
-        if use_preview:
-            text = preview
-        else:
-            text = build_single_description(project_dir, yt, assets, editor)
+    auto = _auto_block_text(
+        yt,
+        editor,
+        tracks,
+        single_title=assets.get("track_title") or yt.get("title") or project_dir.name,
+        runtime=runtime,
+    )
+    if use_preview:
+        text = preview
+    else:
+        # 위젯 구성(desc_blocks) 기반 전체 조립 — 6단계 미리보기와 동일한 경로
+        ctx = _desc_block_ctx(yt, editor, tracks, assets, runtime=runtime)
+        from app.services.desc_blocks_service import build_description_from_blocks
+
+        text = build_description_from_blocks(ctx)
 
     (project_dir / YOUTUBE_DESC_FILE).write_text(text[:5000], encoding="utf-8")
     if title_txt:
@@ -858,12 +1013,13 @@ def render_subtitle_preview_video(
     *,
     duration_sec: float = PREVIEW_DURATION_SEC,
 ) -> Path:
-    """자막·스펙트럼 위치 확인용 짧은 미리보기 영상 (Whisper 생략, 빠른 인코딩)."""
+    """자막·스펙트럼 위치 확인용 짧은 미리보기 영상."""
     from app.services.lyric_timing_service import (
         _cache_key,
         _load_cache,
         _pair_ko,
-        _vocal_window_cues,
+        _energy_window_cues,
+        align_track_lyrics,
         prepare_sung_lines,
     )
     from app.services.pipeline_service import build_ass_content, probe_duration
@@ -892,7 +1048,19 @@ def render_subtitle_preview_video(
     if cached:
         timed = _pair_ko(cached, ko_lines)
     elif lines:
-        timed = _vocal_window_cues(lines, ko_lines, clip_dur)
+        # 캐시가 없으면 Whisper 정렬을 먼저 시도 (에너지 폴백은 최후)
+        # 미리보기와 본 인코딩의 자막 위치가 같아야 비교가 의미 있음.
+        try:
+            timed = align_track_lyrics(
+                audio_in,
+                assets.get("lyrics_en"),
+                assets.get("lyrics_ko"),
+                full_dur,
+                cache_dir=project_dir,
+                cache_source=audio_in,
+            )
+        except Exception:
+            timed = _energy_window_cues(lines, ko_lines, full_dur)
     else:
         timed = []
     timed = [c for c in timed if float(c.get("start", 0)) < clip_dur]
@@ -1067,7 +1235,7 @@ def _encode_preview_clip(
                 "-movflags", "+faststart",
                 str(out_path),
             ]
-        r = subprocess.run(cmd, capture_output=True, text=True, timeout=180)
+        r = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=180)
         if r.returncode != 0:
             err = (r.stderr or r.stdout or "")[-2000:]
             raise RuntimeError(f"미리보기 인코딩 실패: {err}")

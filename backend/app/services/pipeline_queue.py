@@ -208,7 +208,8 @@ async def process_pipeline_job(job_id: int):
     except Exception as e:
         stop_hb.set()
         discard_review_work_dir(output_dir)
-        await _update_job(job_id, status="failed", message=str(e)[:300])
+        # 사전 점검 실패 목록(줄바꿈 다수)이 잘리지 않도록 합본과 동일하게 600자
+        await _update_job(job_id, status="failed", message=str(e)[:600])
 
 
 async def process_playlist_job(job_id: int):
@@ -317,7 +318,8 @@ async def process_playlist_job(job_id: int):
         )
     except Exception as e:
         discard_review_work_dir(out_dir)
-        await _update_job(job_id, status="failed", message=str(e)[:400])
+        # 사전 점검 실패 목록(줄바꿈 다수)이 잘리지 않도록 600자
+        await _update_job(job_id, status="failed", message=str(e)[:600])
 
 
 async def enqueue_pipeline_job(

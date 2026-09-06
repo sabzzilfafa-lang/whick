@@ -371,11 +371,30 @@ def _is_generated_thumbnail(path: str | Path) -> bool:
 
 def pick_track_cover(assets: dict) -> Path | None:
     """곡 영상 배경용 커버. 유튜브 목록용 thumbnail.jpg는 제외."""
-    covers = assets.get("cover_image_paths") or [
-        p for p in (assets.get("image_paths") or []) if not _is_generated_thumbnail(p)
+    covers = [
+        p for p in (assets.get("image_paths") or [])
+        if not _is_generated_thumbnail(p)
     ]
     if covers:
         return Path(covers[0])
+    raw = assets.get("image_paths")
+    if raw:
+        return Path(raw[0])
+    return None
+
+
+def pick_track_playlist_cover(assets: dict) -> Path | None:
+    """플레이리스트 합본용 — 각 곡의 원본 커버. thumbnail.jpg(유튜브 목록용) 제외."""
+    covers = [
+        p for p in (assets.get("image_paths") or [])
+        if not _is_generated_thumbnail(p)
+    ]
+    if covers:
+        return Path(covers[0])
+    # fallback: 썸네일만 있어도 씀
+    raw = assets.get("image_paths")
+    if raw:
+        return Path(raw[0])
     return None
 
 
@@ -529,7 +548,7 @@ def publish_review_output(work_dir: Path, review_root: Path, final_name: str) ->
 def _cover_image_sort_key(path: str) -> int:
     name = Path(path).name.lower()
     if name == "thumbnail.jpg":
-        return 9  # 생성본은 맨 뒤
+        return 9  # 영상 배경용이 아님 — 맨 뒤
     if name.startswith(("cover.", "artwork.", "album.", "image.")):
         return 0
     if name.startswith("thumbnail."):  # thumbnail.jpeg 등 원본

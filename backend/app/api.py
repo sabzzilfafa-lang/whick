@@ -36,6 +36,7 @@ from app.schemas import (
     QueueJobResponse,
     SongCreate,
     SongInstrumentSettings,
+    SongPresetApplyRequest,
     SongResponse,
     SongUpdate,
 )
@@ -69,7 +70,14 @@ def _model_to_dict(obj) -> dict:
     return {c.name: getattr(obj, c.name) for c in obj.__table__.columns}
 
 
-async def _load_song_profile(db: AsyncSession, album: Album | None) -> MusicProfile | None:
+async def _load_song_profile(
+    db: AsyncSession, album: Album | None, song: Song | None = None
+) -> MusicProfile | None:
+    # 곡별 프리셋이 지정되어 있으면 앨범 프리셋보다 우선
+    if song is not None and song.music_profile_id:
+        profile = await db.get(MusicProfile, song.music_profile_id)
+        if profile:
+            return profile
     profile = None
     if album and album.music_profile_id:
         profile = await db.get(MusicProfile, album.music_profile_id)
@@ -105,7 +113,7 @@ async def _build_song_response(
     if album is None:
         album = await db.get(Album, song.album_id)
     if profile is None:
-        profile = await _load_song_profile(db, album)
+        profile = await _load_song_profile(db, album, song)
     base = SongResponse.model_validate(song)
     return base.model_copy(update=_song_duration_info(song, album, profile))
 
@@ -434,7 +442,7 @@ async def _load_song_context(db: AsyncSession, song_id: int):
         raise HTTPException(404, "곡을 찾을 수 없습니다")
 
     album = await db.get(Album, song.album_id)
-    profile = await _load_song_profile(db, album)
+    profile = await _load_song_profile(db, album, song)
 
     reference_song = None
     if song.reference_song_id:
@@ -605,6 +613,34 @@ async def apply_song_instruments_from_preset(
     data = build_from_profile(_model_to_dict(profile))
     content = serialize_settings(data)
     song.instrument_settings = content
+    await db.flush()
+    return SongInstrumentSettings(**data)
+
+
+@router.post("/songs/{song_id}/apply-preset", response_model=SongInstrumentSettings)
+async def apply_preset_to_song(
+    song_id: int, body: SongPresetApplyRequest, db: AsyncSession = Depends(get_db)
+):
+    """곡에 스타일 프리셋을 지정하고, 그 프리셋의 기본 악기로 곡 악기 세팅을 다시 만든다."""
+    song = await db.get(Song, song_id)
+    if not song:
+        raise HTTPException(404, "곡을 찾을 수 없습니다")
+
+    if body.profile_id is not None:
+        profile = await db.get(MusicProfile, body.profile_id)
+        if not profile:
+            raise HTTPException(404, "프리셋을 찾을 수 없습니다")
+        song.music_profile_id = body.profile_id
+    else:
+        # 프리셋 해제 → 앨범 프리셋 기준으로 복귀
+        song.music_profile_id = None
+
+    await db.flush()
+    album = await db.get(Album, song.album_id)
+    profile = await _load_song_profile(db, album, song)
+
+    data = build_from_profile(_model_to_dict(profile))
+    song.instrument_settings = serialize_settings(data)
     await db.flush()
     return SongInstrumentSettings(**data)
 

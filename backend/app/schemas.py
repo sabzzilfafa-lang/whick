@@ -162,6 +162,7 @@ class SongUpdate(BaseModel):
     lyrics_en: Optional[str] = None
     suno_prompt: Optional[str] = None
     instrument_settings: Optional[str] = None
+    music_profile_id: Optional[int] = None
 
 
 class SongResponse(SongBase):
@@ -186,6 +187,7 @@ class SongResponse(SongBase):
     instrument_settings: Optional[str] = None
     audio_path: Optional[str] = None
     image_path: Optional[str] = None
+    music_profile_id: Optional[int] = None
     reference_song_id: Optional[int] = None
     created_at: datetime
     updated_at: datetime
@@ -247,6 +249,10 @@ class SongInstrumentSettings(BaseModel):
     mix_notes: str = ""
     tempo_bpm: Optional[int] = None
     instruments: list[SongInstrumentItem] = []
+
+
+class SongPresetApplyRequest(BaseModel):
+    profile_id: Optional[int] = None
 
 
 class GenerateABRequest(BaseModel):

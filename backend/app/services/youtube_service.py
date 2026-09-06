@@ -25,6 +25,7 @@ YOUTUBE_SCOPES = (
 OAUTH_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 OAUTH_TOKEN_URL = "https://oauth2.googleapis.com/token"
 YOUTUBE_API = "https://www.googleapis.com/youtube/v3"
+YOUTUBE_UPLOAD_API = "https://www.googleapis.com/upload/youtube/v3"
 YOUTUBE_UPLOAD = "https://www.googleapis.com/upload/youtube/v3/videos"
 
 SETTING_CLIENT_ID = "youtube_client_id"
@@ -42,6 +43,7 @@ META_FILE = "youtube_upload.json"
 PREVIEW_VIDEO_NAMES = {"preview_short.mp4", "preview_30s.mp4"}
 UPLOAD_CHUNK = 8 * 1024 * 1024  # 8MiB, YouTube 256KiB 배수
 _upload_jobs: dict[str, dict[str, Any]] = {}
+_active_upload_projects: dict[str, str] = {}  # project_path -> job_id
 
 
 def redirect_uri(host: str | None = None) -> str:
@@ -283,7 +285,7 @@ def _build_description(project_dir: Path, assets: dict) -> str:
 
 
 def _thumbnail_dirs(project_dir: Path) -> list[Path]:
-    dirs: list[Path] = []
+    dirs: list[Path] = [project_dir]
     marker = project_dir / "last_pipeline_output.json"
     if marker.is_file():
         try:
@@ -291,12 +293,11 @@ def _thumbnail_dirs(project_dir: Path) -> list[Path]:
         except (json.JSONDecodeError, OSError):
             data = {}
         out = Path(str(data.get("output_dir") or ""))
-        if out.is_dir():
+        if out.is_dir() and str(out) != str(project_dir):
             dirs.append(out)
         video = Path(str(data.get("video") or ""))
-        if video.is_file():
+        if video.is_file() and str(video.parent) != str(project_dir):
             dirs.append(video.parent)
-    dirs.append(project_dir)
     unique: list[Path] = []
     seen: set[str] = set()
     for d in dirs:
@@ -351,11 +352,13 @@ def _set_youtube_thumbnail_sync(
         ".png": "image/png",
         ".webp": "image/webp",
     }.get(suffix, "image/jpeg")
+    # 썸네일 업로드는 /upload/ 전용 엔드포인트 + uploadType=media + 원문 바디.
+    # 일반 API 경로(/youtube/v3/...)로 보내면 mediaBodyRequired 400이 난다.
     resp = client.post(
-        f"{YOUTUBE_API}/thumbnails/set",
-        params={"videoId": video_id},
-        headers={"Authorization": f"Bearer {access_token}"},
-        files={"media": (thumb_path.name, data, mime)},
+        f"{YOUTUBE_UPLOAD_API}/thumbnails/set",
+        params={"videoId": video_id, "uploadType": "media"},
+        headers={"Authorization": f"Bearer {access_token}", "Content-Type": mime},
+        content=data,
     )
     if resp.status_code not in (200, 201):
         raise ValueError(f"썸네일 설정 실패: {resp.text[:200]}")
@@ -434,13 +437,15 @@ def _upload_media_sync(
 
         video_id = result.get("id", "")
         thumb_ok = False
+        thumb_error = ""
         if video_id and thumb_path:
             try:
                 _set_youtube_thumbnail_sync(client, access_token, video_id, thumb_path)
                 thumb_ok = True
-            except Exception:
+            except Exception as e:
+                thumb_error = str(e)[:200]
                 thumb_ok = False
-        return result, thumb_ok
+        return result, thumb_ok, thumb_error
 
 
 async def upload_project_video(
@@ -505,7 +510,7 @@ async def upload_project_video(
     file_info = describe_video_file(video_path)
     file_size = int(file_info["size_bytes"])
     thumb = _find_thumbnail(project_dir)
-    result, thumb_ok = await asyncio.to_thread(
+    result, thumb_ok, thumb_error = await asyncio.to_thread(
         _upload_media_sync,
         access_token,
         metadata,
@@ -526,6 +531,7 @@ async def upload_project_video(
                 "uploaded_at": datetime.now(timezone.utc).isoformat(),
                 "url": f"https://www.youtube.com/watch?v={video_id}",
                 "thumbnail_set": thumb_ok,
+                "thumbnail_error": thumb_error if not thumb_ok else None,
                 "file_name": file_info["name"],
                 "file_size_bytes": file_size,
                 "duration_sec": file_info.get("duration_sec"),
@@ -542,6 +548,7 @@ async def upload_project_video(
         "privacy_status": privacy_status,
         "url": f"https://www.youtube.com/watch?v={video_id}",
         "thumbnail_set": thumb_ok,
+        "thumbnail_error": thumb_error if not thumb_ok else None,
         "file_name": file_info["name"],
         "file_size_mb": file_info["size_mb"],
         "duration_sec": file_info.get("duration_sec"),
@@ -565,6 +572,13 @@ def start_upload_job(
     tags: list[str] | None = None,
     move_to_stage: str | None = None,
 ) -> dict[str, Any]:
+    key = str(project.resolve())
+    existing = _active_upload_projects.get(key)
+    if existing:
+        old = _upload_jobs.get(existing)
+        if old and old.get("status") == "running":
+            return dict(old)
+
     video = find_video_file(project, work_root=work_root)
     if not video:
         raise ValueError(
@@ -584,6 +598,7 @@ def start_upload_job(
         "error": None,
     }
     _upload_jobs[job_id] = job
+    _active_upload_projects[key] = job_id
     asyncio.create_task(
         _run_upload_job(
             job_id,
@@ -653,6 +668,10 @@ async def _run_upload_job(
     except Exception as e:
         job["status"] = "failed"
         job["error"] = str(e)[:400]
+    finally:
+        key = str(project.resolve())
+        if _active_upload_projects.get(key) == job_id:
+            _active_upload_projects.pop(key, None)
 
 
 async def publish_video(db: AsyncSession, video_id: str) -> dict[str, Any]:

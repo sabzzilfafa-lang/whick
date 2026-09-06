@@ -4,6 +4,7 @@ import {
   api,
   formatSunoCopy,
   GenerationVariant,
+  MusicProfile,
   Song,
   SongInstrumentSettings,
 } from "../api";
@@ -157,6 +158,7 @@ export default function SongPage() {
   const [instrumentData, setInstrumentData] = useState<SongInstrumentSettings | null>(null);
   const [instrumentsOpen, setInstrumentsOpen] = useState(false);
   const [presetName, setPresetName] = useState("");
+  const [profiles, setProfiles] = useState<MusicProfile[]>([]);
   const [copiedField, setCopiedField] = useState<"lyrics" | "prompt" | "suno" | null>(null);
   const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -166,6 +168,10 @@ export default function SongPage() {
   };
 
   useEffect(load, [id]);
+
+  useEffect(() => {
+    api.listProfiles().then(setProfiles).catch(() => {});
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -317,6 +323,49 @@ export default function SongPage() {
       } else {
         setError(msg);
       }
+    } finally {
+      setGenerating(null);
+    }
+  };
+
+  const handleSongPresetChange = async (value: string) => {
+    if (!song) return;
+    const profileId = value ? Number(value) : null;
+    // 프리셋을 바꾸면 이 곡의 수동 악기 편집이 프리셋 기본값으로 덮어써진다
+    const hasCustom = (instrumentData?.instruments.length ?? 0) > 0;
+    const targetName = profileId
+      ? profiles.find((p) => p.id === profileId)?.name || "선택한 프리셋"
+      : "앨범 프리셋";
+    if (
+      hasCustom &&
+      !confirm(
+        `이 곡의 프리셋을 '${targetName}'(으)로 바꿉니다.\n지금까지 편집한 악기 구성은 프리셋 기본값으로 초기화됩니다. 계속할까요?`
+      )
+    ) {
+      // 취소 — select 표시를 원래 곡 프리셋 값으로 되돌림
+      setSong({ ...song, music_profile_id: song.music_profile_id });
+      return;
+    }
+    setGenerating("song-preset");
+    setError("");
+    try {
+      const data = await api.applyPresetToSong(song.id, profileId);
+      const json = serializeInstrumentSettings(data);
+      setInstrumentData(data);
+      setPresetName(data.preset_name);
+      setInstrumentsOpen(true);
+      setSong({
+        ...song,
+        music_profile_id: profileId ?? undefined,
+        instrument_settings: json,
+      });
+      setMessage(
+        profileId
+          ? "이 곡의 프리셋을 변경했습니다. 악기 구성이 즉시 바뀌었으니 Suno 프롬프트도 다시 생성하세요."
+          : "곡 프리셋을 해제했습니다. 앨범 프리셋 기준으로 악기를 되돌렸습니다."
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "프리셋 변경 실패");
     } finally {
       setGenerating(null);
     }
@@ -649,6 +698,28 @@ export default function SongPage() {
       )}
 
       <div className="form-group" style={{ maxWidth: "400px" }}>
+        <label>이 곡의 스타일 프리셋 (악기 구성 · Suno 프롬프트 기준)</label>
+        <select
+          value={song.music_profile_id ?? ""}
+          onChange={(e) => void handleSongPresetChange(e.target.value)}
+          disabled={!!generating}
+        >
+          <option value="">
+            (앨범 프리셋 따름{presetName ? ` — ${presetName}` : ""})
+          </option>
+          {profiles.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.emoji || "🎵"} {p.name}
+            </option>
+          ))}
+        </select>
+        <p className="panel-hint">
+          곡마다 다른 프리셋을 고르면 악기 구성이 즉시 다시 만들어지고,
+          Suno 프롬프트도 이 프리셋 기준으로 생성됩니다.
+        </p>
+      </div>
+
+      <div className="form-group" style={{ maxWidth: "400px" }}>
         <label>태그 (쉼표 구분)</label>
         <input
           value={song.tags || ""}
@@ -860,6 +931,10 @@ export default function SongPage() {
                 settings={instrumentData}
                 onChange={setInstrumentData}
                 presetName={presetName}
+                profiles={profiles.map((p) => ({ id: p.id, name: p.name, emoji: p.emoji }))}
+                songProfileId={song.music_profile_id ?? null}
+                onSongPresetChange={(pid) => void handleSongPresetChange(pid == null ? "" : String(pid))}
+                changingPreset={generating === "song-preset"}
               />
               <div className="instrument-ai-optional">
                 <button

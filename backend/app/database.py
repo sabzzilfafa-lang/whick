@@ -42,6 +42,8 @@ async def _run_migrations(conn):
         await conn.execute(text("ALTER TABLE songs ADD COLUMN image_path VARCHAR(500)"))
     if "title_en" not in song_cols:
         await conn.execute(text("ALTER TABLE songs ADD COLUMN title_en VARCHAR(200)"))
+    if "music_profile_id" not in song_cols:
+        await conn.execute(text("ALTER TABLE songs ADD COLUMN music_profile_id INTEGER"))
     await conn.execute(
         text(
             "UPDATE songs SET lyrics_ko = lyrics "

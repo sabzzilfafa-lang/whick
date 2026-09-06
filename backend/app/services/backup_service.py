@@ -20,6 +20,16 @@ def export_backup() -> Path:
         if db_file.exists():
             zf.write(db_file, "suno_helper.db")
 
+        # 사용자 설정 파일들 (브랜드·스타일·프리셋·에디터 기본)
+        for cfg_name in ("brand.json", "editor_user_style.json", "editor_style_presets.json"):
+            cfg_file = data_dir / cfg_name
+            if cfg_file.exists():
+                zf.write(cfg_file, cfg_name)
+
+        brand_icon = data_dir / "assets" / "brand_icon.png"
+        if brand_icon.exists():
+            zf.write(brand_icon, "assets/brand_icon.png")
+
         uploads = data_dir / "uploads"
         if uploads.exists():
             for f in uploads.rglob("*"):
@@ -45,7 +55,11 @@ def import_backup(zip_path: Path) -> dict:
                     shutil.copy2(target, backup)
                 zf.extract(name, data_dir)
                 restored_db = True
-            elif name.startswith("uploads/"):
+            elif name.startswith("uploads/") or name in (
+                "brand.json",
+                "editor_user_style.json",
+                "editor_style_presets.json",
+            ) or name == "assets/brand_icon.png":
                 target.parent.mkdir(parents=True, exist_ok=True)
                 zf.extract(name, data_dir)
                 restored_files += 1

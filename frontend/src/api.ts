@@ -3,8 +3,9 @@ import { builderToInstrumentSettings, isApiUnavailableError } from "./lib/instru
 const API_BASE = "/api";
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
+  const isForm = options?.body instanceof FormData;
   const res = await fetch(`${API_BASE}${path}`, {
-    headers: { "Content-Type": "application/json", ...options?.headers },
+    headers: isForm ? options?.headers : { "Content-Type": "application/json", ...options?.headers },
     ...options,
   });
   if (!res.ok) {
@@ -81,6 +82,7 @@ export interface Song {
   audio_path?: string;
   image_path?: string;
   pipeline_path?: string;
+  music_profile_id?: number;
   reference_song_id?: number;
   created_at: string;
   updated_at: string;
@@ -267,6 +269,7 @@ export interface YoutubeUploadResult {
   file_name?: string;
   file_size_mb?: number;
   duration_sec?: number | null;
+  thumbnail_error?: string | null;
 }
 
 export interface YoutubeUploadJob {
@@ -361,6 +364,8 @@ export interface EditorConfig {
     }>;
     description_locked: boolean;
   };
+  /** 곡별 할당 스타일 프리셋 (프리셋 라이브러리 id) */
+  style_preset_id?: string;
 }
 
 export interface EditorConfigResponse {
@@ -374,6 +379,31 @@ export interface EditorConfigResponse {
     image_paths: string[];
     album_images?: Array<{ path: string; label: string; folder: string; name: string; rel: string }>;
   };
+}
+
+export interface DescBlockDef {
+  id: string;
+  label: string;
+  hint: string;
+}
+
+export interface ChannelBrand {
+  channel_name: string;
+  source_url: string;
+  copyright_line: string;
+  default_tags: string[];
+  default_hashtags: string;
+  watermark_enabled: boolean;
+  watermark_label: string;
+  watermark_pos: "top_left" | "top_right" | "bottom_left" | "bottom_right" | "custom";
+  watermark_x: number;
+  watermark_y: number;
+  footer_enabled: boolean;
+  desc_blocks: string[];
+  custom_desc_block: string;
+  icon_url?: string;
+  available_blocks?: DescBlockDef[];
+  selected_blocks?: string[];
 }
 
 export interface YoutubeDraft {
@@ -628,6 +658,11 @@ export const api = {
     }),
   getSongInstrumentsPreset: (songId: number) =>
     request<SongInstrumentSettings>(`/songs/${songId}/instruments/preset`),
+  applyPresetToSong: (songId: number, profileId: number | null) =>
+    request<SongInstrumentSettings>(`/songs/${songId}/apply-preset`, {
+      method: "POST",
+      body: JSON.stringify({ profile_id: profileId }),
+    }),
   applySongInstrumentsFromPreset: async (songId: number) => {
     try {
       return await request<SongInstrumentSettings>(
@@ -878,6 +913,9 @@ export const api = {
       }),
     }),
   getYoutubeUploadJob: (jobId: string) => request<YoutubeUploadJob>(`/youtube/upload/${jobId}`),
+
+  /* in-flight upload tracker — prevent duplicate uploads of the same project */
+  _uploadingProject: "",
   uploadToYoutube: async (
     projectPath: string,
     options?: {
@@ -889,10 +927,16 @@ export const api = {
     },
     onProgress?: (job: YoutubeUploadJob) => void
   ) => {
-    const started = await api.startYoutubeUpload(projectPath, options);
-    onProgress?.(started);
-    let job = started;
-    while (job.status === "running") {
+    /* prevent duplicate upload of the same project */
+    if (api._uploadingProject === projectPath) {
+      throw new Error("이미 업로드 중입니다");
+    }
+    api._uploadingProject = projectPath;
+    try {
+      const started = await api.startYoutubeUpload(projectPath, options);
+      onProgress?.(started);
+      let job = started;
+      while (job.status === "running") {
       await new Promise((r) => setTimeout(r, 400));
       job = await api.getYoutubeUploadJob(job.id);
       onProgress?.(job);
@@ -904,6 +948,9 @@ export const api = {
       throw new Error("업로드 결과를 받지 못했습니다");
     }
     return job.result;
+  } finally {
+    api._uploadingProject = "";
+  }
   },
   publishOnYoutube: (projectPath: string, videoId?: string) =>
     request<YoutubePublishResult>("/youtube/publish", {
@@ -918,12 +965,46 @@ export const api = {
     request<YoutubeProjectMeta>(`/youtube/project-meta?path=${encodeURIComponent(path)}`),
 
   // Video Editor (8-step studio)
+  getBrand: () => request<ChannelBrand>(`/editor/brand`),
+  saveBrand: (data: Partial<ChannelBrand>) =>
+    request<ChannelBrand>(`/editor/brand`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+  uploadBrandIcon: (file: File) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    return request<{ ok: boolean; icon_url: string }>(`/editor/brand/icon`, {
+      method: "POST",
+      body: fd,
+    });
+  },
+  resetBrandIcon: () =>
+    request<{ ok: boolean; removed: boolean }>(`/editor/brand/icon`, { method: "DELETE" }),
   getEditorConfig: (path: string) =>
     request<EditorConfigResponse>(`/editor/config?path=${encodeURIComponent(path)}`),
   saveEditorConfig: (path: string, data: Partial<EditorConfig>) =>
     request<{ config: EditorConfig }>(`/editor/config?path=${encodeURIComponent(path)}`, {
       method: "PUT",
       body: JSON.stringify(data),
+    }),
+  listStylePresets: () =>
+    request<{ presets: { id: string; name: string; created_at: string }[] }>(
+      `/editor/style-presets`,
+    ),
+  createStylePreset: (path: string, name: string, config: Partial<EditorConfig>) =>
+    request<{ preset: { id: string; name: string; created_at: string } }>(
+      `/editor/style-presets?path=${encodeURIComponent(path)}`,
+      { method: "POST", body: JSON.stringify({ name, config }) },
+    ),
+  applyStylePreset: (path: string, presetId: string) =>
+    request<{ config: EditorConfig }>(
+      `/editor/style-presets/apply?path=${encodeURIComponent(path)}`,
+      { method: "POST", body: JSON.stringify({ preset_id: presetId }) },
+    ),
+  deleteStylePreset: (presetId: string) =>
+    request<{ ok: boolean; remaining: number }>(`/editor/style-presets/${presetId}`, {
+      method: "DELETE",
     }),
   renderEditorThumbnail: async (path: string, thumbnail?: EditorConfig["thumbnail"]) => {
     const res = await fetch(

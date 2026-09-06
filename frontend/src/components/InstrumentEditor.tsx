@@ -59,9 +59,21 @@ interface Props {
   settings: SongInstrumentSettings;
   onChange: (next: SongInstrumentSettings) => void;
   presetName?: string;
+  profiles?: { id: number; name: string; emoji?: string }[];
+  songProfileId?: number | null;
+  onSongPresetChange?: (profileId: number | null) => void;
+  changingPreset?: boolean;
 }
 
-export default function InstrumentEditor({ settings, onChange, presetName }: Props) {
+export default function InstrumentEditor({
+  settings,
+  onChange,
+  presetName,
+  profiles,
+  songProfileId,
+  onSongPresetChange,
+  changingPreset,
+}: Props) {
   const [newName, setNewName] = useState("");
 
   const summary = useMemo(
@@ -103,10 +115,30 @@ export default function InstrumentEditor({ settings, onChange, presetName }: Pro
       <div className="instrument-editor-header">
         <div>
           <h3>악기 세팅</h3>
-          {(presetName || settings.preset_name) && (
-            <p className="instrument-preset-label">
-              앨범 프리셋: {presetName || settings.preset_name}
-            </p>
+          {onSongPresetChange && profiles ? (
+            <div className="instrument-preset-picker">
+              <label>이 곡 프리셋</label>
+              <select
+                value={songProfileId ?? ""}
+                onChange={(e) => onSongPresetChange(e.target.value ? Number(e.target.value) : null)}
+                disabled={changingPreset}
+              >
+                <option value="">
+                  (앨범 프리셋 따름{presetName || settings.preset_name ? ` — ${presetName || settings.preset_name}` : ""})
+                </option>
+                {profiles.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.emoji || "🎵"} {p.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            (presetName || settings.preset_name) && (
+              <p className="instrument-preset-label">
+                앨범 프리셋: {presetName || settings.preset_name}
+              </p>
+            )
           )}
           {settings.tempo_bpm != null && Number.isFinite(settings.tempo_bpm) && (
             <p className="instrument-summary">

@@ -295,7 +295,9 @@ export default function StudioPage() {
         setMessage(`유튜브 업로드 ${job.percent}% · ${(job.bytes_sent / (1024 * 1024)).toFixed(1)} MB`);
       });
       setYoutubeMeta({ video_id: res.video_id, url: res.url });
-      setMessage(`유튜브 비공개 업로드 완료: ${res.url}`);
+      let doneMsg = `유튜브 비공개 업로드 완료: ${res.url}`;
+      if (res.thumbnail_error) doneMsg += ` (⚠ 썸네일 실패: ${res.thumbnail_error})`;
+      setMessage(doneMsg);
       await refresh();
     } catch (e) {
       setMessage(String(e));

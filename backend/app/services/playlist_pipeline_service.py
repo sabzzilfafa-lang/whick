@@ -31,12 +31,12 @@ from app.services.watermark_service import (
 from app.services.workflow_service import (
     find_project_assets,
     pick_album_fallback_cover,
-    pick_track_cover,
+    pick_track_playlist_cover,
     remember_pipeline_output,
 )
 
 
-WHICK_SOURCE_URL = "https://whick.org/community/music-share"
+WHICK_SOURCE_URL = ""  # deprecated — brand_service.brand_source_url() 사용
 
 
 def fmt_chapter_ts(sec: float) -> str:
@@ -135,7 +135,13 @@ def build_playlist_ass(
     return build_whick_playlist_ass(tracks, cues, config=config, album=album)
 
 
-DEFAULT_PLAYLIST_HASHTAGS = "#WHICK, #Playlist, #Acoustic, #Instrumental, #StudyMusic"
+def _default_playlist_hashtags() -> str:
+    from app.services.brand_service import brand_hashtag_defaults
+
+    return brand_hashtag_defaults()[1] or "#Playlist, #Acoustic, #Instrumental, #StudyMusic"
+
+
+DEFAULT_PLAYLIST_HASHTAGS = ""  # deprecated — _default_playlist_hashtags() 사용
 
 
 def format_hashtags_csv(value: str | list | None, fallback: str = "") -> str:
@@ -166,13 +172,22 @@ def format_hashtags_csv(value: str | list | None, fallback: str = "") -> str:
     return ", ".join(f"#{tag}" for tag in cleaned)
 
 
+def _brand_copyright_line() -> str:
+    from app.services.brand_service import brand_footer_text
+
+    return brand_footer_text() or "© WHICK Official"
+
+
 def build_description_auto_block(
     tracks: list[dict[str, Any]],
     hashtags: str | list | None = None,
     subtitle_mode: str = "both",
-    source_url: str = WHICK_SOURCE_URL,
+    source_url: str = "",
 ) -> str:
     """트랙리스트·스펙·태그 — 제목/소개와 분리된 자동 블록."""
+    from app.services.brand_service import brand_source_url
+
+    src_url = (source_url or "").strip() or brand_source_url()
     parts = ["🎵 Tracklist"]
     if tracks:
         for t in tracks:
@@ -189,12 +204,14 @@ def build_description_auto_block(
             f"Tracks: {n} · Runtime: {runtime}",
             "Audio: Studio remaster (AI-assisted)",
             f"Captions: {captions_label(subtitle_mode)}",
-            f"Source: {source_url}",
-            "",
-            "© WHICK Official",
         ]
     )
-    tag_line = format_hashtags_csv(hashtags, DEFAULT_PLAYLIST_HASHTAGS)
+    if src_url:
+        parts.append(f"Source: {src_url}")
+    copy_line = _brand_copyright_line()
+    if copy_line:
+        parts.extend(["", copy_line])
+    tag_line = format_hashtags_csv(hashtags, _default_playlist_hashtags())
     if tag_line:
         parts.extend(["", tag_line])
     return "\n".join(parts).strip()
@@ -208,7 +225,7 @@ def build_playlist_description(
     description_en: str = "",
     description_ko: str = "",
     subtitle_mode: str = "both",
-    source_url: str = WHICK_SOURCE_URL,
+    source_url: str = "",
 ) -> str:
     """영어·한글 소개 + 자동 트랙리스트. 썸네일 제목·부제는 넣지 않음."""
     parts: list[str] = []
@@ -678,6 +695,15 @@ def run_playlist_pipeline(
     from app.services.editor_service import merge_editor_into_pipeline
 
     cfg = merge_editor_into_pipeline(project_dirs[0], cfg)
+
+    # 사전 점검: 음원·커버·가사 누락 시 인코딩 전에 중단.
+    # 자막 모드가 요구하는 언어 가사(both→en+ko, en→en, ko→ko)도 함께 검사.
+    from app.services.preflight_service import preflight_playlist_tracks
+
+    preflight_playlist_tracks(
+        project_dirs, (cfg.get("subtitle") or {}).get("mode")
+    )
+
     video = cfg.setdefault("video", {})
     video["crf"] = min(int(video.get("crf", 17) or 17), 17)
     video["preset"] = "slow"
@@ -710,7 +736,7 @@ def run_playlist_pipeline(
             remastered_files.append(remastered)
             own_thumb = project_dir / "thumbnail.jpg"
             cover = (
-                pick_track_cover(assets)
+                pick_track_playlist_cover(assets)
                 or album_fallback
                 or last_cover
                 or (own_thumb if own_thumb.is_file() else None)
@@ -756,9 +782,14 @@ def run_playlist_pipeline(
 
         # Whisper listen-align — 실제 가창 구간에 가사 하드싱크
         from app.services.lyric_timing_service import build_album_cues, get_whisper_model
+        from app.services.preflight_service import validate_aligned_cues
 
         whisper = get_whisper_model()
         cues = build_album_cues(tracks, whisper_model=whisper)
+
+        # 사후 검증: 자막 큐 개수·커버리지·역전·겹침·경계 초과 — 문제 시 인코딩 전 중단
+        validate_aligned_cues(cues, tracks)
+
         (output_dir / "lyrics_timing.json").write_text(
             json.dumps(cues, ensure_ascii=False, indent=2),
             encoding="utf-8",
@@ -794,14 +825,31 @@ def run_playlist_pipeline(
         editor = cfg.get("_editor") or {}
         editor_yt = editor.get("youtube") or {}
         sub_mode = (editor.get("subtitle") or {}).get("mode") or (cfg.get("subtitle") or {}).get("mode") or "both"
-        description = build_playlist_description(
-            playlist_title,
-            tracks,
-            hashtags=editor_yt.get("hashtags") or editor_yt.get("tags"),
-            description_en=editor_yt.get("description_en") or "",
-            description_ko=editor_yt.get("description_ko") or "",
-            subtitle_mode=str(sub_mode),
-        )
+        # 설명은 위젯 구성(desc_blocks) SSOT으로 생성 — 6단계 미리보기와 동일한 결과 보장
+        from app.services.desc_blocks_service import build_description_from_blocks
+
+        _blk_ctx = {
+            "album_title": playlist_title,
+            "description_en": editor_yt.get("description_en") or "",
+            "description_ko": editor_yt.get("description_ko") or "",
+            "tracks": tracks,
+            "subtitle_mode": str(sub_mode),
+            "hashtags": editor_yt.get("hashtags") or editor_yt.get("tags"),
+            "include_lyrics_in_description": bool(editor_yt.get("include_lyrics_in_description")),
+            "lyrics_ko": "",
+            "lyrics_en": "",
+            "runtime": total_dur,
+        }
+        description = build_description_from_blocks(_blk_ctx)
+        if not description:
+            description = build_playlist_description(
+                playlist_title,
+                tracks,
+                hashtags=editor_yt.get("hashtags") or editor_yt.get("tags"),
+                description_en=editor_yt.get("description_en") or "",
+                description_ko=editor_yt.get("description_ko") or "",
+                subtitle_mode=str(sub_mode),
+            )
         (output_dir / "youtube_description.txt").write_text(description, encoding="utf-8")
         (output_dir / "title.txt").write_text(playlist_title, encoding="utf-8")
 

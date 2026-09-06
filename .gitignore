@@ -18,6 +18,11 @@ frontend/.vite/
 data/*.db
 data/uploads/*
 data/editor_user_style.json
+data/brand.json
+data/brand_icon.png
+data/editor_style_presets.json
+data/logs/
+data/assets/
 !data/uploads/.gitkeep
 
 # IDE
