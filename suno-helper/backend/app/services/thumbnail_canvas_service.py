@@ -440,7 +440,7 @@ def default_canvas_boxes(
         },
         {
             "id": "footer",
-            "text": _brand_footer_text() or "© My Channel",
+            "text": _brand_footer_text(),
             "x": 440,
             "y": 678,
             "w": 400,

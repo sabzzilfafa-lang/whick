@@ -112,8 +112,7 @@ def _blk_copyright(ctx: dict[str, Any]) -> str:
 
 def _blk_hashtags(ctx: dict[str, Any]) -> str:
     _, default_hashtags = brand_hashtag_defaults()
-    fallback = default_hashtags or "#Playlist, #Acoustic, #Instrumental, #StudyMusic"
-    return _fmt_hashtags(ctx.get("hashtags") or ctx.get("tags"), fallback)
+    return _fmt_hashtags(ctx.get("hashtags") or ctx.get("tags"), default_hashtags)
 
 
 def _blk_lyrics(ctx: dict[str, Any]) -> str:

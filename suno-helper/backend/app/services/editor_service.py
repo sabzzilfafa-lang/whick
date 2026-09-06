@@ -528,7 +528,7 @@ def resolve_youtube_tags(raw) -> list[str]:
 
     defaults, _ = brand_hashtag_defaults()
     tags = [str(t).strip() for t in (raw or []) if str(t).strip()]
-    # 구버전 WHICK 하드코딩 태그 세트 — 브랜드 기본값으로 교체
+    # 구버전 하드코딩 태그 세트 감지 — 브랜드 기본값으로 교체
     if not tags or any("whick" in t.lower() for t in tags):
         return list(defaults)
     return tags[:30]
@@ -538,7 +538,7 @@ def resolve_youtube_hashtags(raw, tags=None) -> str:
     from app.services.brand_service import brand_hashtag_defaults
 
     _, default_hashtags = brand_hashtag_defaults()
-    fallback = default_hashtags or "#Playlist, #Acoustic, #Instrumental, #StudyMusic"
+    fallback = default_hashtags
     text = (raw or "").strip() if isinstance(raw, str) else ""
     if not text or "whick" in text.lower():
         return fallback

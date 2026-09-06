@@ -60,7 +60,8 @@ DEFAULT_PIPELINE_CONFIG = {
         # WHICK run_music_share_album.py ASS SSOT (PlayRes 2560×1440)
         "play_res_x": 2560,
         "play_res_y": 1440,
-        "font_name": "Malgun Gothic",
+        # 빈 값 = font_resolver가 환경에 맞는 폰트 선택 (Windows 맑은고딕 / 번들 Noto Sans KR)
+        "font_name": "",
         "font_title": 42,
         "font_lyrics": 68,
         "lyrics_outline": 3,

@@ -57,12 +57,24 @@ app.include_router(youtube_router, prefix="/api")
 
 @app.get("/api/health")
 async def health():
+    from app.services.update_service import APP_VERSION
+
     return {
         "status": "ok",
         "app": "Suno Helper",
+        "version": APP_VERSION,
         "youtube": True,
         "prompt_engine": "compact-1000",
     }
+
+
+@app.get("/api/version")
+async def version_info():
+    """업데이트 체널 — 현재 버전 + 새 버전 확인 (서버 미설정/오프라인 시 update: null)."""
+    from app.services.update_service import check_for_update, current_version
+
+    update = await check_for_update()
+    return {"version": current_version(), "update": update}
 
 # 프론트엔드 빌드 파일 서빙 (프로덕션)
 # "/" 마운트는 미등록 POST /api/... 를 가로채 405를 낸다. /api 는 제외한다.

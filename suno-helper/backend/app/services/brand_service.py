@@ -16,29 +16,14 @@ from app.config import settings
 BRAND_FILE = "brand.json"
 _ICON_NAME = "brand_icon"
 
-# 프로그램 출고 기본값 (WHICK) — 사용자가 저장하면 brand.json이 이긴다
+# 프로그램 출고 기본값 — 배포용: 모두 비어 있어 자동 생성물(설명 블록·워터마크·썸네일 푸터)
+# 에 브랜드 문구가 들어가지 않는다. 사용자가 설정에서 채우면 그 값이 우선한다.
 DEFAULT_BRAND: dict[str, Any] = {
-    "channel_name": "WHICK Official",
-    "source_url": "https://whick.org/community/music-share",
-    "copyright_line": "© WHICK Official",
-    "default_tags": [
-        "playlist",
-        "full album",
-        "acoustic",
-        "instrumental",
-        "relaxing music",
-        "study music",
-        "cafe music",
-        "chill music",
-        "original music",
-        "플레이리스트",
-        "어쿠스틱",
-        "인스트루멘탈",
-        "공부음악",
-        "카페음악",
-        "힐링음악",
-    ],
-    "default_hashtags": "#Playlist, #Acoustic, #Instrumental, #StudyMusic",
+    "channel_name": "",
+    "source_url": "",
+    "copyright_line": "",
+    "default_tags": [],
+    "default_hashtags": "",
     # 워터마크: 채널 아이콘+이름 표시 (끄면 워터마크 자체를 넣지 않음)
     "watermark_enabled": True,
     "watermark_label": "",
