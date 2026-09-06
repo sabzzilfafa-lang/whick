@@ -8,7 +8,7 @@ from app.services.brand_service import brand_icon_path, load_brand
 
 # 구버전 호환용 상수 (참조하는 외부 코드 없음 — brand.json이 SSOT)
 SOURCE_NAME = "whick-shellphone.jpg"
-LABEL = "Whick Official"
+LABEL = ""
 # 1920×1080 기준
 WM_X = 36
 WM_Y = 28
@@ -16,11 +16,8 @@ WM_ICON = 92
 
 
 def source_icon_path() -> Path:
-    """사용자 브랜드 아이콘 우선, 없으면 출고 기본 아이콘."""
-    custom = brand_icon_path()
-    if custom.is_file():
-        return custom
-    return Path(__file__).resolve().parent.parent / "assets" / SOURCE_NAME
+    """사용자 브랜드 아이콘. 배포 기본 아이콘은 넣지 않는다 (사용자가 업로드)."""
+    return brand_icon_path()
 
 
 def _watermark_label() -> str:
@@ -28,7 +25,7 @@ def _watermark_label() -> str:
     custom = (b.get("watermark_label") or "").strip()
     if custom:
         return custom
-    return (b.get("channel_name") or LABEL).strip() or LABEL
+    return (b.get("channel_name") or "").strip()
 
 
 def prepare_watermark_png(dest: Path, *, video_h: int = 1080) -> Path | None:
@@ -64,12 +61,11 @@ def prepare_watermark_png(dest: Path, *, video_h: int = 1080) -> Path | None:
         return None
 
     try:
-        font = ImageFont.truetype("C:/Windows/Fonts/malgunbd.ttf", font_px)
-    except OSError:
-        try:
-            font = ImageFont.truetype("C:/Windows/Fonts/malgun.ttf", font_px)
-        except OSError:
-            font = ImageFont.load_default()
+        from app.services.font_resolver import pil_font
+
+        font = pil_font(font_px, bold=True)
+    except Exception:
+        font = ImageFont.load_default()
 
     dummy = ImageDraw.Draw(Image.new("RGBA", (8, 8)))
     bb = dummy.textbbox((0, 0), label, font=font)

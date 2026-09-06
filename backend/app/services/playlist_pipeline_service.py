@@ -36,7 +36,7 @@ from app.services.workflow_service import (
 )
 
 
-WHICK_SOURCE_URL = ""  # deprecated — brand_service.brand_source_url() 사용
+WHICK_SOURCE_URL = ""  # deprecated placeholder (호출부 없음) — brand_service.brand_source_url() 사용
 
 
 def fmt_chapter_ts(sec: float) -> str:
@@ -138,7 +138,7 @@ def build_playlist_ass(
 def _default_playlist_hashtags() -> str:
     from app.services.brand_service import brand_hashtag_defaults
 
-    return brand_hashtag_defaults()[1] or "#Playlist, #Acoustic, #Instrumental, #StudyMusic"
+    return brand_hashtag_defaults()[1]
 
 
 DEFAULT_PLAYLIST_HASHTAGS = ""  # deprecated — _default_playlist_hashtags() 사용
@@ -175,7 +175,7 @@ def format_hashtags_csv(value: str | list | None, fallback: str = "") -> str:
 def _brand_copyright_line() -> str:
     from app.services.brand_service import brand_footer_text
 
-    return brand_footer_text() or "© WHICK Official"
+    return brand_footer_text()
 
 
 def build_description_auto_block(
@@ -252,6 +252,11 @@ def build_playlist_description(
 def _load_thumb_font(size: int, *, bold: bool = False, serif: bool = False):
     from PIL import ImageFont
 
+    from app.services.font_resolver import pil_font
+
+    if not serif:
+        # 한글 대응: 공통 폰트 리졸버 (Windows 맑은고딕 / 번들 Noto Sans KR)
+        return pil_font(size, bold=bold, black=bold)
     candidates: list[str] = []
     if serif:
         candidates.extend(
@@ -263,20 +268,10 @@ def _load_thumb_font(size: int, *, bold: bool = False, serif: bool = False):
                 "/usr/share/fonts/opentype/noto/NotoSerifCJK-Bold.ttc" if bold else "/usr/share/fonts/opentype/noto/NotoSerifCJK-Regular.ttc",
             ]
         )
-    if bold:
-        candidates.extend(
-            [
-                "C:/Windows/Fonts/malgunbd.ttf",
-                "C:/Windows/Fonts/arialbd.ttf",
-                "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc",
-            ]
-        )
     candidates.extend(
         [
-            "C:/Windows/Fonts/malgun.ttf",
             "C:/Windows/Fonts/arial.ttf",
-            "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
-            "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
         ]
     )
     for path in candidates:

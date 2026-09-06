@@ -19,19 +19,26 @@ AUDIO_EXT = {".mp3", ".wav", ".flac", ".m4a", ".aac", ".ogg"}
 
 
 def resolve_subtitle_font(config: dict | None = None) -> str:
-    """Windows에서는 맑은 고딕, 그 외 Noto/설정값."""
-    preferred = (config or {}).get("subtitle", {}).get("font_name") if config else None
-    if preferred and preferred not in ("Noto Serif CJK KR", "Noto Sans CJK KR"):
+    """설정값 우선, 없으면 공통 폰트 리졸버 (Windows 맑은고딕 / 번들 Noto Sans KR)."""
+    from app.services.font_resolver import ass_font_name
+
+    preferred = str((config or {}).get("subtitle", {}).get("font_name") or "").strip()
+    if preferred:
         return preferred
-    if os.name == "nt":
-        return "Malgun Gothic"
-    return preferred or "Noto Serif CJK KR"
+    return ass_font_name()
 
 
 def resolve_fonts_dir() -> str | None:
+    """ASS subtitles 필터 fontsdir — 번들 폰트 우선, 없으면 시스템 폰트 디렉터리."""
+    from app.services.font_resolver import ass_fontsdir
+
+    bundled = ass_fontsdir()
+    if bundled:
+        return bundled
     candidates = [
         Path("C:/Windows/Fonts"),
         Path("/usr/share/fonts/opentype/noto"),
+        Path("/usr/share/fonts/truetype/noto"),
         Path("/usr/share/fonts"),
     ]
     for p in candidates:
@@ -284,6 +291,23 @@ def _video_encode_args(encoder: str, config: dict, *, preview_fast: bool = False
             "-cq", crf,
             "-b:v", "0",
             "-profile:v", "high",
+            "-pix_fmt", "yuv420p",
+        ]
+    if encoder == "h264_qsv":
+        # Intel Quick Sync — ICQ 품질 모드 (crf와 유사한 체감 품질)
+        return [
+            "-c:v", "h264_qsv",
+            "-preset", preset if preset in ("veryfast", "faster", "fast", "medium", "slow") else "medium",
+            "-global_quality", crf,
+            "-profile:v", "high",
+            "-pix_fmt", "yuv420p",
+        ]
+    if encoder == "h264_mf":
+        # Windows Media Foundation — 품질 기반 rate control
+        return [
+            "-c:v", "h264_mf",
+            "-rate_control", "quality",
+            "-quality", "70",
             "-pix_fmt", "yuv420p",
         ]
     return [

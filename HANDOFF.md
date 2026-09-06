@@ -65,15 +65,24 @@
 - 버전 관리: `app.version` 현재 `0.1.0` → 정식 버전 체계 시작 (예: `1.0.0`)
 - 선택: 설정 템플릿(프리셋·브랜드 기본값)도 버전 채널로 배포 가능
 
-## Phase D — 앱 정리 (배포 품질)
+## Phase D — 앱 정리 (배포 품질) — ✅ 2026-09-07 완료 (i18n 제외)
 
-1. **브랜드 기본값 초기화** — `DEFAULT_BRAND` 빈 값, "© WHICK Official" 폴백 2곳 제거
-   (`playlist_pipeline_service.py` L178, `thumbnail_canvas_service.py`, `watermark_service.py` 기본 아이콘)
-2. **i18n** — react-i18next 도입, `ko.json`/`en.json` (사이트 12개국어 중 ko/en 먼저, 페이지별 진행)
-   백엔드 에러는 코드 기반(`FOLDER_NOT_FOUND` 등)으로 바꾸고 번역은 프론트에서
-3. **폰트 폴백** — Noto Sans KR 번들 + `font_resolver.py` (Windows Malgun 우선, 없으면 번들) — 저비용 고장 방지
-4. **requirements.txt 고정** — pip freeze 기준 핀 버전
-5. 보류 항목 처리: Intel QSV/MF 인코딩 인자 분기 (감지돼도 libx264로 폴백되는 버그)
+1. ✅ **브랜드 기본값 초기화** — `DEFAULT_BRAND` 전부 빈 값. 폴백 제거:
+   - `playlist_pipeline_service.py` "© WHICK Official" 폴백 제거
+   - `thumbnail_canvas_service.py` "© My Channel" 폴백 제거
+   - `watermark_service.py` 기본 아이콘/라벨 폴백 제거 (사용자 아이콘+채널명 없으면 워터마크 자체 생략)
+   - `editor_service.py`·`desc_blocks_service.py` 기본 해시태그 폴백 제거
+   - `EditorPage.tsx` 미리보기 워터마크: 브랜드 미설정 시 숨김, 라벨은 brand 설정값 사용
+   - 검증: brand.json 없는 신규 설치 시나리오에서 생성물에 브랜드 문구 0건 확인
+2. ⏳ **i18n** — 다음 단계에서 별도 진행 (react-i18next, ko/en)
+3. ✅ **폰트 폴백** — `font_resolver.py` 신설 + Noto Sans KR 3종 번들(`backend/app/assets/fonts/`, OFL)
+   Windows 맑은고딕 우선 → 번들 폴백. watermark/썸네일/ASS 자막 모두 리졸버 경유.
+   `pipeline_defaults.font_name` 빈 값 = 환경 자동 선택
+4. ✅ **requirements.txt 고정** — pip freeze 기준 핀 버전
+5. ✅ **Intel QSV/MF 인코딩 인자 분기 추가** — `h264_qsv`(global_quality ICQ), `h264_mf`(quality rc).
+   감지는 기존 `_encoder_actually_works` 실측 방식 유지
+6. ✅ **버전 1.0.0 + 업데이트 채널 기본 구조** — `update_service.py` (APP_VERSION SSOT,
+   `GET /api/version` — 신규, `/api/health`에 version 포함). whick.org 버전 API URL은 env `SUNO_UPDATE_URL`
 
 ## Phase E — 문서·상용화
 

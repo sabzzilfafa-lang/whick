@@ -42,14 +42,9 @@ def ass_play_res(config: dict | None = None) -> tuple[int, int]:
 
 
 def resolve_ass_font(config: dict | None = None) -> str:
-    import os
+    from app.services.pipeline_service import resolve_subtitle_font
 
-    preferred = str(_cfg(config).get("font_name") or "").strip()
-    if preferred and preferred not in ("Noto Serif CJK KR", "Noto Sans CJK KR"):
-        return preferred
-    if os.name == "nt":
-        return "Malgun Gothic"
-    return preferred or "Noto Sans CJK KR"
+    return resolve_subtitle_font(config)
 
 
 def fmt_ass_time(sec: float) -> str:

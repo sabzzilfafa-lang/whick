@@ -1569,12 +1569,12 @@ export default function EditorPage() {
                     </button>
                   </>
                 )}
-                {!previewPlaying && (
+                {!previewPlaying && (brand?.watermark_enabled !== false && (brand?.watermark_label || brand?.channel_name) ? (
                   <div className="wm-live" aria-hidden>
                     <img src={whickMark} alt="" />
-                    <span>Whick Official</span>
+                    <span>{brand?.watermark_label || brand?.channel_name}</span>
                   </div>
-                )}
+                ) : null)}
                 {eqOn && !previewPlaying && (
                   <div
                     className={`eq-overlay eq-style-${eqStyleId}`}
