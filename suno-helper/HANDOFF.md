@@ -34,14 +34,15 @@
 6. ✅ 로컬 사이클 테스트 — RSA 키 생성→서명→검증→만료/기기불일치/위조서명 거부 전부 확인
 7. ✅ `requirements.txt`에 `cryptography==50.0.1` 추가
 
-### 서버 측 (참조구현 준비됨 — 배포는 사용자 승인 필요)
+### 서버 측 — ✅ 2026-09-07 배포 완료 + E2E 통과
 
-- `backend/server_license/sunoLicense.js` — site-api용 라우트
-  (`POST /api/suno/token/new|activate|renew|deactivate`, `GET /api/suno/status|version`)
-  - RS256 서명, 계정당 1대(활성 라이선스 유니크 인덱스), install_token 1회용
-  - 웹 로그인 세션(`whick_site_token` 쿠키 JWT)과 연동 — site-api `siteAuthRequired` 재사용
-- `backend/server_license/README.md` — 키 생성·마운트·재시작 절차 문서화
-- 배포 시: 서버에서 RSA 키생성 → **공개키를 `license_service.py`의 `LICENSE_PUBLIC_PEM`에 교체** → 재빌드
+- `backend/server_license/sunoLicense.js` → site-api에 배포 (`/api/suno/*` 마운트 완료)
+- RSA 키페어 생성 완료 (`/data/whick-ai/2_control_center/api/keys/`) — **공개키 앱에 내장 완료**
+- compose override에 keys 마운트 + SUNO_LICENSE_* env 추가 (`docker-compose.override.yml`)
+- **E2E 통과**: 토큰발급(웹세션) → 활성화 → 토큰재사용차단 → 갱신 → 상태 → 해지 → 데이터 정리
+- 버전 채널 `/api/suno/version` — **CC 버전관리 DB(cc_software_versions)에서 suno-helper stable 최신 버전 조회** (fallback: env)
+- CC 버전관리 등록: `solutions-catalog.json` + `config/solutions/suno-helper.json` (v1.0.0 stable) + DB 등록 완료
+- 남은 것: Phase B 설치기(패키지 zip 제작 시 `register-solution-cc.sh suno-helper <zip>`로 파일 포함 등록)
 
 ### 웹 API 계약 (whick.org, /data/suno-helper에 배포)
 
