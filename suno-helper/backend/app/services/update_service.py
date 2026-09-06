@@ -50,6 +50,9 @@ async def check_for_update(timeout: float = 4.0) -> dict[str, Any] | None:
         if r.status_code != 200:
             return None
         data = r.json()
+        # site-api 표준 래퍼 {ok, data} 대응 (없으면 평문 JSON도 허용)
+        if isinstance(data, dict) and "data" in data and "version" not in data:
+            data = data.get("data") or {}
     except Exception:
         return None
     remote = str(data.get("version") or "").strip()

@@ -258,15 +258,35 @@ router.post('/deactivate', siteAuthRequired, async (req, res) => {
   return ok(res, { deactivated: true });
 });
 
-/** 업데이트 채널 (공개) — Phase C */
+/** 업데이트 채널 (공개) — CC 버전관리(cc_software_versions)에서 최신 stable 버전 조회 */
 router.get('/version', async (_req, res) => {
-  // 배포 시 업데이트: cc_suno_releases 테이블 또는 파일 기반으로 교체 가능.
-  // 현재는 정적 값 — 새 버전 배포 시 이 값을 갱신한다.
+  try {
+    // CC 버전관리 SSOT: suno-helper 솔루션의 deploy 버전
+    const row = await queryOne(
+      `SELECT v.version, v.release_notes, v.released_at
+       FROM cc_software_versions v
+       JOIN cc_solutions s ON s.id = v.solution_id
+       WHERE s.code = 'suno-helper' AND v.dev_status = 'deploy' AND v.channel = 'stable'
+       ORDER BY v.released_at DESC, v.id DESC LIMIT 1`,
+    );
+    if (row) {
+      return ok(res, {
+        product: PRODUCT,
+        version: String(row.version || '').replace(/^v/, ''),
+        notes: row.release_notes || '',
+        url: `https://whick.org/downloads/suno-helper`,
+        released_at: row.released_at || null,
+      });
+    }
+  } catch {
+    /* DB/테이블 없으면 아래 fallback */
+  }
+  // fallback: env 기반 (CC 등록 전 임시)
   return ok(res, {
     product: PRODUCT,
     version: process.env.SUNO_LATEST_VERSION || '',
     notes: process.env.SUNO_LATEST_NOTES || '',
-    url: process.env.SUNO_LATEST_URL || '',
+    url: process.env.SUNO_LATEST_URL || 'https://whick.org/downloads/suno-helper',
   });
 });
 

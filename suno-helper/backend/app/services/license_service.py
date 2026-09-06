@@ -31,9 +31,15 @@ RENEW_BEFORE_DAYS = 7
 ACTIVATE_URL = os.environ.get("SUNO_ACTIVATE_URL", "https://whick.org/api/suno/activate")
 RENEW_URL = os.environ.get("SUNO_RENEW_URL", "https://whick.org/api/suno/renew")
 
-# whick.org 서버 공개키 — 서버 설치 시 교체 (server_license/README.md 5단계)
+# whick.org 서버 공개키 (2026-09-07 발급 — server_license/README.md 참고)
 LICENSE_PUBLIC_PEM = os.environ.get("SUNO_LICENSE_PUBKEY", "") or """-----BEGIN PUBLIC KEY-----
-REPLACE_WITH_SERVER_PUBLIC_KEY
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuA2040lm0/385RewJ/yQ
+E/KcXye80/uhjw/dJJac+qX4LXJRMJU10cKzwoasmwLndGbJCNnzBjL2n1IPxea2
+TUhGpK+NkHRNju1vSs2VuAjf30+0fSjW+MQZ4SvHcH4GlYEo1lQRN12heeMrab3a
+407anmlro1XPkeH7h6eNpKMfPvrdI7ThGzcdrvG6YipzvIPfXROHdr47upjVDbqX
+ldLioFo0vJvdHigM0hdtKMouaXCktBsHF9vb/b37/Uio9LXczPizDBzBqFIdYUve
+2N8RNIv9jXKyPFDqwcPvzowtuqHyMkGfZI6bhscK+D+jNOfGJZFYMCpSu/p80kDG
+XQIDAQAB
 -----END PUBLIC KEY-----"""
 
 
@@ -192,7 +198,9 @@ async def activate(install_token: str) -> dict[str, Any]:
         )
     if r.status_code != 200:
         try:
-            detail = r.json().get("message") or r.text[:200]
+            j = r.json()
+            detail = (j.get("error") or {}).get("message") if isinstance(j.get("error"), dict) else None
+            detail = detail or j.get("message") or r.text[:200]
         except Exception:
             detail = r.text[:200]
         raise ValueError(f"활성화 실패 ({r.status_code}): {detail}")
