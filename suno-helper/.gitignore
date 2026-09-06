@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+backend/.venv/
+backend/__pycache__/
+backend/**/__pycache__/
+*.pyc
+
+# Environment
+.env
+.env.local
+.env.bak
+
+# Build
+frontend/dist/
+frontend/.vite/
+
+# Data (local user data - optional backup separately)
+data/*.db
+data/uploads/*
+data/editor_user_style.json
+data/brand.json
+data/brand_icon.png
+data/editor_style_presets.json
+data/logs/
+data/assets/
+!data/uploads/.gitkeep
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
