@@ -1,0 +1,77 @@
+{
+  "app": {
+    "name": "Suno Helper",
+    "tagline": "수노 음악 제작 도우미"
+  },
+  "nav": {
+    "home": "홈",
+    "studio": "스튜디오",
+    "editor": "영상 편집",
+    "albums": "앨범",
+    "search": "검색",
+    "analyze": "취향 분석",
+    "profiles": "프로필",
+    "settings": "설정"
+  },
+  "common": {
+    "save": "저장",
+    "saving": "저장 중...",
+    "saved": "저장됨",
+    "cancel": "취소",
+    "confirm": "확인",
+    "delete": "삭제",
+    "edit": "수정",
+    "close": "닫기",
+    "loading": "불러오는 중...",
+    "error": "오류",
+    "apply": "적용",
+    "add": "추가",
+    "remove": "제거",
+    "refresh": "새로고침",
+    "search": "검색",
+    "language": "언어"
+  },
+  "license": {
+    "title": "라이선스",
+    "state": {
+      "valid": "정상",
+      "grace": "만료 (유예 기간)",
+      "expired": "만료 — 새 작업 잠김",
+      "mismatch": "기기 불일치 — 다시 활성화 필요",
+      "none": "미활성"
+    },
+    "expires": "만료: {{date}}",
+    "grace_until": "유예 ~ {{date}}",
+    "renew_now": "지금 갱신",
+    "renewed": "라이선스를 갱신했습니다",
+    "token_label": "활성화 토큰",
+    "token_placeholder": "whick.org 마이페이지에서 발급받은 토큰 (sh_...)",
+    "token_required": "활성화 토큰을 입력하세요",
+    "activate": "활성화",
+    "activated": "라이선스가 활성화되었습니다",
+    "hint": "whick.org 로그인 → Suno Helper → 「내 PC 등록」에서 토큰을 발급받아 붙여넣으세요. 계정당 1대의 PC를 등록할 수 있습니다.",
+    "loading": "라이선스 상태를 불러오는 중..."
+  },
+  "settings": {
+    "title": "사용자 설정",
+    "subtitle": "API 키·AI 모델, 유튜브 자동 게시, 설명 자동 구성, 백업을 한 곳에서 관리합니다",
+    "tabs": {
+      "license": "라이선스",
+      "api": "API · 작업별 AI",
+      "youtube": "유튜브 자동 게시",
+      "desc": "유튜브 설명 위젯",
+      "backup": "백업 · 복원"
+    },
+    "save_settings": "설정 저장",
+    "tasks": {
+      "lyrics": "가사 생성",
+      "prompt": "Suno 프롬프트",
+      "instruments": "악기 세팅",
+      "analyze": "취향 곡 분석"
+    }
+  },
+  "errors": {
+    "FOLDER_NOT_FOUND": "폴더를 찾을 수 없습니다: {{name}}",
+    "GENERIC": "{{message}}"
+  }
+}

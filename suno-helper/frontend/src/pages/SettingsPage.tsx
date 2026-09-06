@@ -1,13 +1,16 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { api, AIProvider, AIModelOption, AppSettings, YoutubeStatus } from "../api";
 import { getFallbackModels, mergeModels, VALUE_MODELS, VALUE_TEMPERATURES } from "../lib/aiModels";
 import { BrandSettingsTab, DescBlocksSettingsTab } from "../components/BrandSettings";
+import { LicenseSettingsTab } from "../components/LicenseSettings";
+import { LanguageSelect } from "../components/LanguageSelect";
 
 const TASK_CONFIG = [
-  { key: "lyrics" as const, label: "가사 생성" },
-  { key: "prompt" as const, label: "Suno 프롬프트" },
-  { key: "instruments" as const, label: "악기 세팅" },
-  { key: "analyze" as const, label: "취향 곡 분석" },
+  { key: "lyrics" as const, labelKey: "settings.tasks.lyrics" },
+  { key: "prompt" as const, labelKey: "settings.tasks.prompt" },
+  { key: "instruments" as const, labelKey: "settings.tasks.instruments" },
+  { key: "analyze" as const, labelKey: "settings.tasks.analyze" },
 ];
 
 type TaskKey = (typeof TASK_CONFIG)[number]["key"];
@@ -107,6 +110,7 @@ function ModelSelect({
 }
 
 export default function SettingsPage() {
+  const { t } = useTranslation();
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [providers, setProviders] = useState<AIProvider[]>([]);
   const [modelsByProvider, setModelsByProvider] = useState<Record<string, AIModelOption[]>>({});
@@ -123,7 +127,7 @@ export default function SettingsPage() {
   const [ytRedirectHost, setYtRedirectHost] = useState<"localhost" | "127.0.0.1">("127.0.0.1");
   const [ytConnecting, setYtConnecting] = useState(false);
   const [ytSaving, setYtSaving] = useState(false);
-  const [tab, setTab] = useState<"api" | "youtube" | "desc" | "backup">("api");
+  const [tab, setTab] = useState<"license" | "api" | "youtube" | "desc" | "backup">("api");
 
   const loadModelsForProvider = async (
     providerId: string,
@@ -416,10 +420,11 @@ export default function SettingsPage() {
   }
 
   const tabs = [
-    { id: "api", label: "API · 작업별 AI" },
-    { id: "youtube", label: "유튜브 자동 게시" },
-    { id: "desc", label: "유튜브 설명 위젯" },
-    { id: "backup", label: "백업 · 복원" },
+    { id: "license", label: t("settings.tabs.license") },
+    { id: "api", label: t("settings.tabs.api") },
+    { id: "youtube", label: t("settings.tabs.youtube") },
+    { id: "desc", label: t("settings.tabs.desc") },
+    { id: "backup", label: t("settings.tabs.backup") },
   ] as const;
 
   const notify = (msg: string, isErr = false) => {
@@ -431,21 +436,22 @@ export default function SettingsPage() {
     <div>
       <div className="page-header">
         <div>
-          <h2>사용자 설정</h2>
-          <p>API 키·AI 모델, 유튜브 자동 게시, 설명 자동 구성, 백업을 한 곳에서 관리합니다</p>
+          <h2>{t("settings.title")}</h2>
+          <p>{t("settings.subtitle")}</p>
         </div>
+        <LanguageSelect />
       </div>
 
       <div className="settings-tabs" role="tablist">
-        {tabs.map((t) => (
+        {tabs.map((tb) => (
           <button
-            key={t.id}
+            key={tb.id}
             role="tab"
-            aria-selected={tab === t.id}
-            className={`settings-tab${tab === t.id ? " active" : ""}`}
-            onClick={() => setTab(t.id)}
+            aria-selected={tab === tb.id}
+            className={`settings-tab${tab === tb.id ? " active" : ""}`}
+            onClick={() => setTab(tb.id)}
           >
-            {t.label}
+            {tb.label}
           </button>
         ))}
       </div>
@@ -528,7 +534,7 @@ export default function SettingsPage() {
           const models = mergeModels(modelsByProvider[providerId] || [], currentModel);
           return (
             <div key={task.key} className="task-config-row">
-              <div className="task-config-label">{task.label}</div>
+              <div className="task-config-label">{t(task.labelKey)}</div>
               <select
                 value={providerId}
                 onChange={(e) => setTaskProvider(task.key, e.target.value)}
@@ -642,6 +648,8 @@ export default function SettingsPage() {
         </>
       )}
 
+      {tab === "license" && <LicenseSettingsTab notify={notify} />}
+
       {tab === "desc" && <DescBlocksSettingsTab notify={notify} />}
 
       {tab === "backup" && (
@@ -665,7 +673,7 @@ export default function SettingsPage() {
 
       {tab === "api" && (
         <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
-          {saving ? "저장 중..." : "설정 저장"}
+          {saving ? t("common.saving") : t("settings.save_settings")}
         </button>
       )}
     </div>

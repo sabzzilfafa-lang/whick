@@ -1,25 +1,27 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import QueueBanner from "./QueueBanner";
 
 export default function Layout() {
   const { pathname } = useLocation();
+  const { t } = useTranslation();
   const fluid = pathname.startsWith("/editor");
   return (
     <div className="app-layout">
       <aside className="sidebar">
         <div className="sidebar-logo">
-          <h1>Suno Helper</h1>
-          <p>수노 음악 제작 도우미</p>
+          <h1>{t("app.name")}</h1>
+          <p>{t("app.tagline")}</p>
         </div>
         <nav>
-          <NavLink to="/" className="nav-link" end>홈</NavLink>
-          <NavLink to="/albums" className="nav-link">앨범</NavLink>
-          <NavLink to="/profiles" className="nav-link">스타일 프리셋</NavLink>
-          <NavLink to="/editor" className="nav-link">영상 편집</NavLink>
-          <NavLink to="/studio" className="nav-link">유튜브 스튜디오</NavLink>
-          <NavLink to="/analyze" className="nav-link">취향 곡 분석</NavLink>
-          <NavLink to="/search" className="nav-link">검색</NavLink>
-          <NavLink to="/settings" className="nav-link">사용자 설정</NavLink>
+          <NavLink to="/" className="nav-link" end>{t("nav.home")}</NavLink>
+          <NavLink to="/albums" className="nav-link">{t("nav.albums")}</NavLink>
+          <NavLink to="/profiles" className="nav-link">{t("nav.profiles")}</NavLink>
+          <NavLink to="/editor" className="nav-link">{t("nav.editor")}</NavLink>
+          <NavLink to="/studio" className="nav-link">{t("nav.studio")}</NavLink>
+          <NavLink to="/analyze" className="nav-link">{t("nav.analyze")}</NavLink>
+          <NavLink to="/search" className="nav-link">{t("nav.search")}</NavLink>
+          <NavLink to="/settings" className="nav-link">{t("nav.settings")}</NavLink>
         </nav>
       </aside>
       <main className={fluid ? "main-content main-content-fluid" : "main-content"}>

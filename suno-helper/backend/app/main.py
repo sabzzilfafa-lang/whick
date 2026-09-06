@@ -9,6 +9,7 @@ from app.database import init_db
 from app.routers.extra import router as extra_router
 from app.routers.pipeline import router as pipeline_router
 from app.routers.editor import router as editor_router
+from app.routers.license import router as license_router
 from app.routers.youtube import router as youtube_router
 
 
@@ -31,6 +32,13 @@ async def lifespan(app: FastAPI):
         pass
     await resume_pending_album_jobs()
     await resume_pending_pipeline_jobs()
+    # 라이선스 자동 갱신 (만료 7일 전, 온라인일 때만 — 실패 무시)
+    try:
+        from app.services.license_service import maybe_auto_renew
+
+        await maybe_auto_renew()
+    except Exception:
+        pass
     yield
 
 
@@ -53,6 +61,7 @@ app.include_router(router, prefix="/api")
 app.include_router(extra_router, prefix="/api")
 app.include_router(pipeline_router, prefix="/api")
 app.include_router(editor_router, prefix="/api")
+app.include_router(license_router, prefix="/api")
 app.include_router(youtube_router, prefix="/api")
 
 @app.get("/api/health")

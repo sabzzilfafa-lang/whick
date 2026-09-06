@@ -564,6 +564,16 @@ label {
   margin-top: 0.25rem;
 }
 
+.lang-select {
+  padding: 0.4rem 0.6rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--bg-elev);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
 .album-detail-header {
   display: block;
   align-items: flex-start;
@@ -1354,6 +1364,11 @@ label {
 .badge-warn {
   background: rgba(245, 158, 11, 0.2);
   color: var(--warning);
+}
+
+.badge-danger {
+  background: rgba(239, 68, 68, 0.2);
+  color: var(--danger);
 }
 
 .studio-message {

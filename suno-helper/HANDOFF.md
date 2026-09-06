@@ -19,7 +19,29 @@
 
 ---
 
-## Phase A — 인증서(라이선스) 체계
+## Phase A — 인증서(라이선스) 체계 — ✅ 2026-09-07 앱 측 완료 (서버 배포는 별도)
+
+### 완료 (앱 측)
+
+1. ✅ `backend/app/services/license_service.py` — RS256 검증(공개키 내장, 표준라이브러리+`cryptography`),
+   machine_id(Windows MachineGuid SHA256), `data/license.json` 보관,
+   상태 판정 `valid|grace|expired|mismatch|none`, 유예 30일, 자동갱신(만료 7일 전)
+2. ✅ `backend/app/routers/license.py` — `/api/license/{status,activate,renew,deactivate}`
+3. ✅ 파이프라인 게이트 — `run_full_pipeline`·`run_playlist_pipeline` 시작 시
+   `license_allows_new_jobs()` False면 ValueError (기존 결과물 열람은 자유)
+4. ✅ 시작 시 자동 갱신 — `main.py` lifespan에서 `maybe_auto_renew()` (실패 무시)
+5. ✅ 프론트 `LicenseSettingsTab` (설정 첫 탭) — 상태 배지·활성화 토큰 입력·갱신 버튼
+6. ✅ 로컬 사이클 테스트 — RSA 키 생성→서명→검증→만료/기기불일치/위조서명 거부 전부 확인
+7. ✅ `requirements.txt`에 `cryptography==50.0.1` 추가
+
+### 서버 측 (참조구현 준비됨 — 배포는 사용자 승인 필요)
+
+- `backend/server_license/sunoLicense.js` — site-api용 라우트
+  (`POST /api/suno/token/new|activate|renew|deactivate`, `GET /api/suno/status|version`)
+  - RS256 서명, 계정당 1대(활성 라이선스 유니크 인덱스), install_token 1회용
+  - 웹 로그인 세션(`whick_site_token` 쿠키 JWT)과 연동 — site-api `siteAuthRequired` 재사용
+- `backend/server_license/README.md` — 키 생성·마운트·재시작 절차 문서화
+- 배포 시: 서버에서 RSA 키생성 → **공개키를 `license_service.py`의 `LICENSE_PUBLIC_PEM`에 교체** → 재빌드
 
 ### 웹 API 계약 (whick.org, /data/suno-helper에 배포)
 
@@ -65,7 +87,7 @@
 - 버전 관리: `app.version` 현재 `0.1.0` → 정식 버전 체계 시작 (예: `1.0.0`)
 - 선택: 설정 템플릿(프리셋·브랜드 기본값)도 버전 채널로 배포 가능
 
-## Phase D — 앱 정리 (배포 품질) — ✅ 2026-09-07 완료 (i18n 제외)
+## Phase D — 앱 정리 (배포 품질) — ✅ 2026-09-07 완료
 
 1. ✅ **브랜드 기본값 초기화** — `DEFAULT_BRAND` 전부 빈 값. 폴백 제거:
    - `playlist_pipeline_service.py` "© WHICK Official" 폴백 제거
@@ -74,7 +96,11 @@
    - `editor_service.py`·`desc_blocks_service.py` 기본 해시태그 폴백 제거
    - `EditorPage.tsx` 미리보기 워터마크: 브랜드 미설정 시 숨김, 라벨은 brand 설정값 사용
    - 검증: brand.json 없는 신규 설치 시나리오에서 생성물에 브랜드 문구 0건 확인
-2. ⏳ **i18n** — 다음 단계에서 별도 진행 (react-i18next, ko/en)
+2. ✅ **i18n (Phase D-i18n 1차)** — react-i18next 기반 ko/en:
+   - `frontend/src/i18n.ts` + `src/i18n/{ko,en}.json` — 기본 한국어, localStorage 저장
+   - 언어 선택: 설정 페이지 헤더 `LanguageSelect`
+   - 번역 적용: Layout(전체 내비게이션), Settings(제목·탭·작업 라벨), 라이선스 탭 전체
+   - 나머지 화면(에디터·스튜디오 등)은 후속 단계에서 점진 적용
 3. ✅ **폰트 폴백** — `font_resolver.py` 신설 + Noto Sans KR 3종 번들(`backend/app/assets/fonts/`, OFL)
    Windows 맑은고딕 우선 → 번들 폴백. watermark/썸네일/ASS 자막 모두 리졸버 경유.
    `pipeline_defaults.font_name` 빈 값 = 환경 자동 선택

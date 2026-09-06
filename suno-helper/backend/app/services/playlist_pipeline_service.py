@@ -686,6 +686,14 @@ def run_playlist_pipeline(
     if len(project_dirs) < 2:
         raise ValueError("합본 영상은 프로젝트를 2개 이상 선택하세요.")
 
+    from app.services.license_service import license_allows_new_jobs
+
+    if not license_allows_new_jobs():
+        raise ValueError(
+            "라이선스가 만료되었습니다. 설정 → 라이선스에서 갱신한 뒤 다시 시도하세요. "
+            "(이미 만든 영상은 그대로 열람 가능합니다)"
+        )
+
     cfg = config or get_default_config()
     from app.services.editor_service import merge_editor_into_pipeline
 

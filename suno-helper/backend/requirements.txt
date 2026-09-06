@@ -16,6 +16,7 @@ greenlet==3.5.5
 
 # HTTP / AI calls
 httpx==0.28.1
+cryptography==50.0.1
 
 # Audio / subtitle pipeline
 Pillow==12.3.0

@@ -387,6 +387,14 @@ export interface DescBlockDef {
   hint: string;
 }
 
+export interface LicenseStatus {
+  state: "valid" | "grace" | "expired" | "mismatch" | "none";
+  email: string;
+  plan: string;
+  expires_at: string;
+  grace_until: string;
+}
+
 export interface ChannelBrand {
   channel_name: string;
   source_url: string;
@@ -965,6 +973,14 @@ export const api = {
     request<YoutubeProjectMeta>(`/youtube/project-meta?path=${encodeURIComponent(path)}`),
 
   // Video Editor (8-step studio)
+  getLicenseStatus: () => request<LicenseStatus>(`/license/status`),
+  activateLicense: (installToken: string) =>
+    request<LicenseStatus>(`/license/activate`, {
+      method: "POST",
+      body: JSON.stringify({ install_token: installToken }),
+    }),
+  renewLicense: () =>
+    request<LicenseStatus>(`/license/renew`, { method: "POST" }),
   getBrand: () => request<ChannelBrand>(`/editor/brand`),
   saveBrand: (data: Partial<ChannelBrand>) =>
     request<ChannelBrand>(`/editor/brand`, {

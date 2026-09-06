@@ -1,0 +1,77 @@
+{
+  "app": {
+    "name": "Suno Helper",
+    "tagline": "Music production assistant for Suno"
+  },
+  "nav": {
+    "home": "Home",
+    "studio": "Studio",
+    "editor": "Video Editor",
+    "albums": "Albums",
+    "search": "Search",
+    "analyze": "Taste Analysis",
+    "profiles": "Profiles",
+    "settings": "Settings"
+  },
+  "common": {
+    "save": "Save",
+    "saving": "Saving...",
+    "saved": "Saved",
+    "cancel": "Cancel",
+    "confirm": "OK",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "loading": "Loading...",
+    "error": "Error",
+    "apply": "Apply",
+    "add": "Add",
+    "remove": "Remove",
+    "refresh": "Refresh",
+    "search": "Search",
+    "language": "Language"
+  },
+  "license": {
+    "title": "License",
+    "state": {
+      "valid": "Active",
+      "grace": "Expired (grace period)",
+      "expired": "Expired — new jobs locked",
+      "mismatch": "Device mismatch — reactivate required",
+      "none": "Not activated"
+    },
+    "expires": "Expires: {{date}}",
+    "grace_until": "Grace until {{date}}",
+    "renew_now": "Renew now",
+    "renewed": "License renewed",
+    "token_label": "Activation token",
+    "token_placeholder": "Token from whick.org account page (sh_...)",
+    "token_required": "Enter your activation token",
+    "activate": "Activate",
+    "activated": "License activated",
+    "hint": "Sign in at whick.org → Suno Helper → \"Register this PC\" to get a token. One PC per account.",
+    "loading": "Loading license status..."
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Manage API keys, AI models, YouTube publishing, description builder and backups in one place",
+    "tabs": {
+      "license": "License",
+      "api": "API · AI per task",
+      "youtube": "YouTube Auto Publish",
+      "desc": "YouTube Description Builder",
+      "backup": "Backup · Restore"
+    },
+    "save_settings": "Save Settings",
+    "tasks": {
+      "lyrics": "Lyrics generation",
+      "prompt": "Suno prompt",
+      "instruments": "Instruments",
+      "analyze": "Taste analysis"
+    }
+  },
+  "errors": {
+    "FOLDER_NOT_FOUND": "Folder not found: {{name}}",
+    "GENERIC": "{{message}}"
+  }
+}
