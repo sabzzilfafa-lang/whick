@@ -5,6 +5,7 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.api import router
 from app.database import init_db
@@ -165,5 +166,14 @@ if frontend_dist.exists():
                 await response(scope, receive, send)
                 return
             await super().__call__(scope, receive, send)
+
+        async def get_response(self, path: str, scope):  # type: ignore[override]
+            """SPA 폴백 — 파일이 없는 클라이언트 라우트(/albums/1 등)는 index.html로."""
+            try:
+                return await super().get_response(path, scope)
+            except StarletteHTTPException as exc:
+                if exc.status_code == 404 and not path.startswith("assets/"):
+                    return await super().get_response("index.html", scope)
+                raise
 
     app.mount("/", FrontendStatic(directory=str(frontend_dist), html=True), name="static")
