@@ -1,4 +1,4 @@
-# Suno Helper 설치 안내 (v1.0.0)
+# Suno Helper 설치 안내 (v0.9.00)
 
 ## 설치 전 확인
 
