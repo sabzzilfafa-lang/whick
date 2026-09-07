@@ -54,6 +54,10 @@ button {
   transition: all 0.15s ease;
 }
 
+button:not(:disabled):active {
+  transform: scale(0.97);
+}
+
 .btn {
   padding: 0.6rem 1.2rem;
   font-weight: 500;
@@ -824,6 +828,37 @@ label {
   color: var(--text-muted);
   font-size: 0.8rem;
   margin: 0 0.15rem;
+}
+
+.song-workflow-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  padding: 0.25rem 0.5rem;
+  margin: -0.25rem -0.5rem;
+  font-family: var(--font);
+  font-size: inherit;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease, transform 0.06s ease;
+}
+
+.song-workflow-btn:hover {
+  background: var(--bg-hover);
+  border-color: var(--border);
+}
+
+/* 클릭 시 눌리는 느낌 */
+.song-workflow-btn:active {
+  transform: scale(0.96);
+  background: var(--border);
+}
+
+.song-workflow-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 
 /* Track list */

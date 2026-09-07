@@ -418,7 +418,34 @@ export default function SongPage() {
     }
   };
 
-  const handleGenerate = async (type: TabField) => {
+  // 워크플로우 바 단계 클릭 → 해당 편집 화면으로 이동 (뒤 단계 재수정 지원)
+  const handleWorkflowStepClick = (stepId: string) => {
+    if (!song) return;
+    if (stepId === "lyrics_ko") {
+      void handleLyricsLangChange("ko");
+    } else if (stepId === "lyrics_en") {
+      void handleLyricsLangChange("en");
+    } else if (stepId === "instruments") {
+      if (!instrumentData) void handleSetupInstruments();
+    }
+    // 프롬프트/음원/커버는 스크롤로 이동
+    requestAnimationFrame(() => {
+      const map: Record<string, string> = {
+        lyrics_ko: "",
+        lyrics_en: "",
+        instruments: "",
+        prompt: ".editor-panel--prompt",
+      };
+      const sel = map[stepId];
+      if (sel) {
+        document.querySelector(sel)?.scrollIntoView({ behavior: "smooth", block: "center" });
+      } else {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    });
+  };
+
+const handleGenerate = async (type: TabField) => {
     if (!song) return;
     if (type === "prompt") {
       if (!koLyrics(song).trim()) {
@@ -695,7 +722,7 @@ export default function SongPage() {
       {error && <div className="error">{error}</div>}
       {message && <div className="success-banner">{message}</div>}
 
-      <SongWorkflowBar steps={workflowSteps} />
+      <SongWorkflowBar steps={workflowSteps} onStepClick={handleWorkflowStepClick} />
 
       {(song.audio_path || song.image_path) && (
         <div className="card" style={{ marginBottom: "1rem", display: "flex", gap: "1.5rem", alignItems: "flex-start", flexWrap: "wrap" }}>
