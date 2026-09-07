@@ -17,7 +17,7 @@ STAGE = DIST / "SunoHelper"
 
 # 버전은 update_service의 APP_VERSION과 동기화
 sys.path.insert(0, str(ROOT / "backend"))
-APP_VERSION = "1.0.0"  # app.services.update_service.APP_VERSION 값과 일치 유지
+APP_VERSION = "1.1.0"  # app.services.update_service.APP_VERSION 값과 일치 유지
 
 EXCLUDE_DIR_PARTS = {"__pycache__", ".venv", "node_modules", ".git", "logs", "dist_package", "wamss", ".pytest_cache", ".mypy_cache"}
 EXCLUDE_FILES = {".env", "suno_helper.db", "_probe.py", "server_push.sh"}
@@ -65,8 +65,8 @@ def main() -> None:
         raise SystemExit("frontend/dist/index.html 없음 — 먼저 npm run build 실행")
     total += copy_tree(dist, STAGE / "frontend" / "dist")
 
-    # 최상위 실행 파일/문서
-    for f in ["start.bat", "stop.bat", "MANUAL.md", "install.bat"]:
+    # 최상위 실행 파일/문서 (Setup.bat: 웹 다운로더, launcher.pyw: 프로토콜 핸들러)
+    for f in ["Setup.bat", "install.bat", "start.bat", "stop.bat", "MANUAL.md", "launcher.pyw"]:
         # installer 우선, 없으면 루트 것 사용
         src = ROOT / "installer" / f
         if not src.is_file():

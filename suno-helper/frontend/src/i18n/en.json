@@ -3,6 +3,11 @@
     "name": "Suno Helper",
     "tagline": "Music production assistant for Suno"
   },
+  "gate": {
+    "title": "Run Suno Helper from the web",
+    "desc": "Direct access is not supported. Open the web dashboard below to launch the app.",
+    "go": "Open whick.org"
+  },
   "nav": {
     "home": "Home",
     "studio": "Studio",

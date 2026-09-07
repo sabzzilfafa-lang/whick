@@ -12,6 +12,7 @@ from app.routers.extra import router as extra_router
 from app.routers.pipeline import router as pipeline_router
 from app.routers.editor import router as editor_router
 from app.routers.license import router as license_router
+from app.routers.local import router as local_router
 from app.routers.youtube import router as youtube_router
 
 
@@ -63,11 +64,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+@app.middleware("http")
+async def allow_private_network(request, call_next):
+    """Chrome PNA: 공개 HTTPS(whick.org) → 로컬(127.0.0.1) 요청 프리플라이트 허용."""
+    response = await call_next(request)
+    response.headers["Access-Control-Allow-Private-Network"] = "true"
+    return response
+
 app.include_router(router, prefix="/api")
 app.include_router(extra_router, prefix="/api")
 app.include_router(pipeline_router, prefix="/api")
 app.include_router(editor_router, prefix="/api")
 app.include_router(license_router, prefix="/api")
+app.include_router(local_router, prefix="/api")
 app.include_router(youtube_router, prefix="/api")
 
 @app.get("/api/health")

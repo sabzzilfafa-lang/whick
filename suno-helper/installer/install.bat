@@ -2,7 +2,7 @@
 setlocal enabledelayedexpansion
 chcp 65001 >nul
 echo ========================================
-echo   Suno Helper 설치 (v1.0.0)
+echo   Suno Helper installing...
 echo ========================================
 echo.
 
@@ -10,21 +10,21 @@ cd /d "%~dp0"
 
 where python >nul 2>&1
 if errorlevel 1 (
-    echo [오류] Python이 설치되어 있지 않습니다.
+    echo [ERROR] Python not found.
     echo.
-    echo   1. https://www.python.org/downloads/ 에서 Python 3.11+ 설치
-    echo   2. 설치 시 "Add python.exe to PATH" 체크 필수
-    echo   3. 이 스크립트를 다시 실행
+    echo   1. Install Python 3.11+ from https://www.python.org/downloads/
+    echo   2. CHECK "Add python.exe to PATH" during install
+    echo   3. Run this installer again
     echo.
     pause
     exit /b 1
 )
 
-echo [1/3] Python 가상환경 생성 중...
+echo [1/4] Creating virtual environment...
 if not exist "backend\.venv" (
     python -m venv backend\.venv
     if errorlevel 1 (
-        echo [오류] 가상환경 생성 실패
+        echo [ERROR] venv creation failed
         pause
         exit /b 1
     )
@@ -32,11 +32,11 @@ if not exist "backend\.venv" (
 
 call backend\.venv\Scripts\activate.bat
 
-echo [2/3] 백엔드 패키지 설치 중... (数분 소요)
+echo [2/4] Installing packages... (a few minutes)
 set PYTHONUTF8=1
 python -m pip install -r backend\requirements.txt -q --no-input
 if errorlevel 1 (
-    echo [오류] 패키지 설치 실패 - 인터넷 연결을 확인하세요
+    echo [ERROR] pip install failed - check internet connection
     pause
     exit /b 1
 )
@@ -49,28 +49,21 @@ if not exist "data" mkdir data
 if not exist "data\uploads" mkdir data\uploads
 if not exist "data\logs" mkdir data\logs
 
-echo [3/3] 바로가기 생성 중...
-powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-  "$ws = New-Object -ComObject WScript.Shell;" ^
-  "$s = $ws.CreateShortcut([Environment]::GetFolderPath('Desktop') + '\Suno Helper.lnk');" ^
-  "$s.TargetPath = '%~dp0start.bat';" ^
-  "$s.WorkingDirectory = '%~dp0';" ^
-  "$s.Description = 'Suno Helper 실행';" ^
-  "$s.Save()"
-powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-  "$ws = New-Object -ComObject WScript.Shell;" ^
-  "$s = $ws.CreateShortcut([Environment]::GetFolderPath('Desktop') + '\Suno Helper - Stop.lnk');" ^
-  "$s.TargetPath = '%~dp0stop.bat';" ^
-  "$s.WorkingDirectory = '%~dp0';" ^
-  "$s.Description = 'Suno Helper 종료';" ^
-  "$s.Save()"
+echo [3/4] Registering suno-helper:// protocol...
+reg add "HKCU\Software\Classes\suno-helper" /ve /d "URL:Suno Helper Protocol" /f >nul
+reg add "HKCU\Software\Classes\suno-helper" /v "URL Protocol" /d "" /f >nul
+reg add "HKCU\Software\Classes\suno-helper\shell\open\command" /ve /d "\"%CD%\backend\.venv\Scripts\pythonw.exe\" \"%CD%\launcher.pyw\" \"%%1\"" /f >nul
+if errorlevel 1 (
+    echo [WARN] protocol registration failed - web launch button may not work
+)
+
+echo [4/4] Enabling web launch...
+copy /y nul data\web_launch.lock >nul
 
 echo.
 echo ========================================
-echo   설치 완료!
-echo.
-echo   시작: 바탕화면 "Suno Helper" 바로가기
-echo   (또는 start.bat 실행)
+echo   Install complete! Return to your browser.
 echo ========================================
 echo.
-pause
+timeout /t 5 >nul
+exit /b 0

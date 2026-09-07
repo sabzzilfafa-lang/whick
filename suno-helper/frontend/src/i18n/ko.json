@@ -3,6 +3,11 @@
     "name": "Suno Helper",
     "tagline": "수노 음악 제작 도우미"
   },
+  "gate": {
+    "title": "Suno Helper는 웹에서 실행하세요",
+    "desc": "직접 접속은 지원되지 않습니다. 아래 버튼으로 웹 대시보드에서 실행해 주세요.",
+    "go": "whick.org에서 열기"
+  },
   "nav": {
     "home": "홈",
     "studio": "스튜디오",

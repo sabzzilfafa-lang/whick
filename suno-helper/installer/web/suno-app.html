@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Suno Helper</title>
+<link rel="stylesheet" href="/css/site.css?v=20260907-1">
+<style>
+  body { margin:0; background:var(--bg); color:var(--tx); }
+  main { max-width:920px; margin:0 auto; padding:0 18px 48px; }
+  .sh-hero { padding:38px 0 24px; text-align:center; }
+  .sh-hero h1 { font-size:1.6rem; margin:14px 0 10px; line-height:1.3; }
+  .sh-hero p { color:var(--tx2); font-size:.95rem; max-width:640px; margin:0 auto; line-height:1.65; }
+  .sh-badges { display:flex; gap:8px; justify-content:center; margin-top:16px; flex-wrap:wrap; }
+  .sh-badge { border:1px solid var(--line); background:var(--card); color:var(--tx2);
+              border-radius:999px; padding:5px 12px; font-size:.78rem; }
+  .sh-dash { border:1px solid var(--line); background:var(--card); border-radius:14px;
+             padding:22px 20px; text-align:center; margin:6px 0 10px; }
+  .sh-dash h2 { margin:0 0 8px; font-size:1.2rem; }
+  .sh-dash-status { color:var(--tx2); font-size:.88rem; margin-bottom:14px; min-height:1.2em; }
+  .sh-dash-status.ok { color:#4ade80; }
+  .sh-dash-status.err { color:#f87171; }
+  .sh-dash-btn { font-size:1rem; padding:11px 26px; text-decoration:none; display:inline-block; cursor:pointer; }
+  .sh-dash-btn.run { background:#16a34a; border-color:#16a34a; }
+  .sh-dash-steps { margin-top:14px; text-align:left; display:inline-block; color:var(--tx2); font-size:.86rem; line-height:1.9; }
+  .sh-note { margin-top:12px; color:var(--tx2); font-size:.78rem; line-height:1.6; }
+  section { padding:30px 0; border-top:1px solid var(--line); }
+  section h2 { font-size:1.18rem; margin:0 0 14px; }
+  section p.lead { color:var(--tx2); margin:0 0 14px; line-height:1.7; font-size:.92rem; }
+  .sh-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:12px; }
+  .sh-card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px 16px; }
+  .sh-card h3 { margin:0 0 6px; font-size:.95rem; }
+  .sh-card p { margin:0; color:var(--tx2); font-size:.84rem; line-height:1.6; }
+  ol.sh-steps { margin:0; padding-left:20px; color:var(--tx); font-size:.9rem; line-height:2; }
+  .sh-cta-sec { text-align:center; padding:38px 0 10px; }
+  .sh-cta-sec .btn { font-size:.95rem; padding:11px 22px; }
+</style>
+</head>
+<body>
+<main>
+  <section class="sh-hero" style="border-top:none;">
+    <h1 data-i18n="suno.hero.title">Creator automation for AI music</h1>
+    <p data-i18n="suno.hero.sub"></p>
+    <div class="sh-badges">
+      <span class="sh-badge" data-i18n="suno.hero.b1"></span>
+      <span class="sh-badge" data-i18n="suno.hero.b2"></span>
+      <span class="sh-badge" data-i18n="suno.hero.b3"></span>
+    </div>
+  </section>
+
+  <section id="dashboard" class="sh-dash" style="border-top:1px solid var(--line);">
+    <h2 data-i18n="suno.dash.title">Get started now</h2>
+    <div id="dashStatus" class="sh-dash-status" data-i18n="suno.dash.checking">Checking your PC...</div>
+    <a id="dashBtn" class="btn btn-primary sh-dash-btn" href="#" data-i18n="suno.dash.btn.signin">Sign in to install</a>
+    <div id="dashSteps" class="sh-dash-steps" hidden>
+      <ol>
+        <li data-i18n="suno.dash.step1"></li>
+        <li data-i18n="suno.dash.step2"></li>
+      </ol>
+    </div>
+    <p class="sh-note" data-i18n="suno.dash.note"></p>
+  </section>
+
+  <section id="intro">
+    <h2 data-i18n="suno.intro.title">What is Suno Helper?</h2>
+    <p class="lead" data-i18n="suno.intro.p1"></p>
+    <p class="lead" data-i18n="suno.intro.p2"></p>
+  </section>
+
+  <section id="features">
+    <h2 data-i18n="suno.features.title">Key features</h2>
+    <div class="sh-grid">
+      <div class="sh-card"><h3 data-i18n="suno.f1t"></h3><p data-i18n="suno.f1d"></p></div>
+      <div class="sh-card"><h3 data-i18n="suno.f2t"></h3><p data-i18n="suno.f2d"></p></div>
+      <div class="sh-card"><h3 data-i18n="suno.f3t"></h3><p data-i18n="suno.f3d"></p></div>
+      <div class="sh-card"><h3 data-i18n="suno.f4t"></h3><p data-i18n="suno.f4d"></p></div>
+      <div class="sh-card"><h3 data-i18n="suno.f5t"></h3><p data-i18n="suno.f5d"></p></div>
+      <div class="sh-card"><h3 data-i18n="suno.f6t"></h3><p data-i18n="suno.f6d"></p></div>
+    </div>
+  </section>
+
+  <section id="license">
+    <h2 data-i18n="suno.license.title">About the license</h2>
+    <p class="lead" data-i18n="suno.license.lead"></p>
+    <ol class="sh-steps">
+      <li data-i18n="suno.ls1"></li>
+      <li data-i18n="suno.ls2"></li>
+      <li data-i18n="suno.ls3"></li>
+      <li data-i18n="suno.ls4"></li>
+      <li data-i18n="suno.ls5"></li>
+    </ol>
+    <p class="sh-note" data-i18n="suno.license.note"></p>
+  </section>
+
+  <section id="manual">
+    <h2 data-i18n="suno.manual.title">How to use</h2>
+    <p class="lead" data-i18n="suno.manual.req"></p>
+    <ol class="sh-steps">
+      <li data-i18n="suno.ms1"></li>
+      <li data-i18n="suno.ms2"></li>
+      <li data-i18n="suno.ms3"></li>
+      <li data-i18n="suno.ms4"></li>
+    </ol>
+    <p class="sh-note" data-i18n="suno.manual.data"></p>
+  </section>
+
+  <section id="download" class="sh-cta-sec">
+    <h2 data-i18n="suno.dl.title">Download &amp; register</h2>
+    <p class="lead" data-i18n="suno.dl.note"></p>
+    <a class="btn btn-primary" style="text-decoration:none;"
+       href="/account.html#sunoPcBox" target="_blank" rel="noopener"
+       data-i18n="suno.dl.btn">Go to My Account</a>
+    <p class="sh-note" data-i18n="suno.dl.soon"></p>
+  </section>
+</main>
+
+<script src="/js/i18n-cats.js?v=20260902-1016"></script>
+<script>
+  /* merge AFTER cats (cats overwrites WAMSS_I18N), BEFORE i18n.js init */
+  window.SUNO_I18N_EXTRA = __EXTRA__;
+  window.WAMSS_I18N = window.WAMSS_I18N || {};
+  for (var lang in window.SUNO_I18N_EXTRA) {
+    if (!window.WAMSS_I18N[lang]) window.WAMSS_I18N[lang] = {};
+    for (var k in window.SUNO_I18N_EXTRA[lang]) window.WAMSS_I18N[lang][k] = window.SUNO_I18N_EXTRA[lang][k];
+  }
+</script>
+<script src="/js/i18n.js?v=20260902-1016"></script>
+<script>
+(function () {
+  'use strict';
+  var LOCAL = 'http://127.0.0.1:8765';
+  var SETUP_URL = '/dl/suno-helper/Setup.bat';
+  var AUTH_URL = '/auth.html';
+
+  function t(key) {
+    var lang = document.documentElement.lang || 'en';
+    var cats = window.WAMSS_I18N || {};
+    var v = (cats[lang] || {})[key];
+    if (typeof v !== 'string') v = (cats.en || {})[key];
+    return typeof v === 'string' ? v : key;
+  }
+  function getToken() {
+    try { return localStorage.getItem('wamss_git_token') || ''; } catch (e) { return ''; }
+  }
+  function fetchLocal(path, ms) {
+    return new Promise(function (resolve) {
+      var ctrl = ('AbortController' in window) ? new AbortController() : null;
+      var done = false;
+      var timer = setTimeout(function () {
+        if (done) return; done = true;
+        if (ctrl) ctrl.abort();
+        resolve(null);
+      }, ms || 2500);
+      fetch(LOCAL + path, { cache: 'no-store', signal: ctrl ? ctrl.signal : undefined })
+        .then(function (r) {
+          if (done) return; done = true; clearTimeout(timer);
+          resolve(r.ok ? r.json() : null);
+        })
+        .catch(function () {
+          if (done) return; done = true; clearTimeout(timer);
+          resolve(null);
+        });
+    });
+  }
+  function setStatus(msg, cls) {
+    var el = document.getElementById('dashStatus');
+    el.textContent = msg;
+    el.className = 'sh-dash-status' + (cls ? ' ' + cls : '');
+  }
+  function setBtn(label, onclick) {
+    var b = document.getElementById('dashBtn');
+    b.textContent = label;
+    b.onclick = onclick || null;
+    if (onclick) { b.removeAttribute('href'); }
+    else { b.setAttribute('href', '#'); }
+    return b;
+  }
+
+  function install() {
+    document.getElementById('dashSteps').hidden = false;
+    // trigger browser download of Setup.bat
+    var a = document.createElement('a');
+    a.href = SETUP_URL;
+    a.download = '';
+    document.body.appendChild(a); a.click(); a.remove();
+    // poll: after user runs Setup.bat the flag flips -> auto-switch to Run
+    var tries = 0;
+    var timer = setInterval(function () {
+      tries++;
+      fetchLocal('/api/local/status', 2500).then(function (d) {
+        if (d && d.web_launch) { clearInterval(timer); render(); }
+      });
+      if (tries > 40) clearInterval(timer);
+    }, 3000);
+  }
+
+  function run() {
+    setStatus(t('suno.dash.starting'), '');
+    try { location.href = 'suno-helper://launch'; } catch (e) {}
+    var tries = 0;
+    var timer = setInterval(function () {
+      tries++;
+      fetchLocal('/api/local/status', 2500).then(function (d) {
+        if (d) {
+          clearInterval(timer);
+          window.open(LOCAL + '/?launch=web', '_blank', 'noopener');
+          setTimeout(render, 800);
+        }
+      });
+      if (tries > 30) { clearInterval(timer); setStatus(t('suno.dash.startFail'), 'err'); }
+    }, 1500);
+  }
+
+  function render() {
+    var token = getToken();
+    fetchLocal('/api/local/status', 2500).then(function (d) {
+      if (d && d.web_launch) {
+        setStatus(t('suno.dash.installed') + ' v' + d.version + ' \u00b7 ' + t('suno.dash.ready'), 'ok');
+        var b = setBtn(t('suno.dash.btn.run'), run);
+        b.classList.add('run');
+      } else if (d && !d.web_launch) {
+        setStatus(t('suno.dash.legacy'), 'err');
+        setBtn(t('suno.dash.btn.install'), install);
+      } else if (!token) {
+        setStatus(t('suno.dash.notInstalled'), '');
+        setBtn(t('suno.dash.btn.signin'), null).setAttribute('href', AUTH_URL);
+      } else {
+        setStatus(t('suno.dash.notInstalled'), '');
+        setBtn(t('suno.dash.btn.install'), install);
+      }
+    });
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>
