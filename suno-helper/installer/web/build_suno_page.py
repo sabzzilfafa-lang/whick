@@ -593,9 +593,11 @@ __I18N_MERGE__
 </html>
 """
 
-shell = SHELL.replace("__OPTS__", OPT_HTML).replace("__EXTRA__", EXTRA_JS).replace("__I18N_MERGE__", I18N_MERGE)
-app = APP.replace("__EXTRA__", EXTRA_JS).replace("__I18N_MERGE__", I18N_MERGE)
+shell = SHELL.replace("__OPTS__", OPT_HTML)
+app = APP
 for name, content in (("suno.html", shell), ("suno-app.html", app)):
+    # 순서 중요: __I18N_MERGE__ 본문이 __EXTRA__ 자리를 새로 만들므로 EXTRA 치환이 반드시 마지막
+    content = content.replace("__I18N_MERGE__", I18N_MERGE).replace("__EXTRA__", EXTRA_JS)
     content.encode("ascii")  # 전송·인코딩 문제 원천 차단
     (OUT_DIR / name).write_text(content, encoding="ascii", newline="\n")
     print(f"OK {name}: {len(content)} bytes, ascii-only")
