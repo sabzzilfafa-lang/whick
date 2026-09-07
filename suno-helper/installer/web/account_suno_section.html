@@ -1,0 +1,18 @@
+    <div class="acc-box" id="sunoPcBox" style="margin-bottom:26px;">
+      <h2 style="font-size:1.05rem;margin:0 0 6px;">Suno Helper &mdash; 내 PC 등록</h2>
+      <p style="font-size:.88rem;color:var(--tx2);margin:6px 0 0;">
+        Windows용 Suno Helper 앱의 활성화 토큰을 발급합니다. 계정당 1대의 PC를 등록할 수 있습니다.
+      </p>
+      <div id="sunoStatus" style="margin:12px 0;font-size:.92rem;">&mdash;</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button class="btn btn-primary" id="btnSunoToken">활성화 토큰 발급</button>
+        <button class="btn" id="btnSunoDeactivate" style="display:none;">기기 해지 (PC 교체)</button>
+      </div>
+      <div id="sunoTokenOut" style="display:none;margin-top:14px;">
+        <label class="acc-label" for="sunoToken">활성화 토큰 (앱의 설정 &rarr; 라이선스에 붙여넣기)</label>
+        <input class="acc-input" type="text" id="sunoToken" readonly>
+        <button class="btn btn-primary" id="btnSunoCopy" style="width:100%;margin-top:12px;">복사</button>
+      </div>
+      <p class="acc-err" id="sunoErr" hidden></p>
+    </div>
+
