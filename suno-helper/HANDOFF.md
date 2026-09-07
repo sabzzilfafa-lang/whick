@@ -64,7 +64,24 @@
 - 갱신: 만료 임박(7일 전) 백그라운드 자동 갱신 (온라인 1회, 사용정보 전송 없음 — machine_id+인증서만)
 - 만료 동작: **유예 30일 경고 → 이후 신규 작업 잠금, 기존 결과물은 열람 가능** (강도는 조정 가능)
 
-## Phase B — 설치기 (Installer)
+## Phase B — 설치기 — ✅ 2026-09-07 완료 + 실측 검증
+
+1. ✅ `installer/` — install.bat (Python 확인→venv→pip 고정설치→바로가기), start.bat (백그라운드 기동→
+   브라우저), stop.bat, MANUAL.md (설치·활성화·문제해결·제거 안내)
+2. ✅ `scripts/build_installer.py` — 패키징 (backend 소스 + **프론트 빌드본 dist** + installer + scripts)
+   → `dist_package/SunoHelper-Setup-v1.0.0.zip` (11.7MB, Node 불필요)
+   - install.bat은 `PYTHONUTF8=1` 설정 (한글 Windows cp949 pip 디코드 오류 방지 — 실측에서 발견·수정)
+3. ✅ **실제 설치 테스트** — `%USERPROFILE%\SunoHelperTest` 클린 설치 → 서버 기동 → 전수 확인:
+   health ok v1.0.0 / 라이선스 상태 none / 프론트 dist 서빙 / API 404 라우팅 / 업데이트 채널 / stop.bat 종료
+4. ✅ **실제 활성화 E2E** — 서버 토큰발급(웹세션) → 설치된 앱에서 활성화 → `state=valid, expires=+30일` → 갱신 성공
+5. ✅ **CC 버전관리 등록** — `solutions-catalog.json` + v1.0.0 stable + 패키지 zip 등록
+   (cc_solution_files 12,217,404 bytes, sha256 기록, wamss-current.zip 심볼릭)
+6. ✅ **웹 마이페이지** — whick.org/account.html에 "Suno Helper 내 PC 등록" 섹션 추가
+   (토큰 발급/복사, 등록 상태 표시, 기기 해지 — 기존 로그인 세션 그대로 사용)
+7. ✅ **nginx 라우팅** — git-web(default.conf)에 `/api/suno/*` → cc-site-api:8103 프록시 추가
+   → `https://whick.org/api/suno/*` 외부 노출 확인
+
+## Phase B (원계획 메모) (Installer)
 
 - 패키지: `SunoHelper-Setup-{ver}.zip` = 백엔드 소스 + **프론트 빌드본(dist)** + `install.bat` + 매뉴얼
 - `install.bat`: Python 존재 확인(없으면 공식 다운로드 안내) → venv 생성 → 고정된 requirements 설치 → 바로가기 생성 → 첫실행 마법사 오픈
@@ -73,7 +90,7 @@
 - 제외: `data/`, `logs`, `.git`, 개발 스크립트(`_probe.py` 등), `HANDOFF.md`
 - 언인스톨러 + 데이터 보존 안내
 
-### 첫실행 마법사 (신규 UX, 배포 핵심)
+### 첫실행 마법사 (신규 UX, 배포 핵심) — 미구현 (현재는 MANUAL.md 안내 + 앱 설정 탭으로 대체)
 
 1. 라이선스 인증 (홈페이지 토큰 붙여넣기 or 브라우저 연동)
 2. 작업 폴더 지정 (기본 `D:\YouTubeMusic` 안내)
@@ -81,12 +98,11 @@
 4. API 키 안내 (OpenRouter / YouTube OAuth 가이드 링크)
 5. 환경 점검: ffmpeg·폰트·Whisper 모델(첫 자막 생성 시 다운로드 안내)
 
-## Phase C — 업데이트 채널
+## Phase C — 업데이트 채널 — ✅ 기본 구조 완료 (2026-09-07)
 
-- 앱 시작 시 `GET /api/suno/version` 확인 (기기 고유정보 미전송) → 새 버전이면 배너+다운로드 링크
-- 업데이트 = 새 설치 zip 실행. `data/`, `.env`는 절대 건드리지 않음 (설치기가 보존)
-- 버전 관리: `app.version` 현재 `0.1.0` → 정식 버전 체계 시작 (예: `1.0.0`)
-- 선택: 설정 템플릿(프리셋·브랜드 기본값)도 버전 채널로 배포 가능
+- ✅ 앱 `GET /api/version` → whick.org `/api/suno/version` 확인 (CC 버전관리 DB 연동)
+- ✅ `update_service.check_for_update()` — site-api `{ok,data}` 래퍼 대응
+- ⏳ UI 배너/다운로드 링크 연결 (버전 API는 동작 중)
 
 ## Phase D — 앱 정리 (배포 품질) — ✅ 2026-09-07 완료
 
