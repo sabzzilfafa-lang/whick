@@ -45,9 +45,9 @@ exit /b 1
 :server_ready
 echo.
 echo   준비 완료 - 브라우저를 엽니다.
-echo   (프로그램은 백그라운드에서 실행됩니다)
+echo   (브라우저 탭을 모두 닫으면 서버도 자동 종료됩니다)
 echo.
-echo   종료: 바탕화면 "Suno Helper - Stop" 또는 stop.bat
+echo   즉시 종료가 필요하면: 바탕화면 "Suno Helper - Stop" 또는 stop.bat
 echo ========================================
 echo.
 

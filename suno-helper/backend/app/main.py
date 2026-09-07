@@ -1,4 +1,6 @@
 from contextlib import asynccontextmanager
+import asyncio
+import os
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -39,7 +41,11 @@ async def lifespan(app: FastAPI):
         await maybe_auto_renew()
     except Exception:
         pass
+    # 브라우저 닫힘 감지 자동 종료 (하트비트 방식 — 헤드리스/오류 시 무해)
+    if os.environ.get("SUNO_AUTO_STOP", "1") != "0":
+        _start_auto_stop_watcher()
     yield
+    _cancel_auto_stop_watcher()
 
 
 app = FastAPI(
@@ -75,6 +81,53 @@ async def health():
         "youtube": True,
         "prompt_engine": "compact-1000",
     }
+
+
+# ---- 브라우저 닫힘 감지 자동 종료 ----
+# 프론트가 /api/heartbeat를 15초 간격으로 호출. 마지막 호출 후 90초 경과 시 종료.
+# OS 종료·절전·네트워크 지연 대비 그레이스를 넉넉히 둠. 수동 서버 운영은 SUNO_AUTO_STOP=0으로 끌 수 있음.
+AUTO_STOP_TIMEOUT_SEC = 90
+_last_heartbeat: list[float] = [0.0]
+_auto_stop_task: list[asyncio.Task | None] = [None]
+
+
+async def _auto_stop_watcher() -> None:
+    import time
+
+    while True:
+        await asyncio.sleep(10)
+        last = _last_heartbeat[0]
+        if last <= 0:
+            continue  # 아직 브라우저가 열리지 않음 (설치 직후 등)
+        import time as _t
+
+        if _t.time() - last > AUTO_STOP_TIMEOUT_SEC:
+            from app.services.update_service import APP_VERSION
+
+            import logging
+
+            logging.getLogger("uvicorn.error").info(
+                "브라우저 연결이 끊겨 서버를 자동 종료합니다 (Suno Helper %s)",
+                APP_VERSION,
+            )
+            os._exit(0)
+
+
+def _start_auto_stop_watcher() -> None:
+    _auto_stop_task[0] = asyncio.ensure_future(_auto_stop_watcher())
+
+
+def _cancel_auto_stop_watcher() -> None:
+    if _auto_stop_task[0]:
+        _auto_stop_task[0].cancel()
+
+
+@app.post("/api/heartbeat")
+async def heartbeat():
+    import time
+
+    _last_heartbeat[0] = time.time()
+    return {"ok": True}
 
 
 @app.get("/api/version")
