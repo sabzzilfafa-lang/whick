@@ -28,11 +28,6 @@ function enLyrics(song: Song): string {
   return song.lyrics_en ?? "";
 }
 
-function displayTitle(song: Song, lang: LyricsLang): string {
-  if (lang === "en" && song.title_en?.trim()) return song.title_en;
-  return song.title;
-}
-
 function formatDurationBadge(song: Song): string | null {
   const parts: string[] = [];
   if (song.estimated_duration_label) {
@@ -673,7 +668,12 @@ export default function SongPage() {
             ← 앨범으로
           </Link>
           <h2 style={{ marginTop: "0.5rem" }}>
-            {song.track_number}. {displayTitle(song, lyricsLang)}
+            {song.track_number}.{" "}
+            {lyricsLang === "en" && song.title_en?.trim()
+              ? song.title_en
+              : lyricsLang === "en"
+                ? "(영어 제목 미생성)"
+                : song.title}
           </h2>
           {song.theme && (
             <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem" }}>
@@ -908,7 +908,13 @@ export default function SongPage() {
           <div className="form-group song-title-field">
             <label>{lyricsLang === "en" ? "곡 제목 (English)" : "곡 제목 (한글)"}</label>
             <input
-              value={displayTitle(song, lyricsLang)}
+              value={
+                lyricsLang === "en"
+                  ? song.title_en?.trim()
+                    ? song.title_en
+                    : ""
+                  : song.title
+              }
               onChange={(e) => {
                 if (lyricsLang === "en") {
                   setSong({ ...song, title_en: e.target.value });
@@ -918,7 +924,9 @@ export default function SongPage() {
               }}
               placeholder={
                 lyricsLang === "en"
-                  ? "영어 가사 번역 시 함께 만들어지며, 직접 수정할 수 있습니다"
+                  ? song.title_en?.trim()
+                    ? "영어 가사 번역 시 함께 만들어지며, 직접 수정할 수 있습니다"
+                    : "「영어 가사 재생성」을 누르면 영어 제목도 함께 만들어집니다"
                   : "한글 가사 생성 시 함께 만들어지며, 직접 수정할 수 있습니다"
               }
             />

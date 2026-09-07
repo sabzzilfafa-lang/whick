@@ -46,6 +46,7 @@ from app.services.openrouter import (
     generate_album_lyrics_batch,
     generate_lyrics,
     generate_lyrics_ko_with_title,
+    generate_lyrics_en_with_title,
     repair_merged_album_lyrics,
     _lyrics_looks_corrupted,
     _split_corrupted_batch_lyrics,
@@ -484,7 +485,8 @@ async def api_generate_lyrics(
                     song.title_en = english_title[:200]
                     generated_title = english_title
             else:
-                content = await generate_lyrics(
+                # 영어 신규(재)생성 — 제목도 함께 JSON으로 생성
+                english_title, content = await generate_lyrics_en_with_title(
                     client,
                     _model_to_dict(profile),
                     _model_to_dict(album),
@@ -493,8 +495,10 @@ async def api_generate_lyrics(
                     req.additional_instructions,
                     model,
                     temp,
-                    language="en",
                 )
+                if english_title:
+                    song.title_en = english_title[:200]
+                    generated_title = english_title
         else:
             en = (req.lyrics_en or "").strip() or (song.lyrics_en or "").strip()
             already_ko = (lyrics_ko_text(song) or "").strip()
