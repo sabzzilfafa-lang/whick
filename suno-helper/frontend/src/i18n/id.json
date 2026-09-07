@@ -1,0 +1,90 @@
+{
+  "app": {
+    "name": "Suno Helper",
+    "tagline": "Asisten produksi musik untuk Suno"
+  },
+  "gate": {
+    "title": "Jalankan Suno Helper dari web",
+    "desc": "Akses langsung tidak didukung. Buka dasbor web dengan tombol di bawah.",
+    "go": "Buka whick.org"
+  },
+  "nav": {
+    "home": "Beranda",
+    "studio": "Studio",
+    "editor": "Editor Video",
+    "albums": "Album",
+    "search": "Cari",
+    "analyze": "Analisis Selera",
+    "profiles": "Profil",
+    "settings": "Pengaturan"
+  },
+  "common": {
+    "save": "Simpan",
+    "saving": "Menyimpan...",
+    "saved": "Tersimpan",
+    "cancel": "Batal",
+    "confirm": "OK",
+    "delete": "Hapus",
+    "edit": "Edit",
+    "close": "Tutup",
+    "loading": "Memuat...",
+    "error": "Kesalahan",
+    "apply": "Terapkan",
+    "add": "Tambah",
+    "remove": "Hapus",
+    "refresh": "Segarkan",
+    "search": "Cari",
+    "language": "Bahasa"
+  },
+  "license": {
+    "title": "Lisensi",
+    "state": {
+      "valid": "Aktif",
+      "grace": "Kedaluwarsa (masa tenggang)",
+      "expired": "Kedaluwarsa — tugas baru terkunci",
+      "mismatch": "Perangkat tidak cocok — aktivasi ulang diperlukan",
+      "none": "Belum diaktifkan"
+    },
+    "expires": "Kedaluwarsa: {{date}}",
+    "grace_until": "Tenggang hingga {{date}}",
+    "renew_now": "Perbarui sekarang",
+    "renewed": "Lisensi diperbarui",
+    "token_label": "Token aktivasi",
+    "token_placeholder": "Token dari halaman akun whick.org (sh_...)",
+    "token_required": "Masukkan token aktivasi Anda",
+    "activate": "Aktifkan",
+    "activated": "Lisensi diaktifkan",
+    "hint": "Masuk ke whick.org → Suno Helper → \"Daftarkan PC ini\" untuk mendapatkan token. Satu PC per akun.",
+    "loading": "Memuat status lisensi..."
+  },
+  "settings": {
+    "title": "Pengaturan",
+    "subtitle": "Kelola kunci API, model AI, publikasi otomatis YouTube, pembuat deskripsi, dan cadangan di satu tempat",
+    "lang": {
+      "title": "Bahasa lirik default",
+      "desc": "Pembuatan batch album dan per-lagu dibuat pertama dalam bahasa ini. Judul dan suasana mengikutinya.",
+      "primary": "Bahasa utama",
+      "second": "Bahasa kedua",
+      "none": "Nonaktif",
+      "hint": "Dengan bahasa kedua, gunakan tombol parafrasa di setiap lagu untuk mengonversi dengan mudah."
+    },
+    "tabs": {
+      "license": "Lisensi",
+      "api": "API · AI per tugas",
+      "youtube": "Publikasi Otomatis YouTube",
+      "desc": "Pembuat Deskripsi YouTube",
+      "backup": "Cadangan · Pemulihan"
+    },
+    "save_settings": "Simpan Pengaturan",
+    "tasks": {
+      "lyrics": "Pembuatan lirik",
+      "prompt": "Prompt Suno",
+      "instruments": "Instrumen",
+      "analyze": "Analisis selera"
+    }
+  },
+  "errors": {
+    "FOLDER_NOT_FOUND": "Folder tidak ditemukan: {{name}}",
+    "GENERIC": "{{message}}"
+  }
+}

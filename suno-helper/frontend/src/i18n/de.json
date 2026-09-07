@@ -1,0 +1,90 @@
+{
+  "app": {
+    "name": "Suno Helper",
+    "tagline": "Musikproduktions-Assistent für Suno"
+  },
+  "gate": {
+    "title": "Suno Helper aus dem Web starten",
+    "desc": "Direkter Zugriff wird nicht unterstützt. Öffnen Sie das Web-Dashboard unten.",
+    "go": "whick.org öffnen"
+  },
+  "nav": {
+    "home": "Start",
+    "studio": "Studio",
+    "editor": "Video-Editor",
+    "albums": "Alben",
+    "search": "Suche",
+    "analyze": "Geschmacksanalyse",
+    "profiles": "Profile",
+    "settings": "Einstellungen"
+  },
+  "common": {
+    "save": "Speichern",
+    "saving": "Speichern...",
+    "saved": "Gespeichert",
+    "cancel": "Abbrechen",
+    "confirm": "OK",
+    "delete": "Löschen",
+    "edit": "Bearbeiten",
+    "close": "Schließen",
+    "loading": "Wird geladen...",
+    "error": "Fehler",
+    "apply": "Anwenden",
+    "add": "Hinzufügen",
+    "remove": "Entfernen",
+    "refresh": "Aktualisieren",
+    "search": "Suchen",
+    "language": "Sprache"
+  },
+  "license": {
+    "title": "Lizenz",
+    "state": {
+      "valid": "Aktiv",
+      "grace": "Abgelaufen (Karenzzeit)",
+      "expired": "Abgelaufen — neue Aufgaben gesperrt",
+      "mismatch": "Gerät stimmt nicht überein — Reaktivierung erforderlich",
+      "none": "Nicht aktiviert"
+    },
+    "expires": "Läuft ab: {{date}}",
+    "grace_until": "Karenz bis {{date}}",
+    "renew_now": "Jetzt erneuern",
+    "renewed": "Lizenz erneuert",
+    "token_label": "Aktivierungstoken",
+    "token_placeholder": "Token von der whick.org-Kontoseite (sh_...)",
+    "token_required": "Aktivierungstoken eingeben",
+    "activate": "Aktivieren",
+    "activated": "Lizenz aktiviert",
+    "hint": "Melden Sie sich bei whick.org an → Suno Helper → „Diesen PC registrieren\", um ein Token zu erhalten. Ein PC pro Konto.",
+    "loading": "Lizenzstatus wird geladen..."
+  },
+  "settings": {
+    "title": "Einstellungen",
+    "subtitle": "API-Schlüssel, KI-Modelle, YouTube-Autopublishing, Beschreibungsgenerator und Backups zentral verwalten",
+    "lang": {
+      "title": "Standard-Textsprache",
+      "desc": "Album-Stapelerzeugung und Einzelsong-Erzeugung beginnen in dieser Sprache. Titel und Stimmungen folgen ihr.",
+      "primary": "Primärsprache",
+      "second": "Zweitsprache",
+      "none": "Deaktiviert",
+      "hint": "Mit einer Zweitsprache können Sie mit der Paraphrase-Schaltfläche in jedem Song leicht konvertieren."
+    },
+    "tabs": {
+      "license": "Lizenz",
+      "api": "API · KI pro Aufgabe",
+      "youtube": "YouTube-Autopublishing",
+      "desc": "YouTube-Beschreibungsgenerator",
+      "backup": "Backup · Wiederherstellung"
+    },
+    "save_settings": "Einstellungen speichern",
+    "tasks": {
+      "lyrics": "Texterstellung",
+      "prompt": "Suno-Prompt",
+      "instruments": "Instrumente",
+      "analyze": "Geschmacksanalyse"
+    }
+  },
+  "errors": {
+    "FOLDER_NOT_FOUND": "Ordner nicht gefunden: {{name}}",
+    "GENERIC": "{{message}}"
+  }
+}

@@ -1,0 +1,90 @@
+{
+  "app": {
+    "name": "Suno Helper",
+    "tagline": "Suno 音乐制作助手"
+  },
+  "gate": {
+    "title": "请从网页运行 Suno Helper",
+    "desc": "不支持直接访问。请点击下方按钮从网页仪表板启动。",
+    "go": "在 whick.org 打开"
+  },
+  "nav": {
+    "home": "首页",
+    "studio": "工作室",
+    "editor": "视频编辑",
+    "albums": "专辑",
+    "search": "搜索",
+    "analyze": "偏好分析",
+    "profiles": "配置文件",
+    "settings": "设置"
+  },
+  "common": {
+    "save": "保存",
+    "saving": "保存中...",
+    "saved": "已保存",
+    "cancel": "取消",
+    "confirm": "确认",
+    "delete": "删除",
+    "edit": "编辑",
+    "close": "关闭",
+    "loading": "加载中...",
+    "error": "错误",
+    "apply": "应用",
+    "add": "添加",
+    "remove": "移除",
+    "refresh": "刷新",
+    "search": "搜索",
+    "language": "语言"
+  },
+  "license": {
+    "title": "许可证",
+    "state": {
+      "valid": "有效",
+      "grace": "已过期（宽限期）",
+      "expired": "已过期 — 新任务已锁定",
+      "mismatch": "设备不匹配 — 需要重新激活",
+      "none": "未激活"
+    },
+    "expires": "到期：{{date}}",
+    "grace_until": "宽限至 {{date}}",
+    "renew_now": "立即续期",
+    "renewed": "许可证已续期",
+    "token_label": "激活令牌",
+    "token_placeholder": "从 whick.org 账户页面获取的令牌 (sh_...)",
+    "token_required": "请输入激活令牌",
+    "activate": "激活",
+    "activated": "许可证已激活",
+    "hint": "登录 whick.org → Suno Helper → 「注册此电脑」获取令牌并粘贴。每个账户可注册一台电脑。",
+    "loading": "正在加载许可证状态..."
+  },
+  "settings": {
+    "title": "设置",
+    "subtitle": "在一个地方管理 API 密钥、AI 模型、YouTube 自动发布、描述生成器和备份",
+    "lang": {
+      "title": "歌词默认语言",
+      "desc": "专辑批量生成和单曲生成将首先以此语言创建。曲目标题和情绪也遵循此语言。",
+      "primary": "主语言 (Primary)",
+      "second": "第二语言 (Second)",
+      "none": "禁用",
+      "hint": "设置第二语言后，可在歌曲界面使用「意译」按钮轻松转换歌词。"
+    },
+    "tabs": {
+      "license": "许可证",
+      "api": "API · AI 设置",
+      "youtube": "YouTube 自动发布",
+      "desc": "YouTube 描述生成器",
+      "backup": "备份 · 恢复"
+    },
+    "save_settings": "保存设置",
+    "tasks": {
+      "lyrics": "歌词生成",
+      "prompt": "Suno 提示词",
+      "instruments": "乐器设置",
+      "analyze": "偏好歌曲分析"
+    }
+  },
+  "errors": {
+    "FOLDER_NOT_FOUND": "未找到文件夹：{{name}}",
+    "GENERIC": "{{message}}"
+  }
+}

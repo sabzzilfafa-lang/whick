@@ -3,6 +3,7 @@
   --bg-secondary: #14141c;
   --bg-card: #1a1a24;
   --bg-hover: #22222e;
+  --bg-elev: #14141c;
   --border: #2a2a38;
   --text-primary: #f0f0f5;
   --text-secondary: #9898a8;
@@ -572,7 +573,7 @@ label {
   padding: 0.4rem 0.6rem;
   border-radius: var(--radius);
   border: 1px solid var(--border);
-  background: var(--bg-elev);
+  background: var(--bg-secondary);
   color: var(--text-primary);
   font-size: 0.85rem;
   cursor: pointer;

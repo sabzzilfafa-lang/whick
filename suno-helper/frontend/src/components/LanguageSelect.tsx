@@ -3,10 +3,12 @@ import { changeLang, SUPPORTED_LANGS } from "../i18n";
 
 export function LanguageSelect() {
   const { i18n } = useTranslation();
+  const current = i18n.language.slice(0, 2);
+  const value = SUPPORTED_LANGS.some((l) => l.code === current) ? current : "ko";
   return (
     <select
       className="lang-select"
-      value={i18n.language.startsWith("ko") ? "ko" : i18n.language}
+      value={value}
       onChange={(e) => changeLang(e.target.value)}
       aria-label="Language"
     >

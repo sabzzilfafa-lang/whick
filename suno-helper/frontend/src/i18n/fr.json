@@ -1,0 +1,90 @@
+{
+  "app": {
+    "name": "Suno Helper",
+    "tagline": "Assistant de production musicale pour Suno"
+  },
+  "gate": {
+    "title": "Lancez Suno Helper depuis le web",
+    "desc": "L'accès direct n'est pas pris en charge. Ouvrez le tableau de bord web ci-dessous.",
+    "go": "Ouvrir whick.org"
+  },
+  "nav": {
+    "home": "Accueil",
+    "studio": "Studio",
+    "editor": "Éditeur vidéo",
+    "albums": "Albums",
+    "search": "Recherche",
+    "analyze": "Analyse des goûts",
+    "profiles": "Profils",
+    "settings": "Paramètres"
+  },
+  "common": {
+    "save": "Enregistrer",
+    "saving": "Enregistrement...",
+    "saved": "Enregistré",
+    "cancel": "Annuler",
+    "confirm": "OK",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "close": "Fermer",
+    "loading": "Chargement...",
+    "error": "Erreur",
+    "apply": "Appliquer",
+    "add": "Ajouter",
+    "remove": "Retirer",
+    "refresh": "Actualiser",
+    "search": "Rechercher",
+    "language": "Langue"
+  },
+  "license": {
+    "title": "Licence",
+    "state": {
+      "valid": "Active",
+      "grace": "Expirée (période de grâce)",
+      "expired": "Expirée — nouvelles tâches verrouillées",
+      "mismatch": "Appareil non correspondant — réactivation requise",
+      "none": "Non activée"
+    },
+    "expires": "Expire : {{date}}",
+    "grace_until": "Grâce jusqu'au {{date}}",
+    "renew_now": "Renouveler maintenant",
+    "renewed": "Licence renouvelée",
+    "token_label": "Jeton d'activation",
+    "token_placeholder": "Jeton de la page de compte whick.org (sh_...)",
+    "token_required": "Saisissez votre jeton d'activation",
+    "activate": "Activer",
+    "activated": "Licence activée",
+    "hint": "Connectez-vous à whick.org → Suno Helper → « Enregistrer ce PC » pour obtenir un jeton. Un PC par compte.",
+    "loading": "Chargement de l'état de la licence..."
+  },
+  "settings": {
+    "title": "Paramètres",
+    "subtitle": "Gérez les clés API, modèles IA, publication YouTube automatique, générateur de descriptions et sauvegardes",
+    "lang": {
+      "title": "Langue par défaut des paroles",
+      "desc": "La génération par lot de l'album et par chanson sont d'abord créées dans cette langue. Titres et ambiances suivent.",
+      "primary": "Langue principale",
+      "second": "Langue secondaire",
+      "none": "Désactivé",
+      "hint": "Avec une langue secondaire, utilisez le bouton de paraphrase sur chaque chanson pour convertir facilement."
+    },
+    "tabs": {
+      "license": "Licence",
+      "api": "API · IA par tâche",
+      "youtube": "Publication YouTube auto",
+      "desc": "Générateur de descriptions YouTube",
+      "backup": "Sauvegarde · Restauration"
+    },
+    "save_settings": "Enregistrer les paramètres",
+    "tasks": {
+      "lyrics": "Génération de paroles",
+      "prompt": "Prompt Suno",
+      "instruments": "Instruments",
+      "analyze": "Analyse des goûts"
+    }
+  },
+  "errors": {
+    "FOLDER_NOT_FOUND": "Dossier introuvable : {{name}}",
+    "GENERIC": "{{message}}"
+  }
+}

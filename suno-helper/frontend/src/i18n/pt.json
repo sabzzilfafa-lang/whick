@@ -1,0 +1,90 @@
+{
+  "app": {
+    "name": "Suno Helper",
+    "tagline": "Assistente de produção musical para Suno"
+  },
+  "gate": {
+    "title": "Execute o Suno Helper pela web",
+    "desc": "O acesso direto não é suportado. Abra o painel da web abaixo.",
+    "go": "Abrir whick.org"
+  },
+  "nav": {
+    "home": "Início",
+    "studio": "Estúdio",
+    "editor": "Editor de vídeo",
+    "albums": "Álbuns",
+    "search": "Pesquisar",
+    "analyze": "Análise de preferências",
+    "profiles": "Perfis",
+    "settings": "Configurações"
+  },
+  "common": {
+    "save": "Salvar",
+    "saving": "Salvando...",
+    "saved": "Salvo",
+    "cancel": "Cancelar",
+    "confirm": "OK",
+    "delete": "Excluir",
+    "edit": "Editar",
+    "close": "Fechar",
+    "loading": "Carregando...",
+    "error": "Erro",
+    "apply": "Aplicar",
+    "add": "Adicionar",
+    "remove": "Remover",
+    "refresh": "Atualizar",
+    "search": "Pesquisar",
+    "language": "Idioma"
+  },
+  "license": {
+    "title": "Licença",
+    "state": {
+      "valid": "Ativa",
+      "grace": "Expirada (período de carência)",
+      "expired": "Expirada — novas tarefas bloqueadas",
+      "mismatch": "Dispositivo incompatível — reativação necessária",
+      "none": "Não ativada"
+    },
+    "expires": "Expira: {{date}}",
+    "grace_until": "Carência até {{date}}",
+    "renew_now": "Renovar agora",
+    "renewed": "Licença renovada",
+    "token_label": "Token de ativação",
+    "token_placeholder": "Token da página de conta whick.org (sh_...)",
+    "token_required": "Insira seu token de ativação",
+    "activate": "Ativar",
+    "activated": "Licença ativada",
+    "hint": "Entre em whick.org → Suno Helper → \"Registrar este PC\" para obter um token. Um PC por conta.",
+    "loading": "Carregando status da licença..."
+  },
+  "settings": {
+    "title": "Configurações",
+    "subtitle": "Gerencie chaves de API, modelos de IA, publicação automática no YouTube, gerador de descrições e backups",
+    "lang": {
+      "title": "Idioma padrão das letras",
+      "desc": "A geração em lote do álbum e por música são criadas primeiro neste idioma. Títulos e climas o seguem.",
+      "primary": "Idioma principal",
+      "second": "Segundo idioma",
+      "none": "Desativado",
+      "hint": "Com um segundo idioma, use o botão de paráfrase em cada música para converter facilmente."
+    },
+    "tabs": {
+      "license": "Licença",
+      "api": "API · IA por tarefa",
+      "youtube": "Publicação automática no YouTube",
+      "desc": "Gerador de descrições do YouTube",
+      "backup": "Backup · Restauração"
+    },
+    "save_settings": "Salvar configurações",
+    "tasks": {
+      "lyrics": "Geração de letras",
+      "prompt": "Prompt do Suno",
+      "instruments": "Instrumentos",
+      "analyze": "Análise de preferências"
+    }
+  },
+  "errors": {
+    "FOLDER_NOT_FOUND": "Pasta não encontrada: {{name}}",
+    "GENERIC": "{{message}}"
+  }
+}

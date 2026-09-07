@@ -1,0 +1,90 @@
+{
+  "app": {
+    "name": "Suno Helper",
+    "tagline": "Asistente de producción musical para Suno"
+  },
+  "gate": {
+    "title": "Ejecute Suno Helper desde la web",
+    "desc": "El acceso directo no es compatible. Abra el panel web con el botón de abajo.",
+    "go": "Abrir whick.org"
+  },
+  "nav": {
+    "home": "Inicio",
+    "studio": "Estudio",
+    "editor": "Editor de video",
+    "albums": "Álbumes",
+    "search": "Buscar",
+    "analyze": "Análisis de gustos",
+    "profiles": "Perfiles",
+    "settings": "Ajustes"
+  },
+  "common": {
+    "save": "Guardar",
+    "saving": "Guardando...",
+    "saved": "Guardado",
+    "cancel": "Cancelar",
+    "confirm": "Aceptar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "close": "Cerrar",
+    "loading": "Cargando...",
+    "error": "Error",
+    "apply": "Aplicar",
+    "add": "Añadir",
+    "remove": "Quitar",
+    "refresh": "Actualizar",
+    "search": "Buscar",
+    "language": "Idioma"
+  },
+  "license": {
+    "title": "Licencia",
+    "state": {
+      "valid": "Activa",
+      "grace": "Caducada (periodo de gracia)",
+      "expired": "Caducada — nuevas tareas bloqueadas",
+      "mismatch": "Dispositivo no coincide — reactivación requerida",
+      "none": "Sin activar"
+    },
+    "expires": "Caduca: {{date}}",
+    "grace_until": "Gracia hasta {{date}}",
+    "renew_now": "Renovar ahora",
+    "renewed": "Licencia renovada",
+    "token_label": "Token de activación",
+    "token_placeholder": "Token de la página de cuenta de whick.org (sh_...)",
+    "token_required": "Introduzca su token de activación",
+    "activate": "Activar",
+    "activated": "Licencia activada",
+    "hint": "Inicie sesión en whick.org → Suno Helper → \"Registrar este PC\" para obtener un token. Un PC por cuenta.",
+    "loading": "Cargando estado de la licencia..."
+  },
+  "settings": {
+    "title": "Ajustes",
+    "subtitle": "Gestione claves API, modelos de IA, publicación automática en YouTube, generador de descripciones y copias de seguridad",
+    "lang": {
+      "title": "Idioma predeterminado de letras",
+      "desc": "La generación por lotes del álbum y por canción se crean primero en este idioma. Los títulos y ambientes lo siguen.",
+      "primary": "Idioma principal",
+      "second": "Segundo idioma",
+      "none": "Desactivado",
+      "hint": "Con un segundo idioma, use el botón de paráfrasis en cada canción para convertir letras fácilmente."
+    },
+    "tabs": {
+      "license": "Licencia",
+      "api": "API · IA por tarea",
+      "youtube": "Publicación automática en YouTube",
+      "desc": "Generador de descripciones de YouTube",
+      "backup": "Copia de seguridad · Restaurar"
+    },
+    "save_settings": "Guardar ajustes",
+    "tasks": {
+      "lyrics": "Generación de letras",
+      "prompt": "Prompt de Suno",
+      "instruments": "Instrumentos",
+      "analyze": "Análisis de gustos"
+    }
+  },
+  "errors": {
+    "FOLDER_NOT_FOUND": "Carpeta no encontrada: {{name}}",
+    "GENERIC": "{{message}}"
+  }
+}

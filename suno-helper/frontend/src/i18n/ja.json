@@ -1,0 +1,90 @@
+{
+  "app": {
+    "name": "Suno Helper",
+    "tagline": "Suno音楽制作アシスタント"
+  },
+  "gate": {
+    "title": "Suno Helperはウェブから実行してください",
+    "desc": "直接アクセスはサポートされていません。下のボタンからウェブダッシュボードで起動してください。",
+    "go": "whick.orgで開く"
+  },
+  "nav": {
+    "home": "ホーム",
+    "studio": "スタジオ",
+    "editor": "動画編集",
+    "albums": "アルバム",
+    "search": "検索",
+    "analyze": "好み分析",
+    "profiles": "プロフィール",
+    "settings": "設定"
+  },
+  "common": {
+    "save": "保存",
+    "saving": "保存中...",
+    "saved": "保存しました",
+    "cancel": "キャンセル",
+    "confirm": "確認",
+    "delete": "削除",
+    "edit": "編集",
+    "close": "閉じる",
+    "loading": "読み込み中...",
+    "error": "エラー",
+    "apply": "適用",
+    "add": "追加",
+    "remove": "削除",
+    "refresh": "更新",
+    "search": "検索",
+    "language": "言語"
+  },
+  "license": {
+    "title": "ライセンス",
+    "state": {
+      "valid": "有効",
+      "grace": "期限切れ（猶予期間）",
+      "expired": "期限切れ — 新規作業はロック",
+      "mismatch": "デバイス不一致 — 再認証が必要",
+      "none": "未認証"
+    },
+    "expires": "有効期限: {{date}}",
+    "grace_until": "猶予 ~ {{date}}",
+    "renew_now": "今すぐ更新",
+    "renewed": "ライセンスを更新しました",
+    "token_label": "認証トークン",
+    "token_placeholder": "whick.orgアカウントページで発行されたトークン (sh_...)",
+    "token_required": "認証トークンを入力してください",
+    "activate": "認証",
+    "activated": "ライセンスが認証されました",
+    "hint": "whick.orgにログイン → Suno Helper → 「このPCを登録」でトークンを発行して貼り付けてください。アカウントごとに1台のPCを登録できます。",
+    "loading": "ライセンス状態を読み込み中..."
+  },
+  "settings": {
+    "title": "設定",
+    "subtitle": "APIキー・AIモデル、YouTube自動公開、説明文ビルダー、バックアップを一括管理",
+    "lang": {
+      "title": "歌詞のデフォルト言語",
+      "desc": "アルバム一括生成・曲ごとの生成がこの言語で最初に作成されます。トラックタイトル・ムードもこの言語に従います。",
+      "primary": "第一言語 (Primary)",
+      "second": "第二言語 (Second)",
+      "none": "無効",
+      "hint": "第二言語を設定すると、曲画面の「意訳」ボタンで簡単に変換できます。"
+    },
+    "tabs": {
+      "license": "ライセンス",
+      "api": "API · AI設定",
+      "youtube": "YouTube自動公開",
+      "desc": "YouTube説明文ビルダー",
+      "backup": "バックアップ · 復元"
+    },
+    "save_settings": "設定を保存",
+    "tasks": {
+      "lyrics": "歌詞生成",
+      "prompt": "Sunoプロンプト",
+      "instruments": "楽器設定",
+      "analyze": "好みの曲分析"
+    }
+  },
+  "errors": {
+    "FOLDER_NOT_FOUND": "フォルダが見つかりません: {{name}}",
+    "GENERIC": "{{message}}"
+  }
+}
