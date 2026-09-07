@@ -446,16 +446,16 @@ export default function SongPage() {
       if (type === "lyrics") {
         const ko = koLyrics(song).trim();
         const en = enLyrics(song).trim();
-        // 어느 언어가 "먼저 생성"되었는지에 따라: 반대 언어는 항상 의역
-        // - 한글 탭 + 영어 가사 존재 → 영어를 한글로 의역 (lyrics_en 전달)
-        // - 영어 탭 + 한글 가사 존재 → 한글을 영어로 의역 (lyrics_ko 전달)
-        // - 원문이 없으면 새로 생성
+        // - 목표 언어에 이미 가사가 있으면 → 재생성 (원문 전달 없이 새로 생성)
+        // - 목표 언어가 비어 있고 반대 언어가 있으면 → 의역 (원문 전달)
+        // - 둘 다 없으면 → 새로 생성
+        const hasTarget = lyricsLang === "ko" ? !!ko : !!en;
         result = await api.generateLyrics(
           song.id,
           undefined,
           lyricsLang,
-          lyricsLang === "en" ? ko || undefined : undefined,
-          lyricsLang === "ko" ? en || undefined : undefined
+          lyricsLang === "en" && !hasTarget ? ko || undefined : undefined,
+          lyricsLang === "ko" && !hasTarget ? en || undefined : undefined
         );
       } else if (type === "prompt") {
         const instJson =
@@ -754,18 +754,18 @@ export default function SongPage() {
             disabled={!!generating || translatingLyrics}
           >
             {generating === "lyrics"
-              ? lyricsLang === "en" && koLyrics(song).trim()
-                ? "번역 중..."
-                : "가사 생성 중..."
+              ? "가사 생성 중..."
               : lyricsLang === "ko"
                 ? koLyrics(song).trim()
                   ? "한글 가사 재생성"
                   : enLyrics(song).trim()
                     ? "한글로 의역"
                     : "한글 가사 생성"
-                : koLyrics(song).trim()
-                  ? "영어로 의역"
-                  : "영어 가사 생성"}
+                : enLyrics(song).trim()
+                  ? "영어 가사 재생성"
+                  : koLyrics(song).trim()
+                    ? "영어로 의역"
+                    : "영어 가사 생성"}
           </button>
           <button
             type="button"

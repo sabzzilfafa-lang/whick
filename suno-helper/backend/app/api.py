@@ -466,10 +466,12 @@ async def api_generate_lyrics(
         generated_title: Optional[str] = None
         if lang == "en":
             ko = (req.lyrics_ko or "").strip() or (lyrics_ko_text(song) or "").strip()
+            already_en = (song.lyrics_en or "").strip()
             if req.lyrics_ko and req.lyrics_ko.strip():
                 song.lyrics_ko = req.lyrics_ko.strip()
                 song.lyrics = song.lyrics_ko
-            if ko:
+            if ko and not already_en:
+                # 영어 가사가 비어 있을 때만 한글을 영어로 의역
                 english_title, content = await translate_lyrics_to_english(
                     client,
                     ko,
@@ -495,8 +497,9 @@ async def api_generate_lyrics(
                 )
         else:
             en = (req.lyrics_en or "").strip() or (song.lyrics_en or "").strip()
-            if en:
-                # 영어 가사가 확정된 상태에서 한글 탭 생성 요청 → 영어를 한글로 의역
+            already_ko = (lyrics_ko_text(song) or "").strip()
+            if en and not already_ko:
+                # 한글 가사가 비어 있을 때만 영어를 한글로 의역
                 korean_title, content = await translate_lyrics_to_korean(
                     client,
                     en,
