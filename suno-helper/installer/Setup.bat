@@ -15,7 +15,7 @@ set "BASE=https://whick.org"
 echo [1/3] Creating folder: %DEST%
 if not exist "%DEST%" mkdir "%DEST%" || goto :fail
 
-echo [2/3] Downloading core files...
+echo [2/3] Downloading app package...
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
   "$ProgressPreference='SilentlyContinue';" ^
   "[Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12;" ^
@@ -26,7 +26,18 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
   "Write-Host ('  downloaded v'+$v)"
 if errorlevel 1 goto :fail
 
-echo [3/3] Running installer...
+rem --- flatten: some zips wrap files in SunoHelper\ subfolder ---
+if exist "%DEST%\SunoHelper\install.bat" (
+    echo Flattening package layout...
+    robocopy "%DEST%\SunoHelper" "%DEST%" /E /MOVE /NFL /NDL /NJH /NJS >nul
+    rmdir "%DEST%\SunoHelper" >nul 2>&1
+)
+if not exist "%DEST%\install.bat" (
+    echo [ERROR] install.bat not found after extract.
+    goto :fail
+)
+
+echo [3/3] Installing (this runs the app's installer)...
 cd /d "%DEST%"
 call "%DEST%\install.bat"
 if errorlevel 1 goto :fail
