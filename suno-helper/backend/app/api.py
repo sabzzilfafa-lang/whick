@@ -52,6 +52,7 @@ from app.services.openrouter import (
     generate_suno_prompt,
     suggest_track_themes,
     translate_lyrics_to_english,
+    translate_lyrics_to_korean,
 )
 from app.services.instrument_settings_service import (
     build_from_profile,
@@ -493,18 +494,33 @@ async def api_generate_lyrics(
                     language="en",
                 )
         else:
-            generated_title, content = await generate_lyrics_ko_with_title(
-                client,
-                _model_to_dict(profile),
-                _model_to_dict(album),
-                _model_to_dict(song),
-                _model_to_dict(ref) if ref else None,
-                req.additional_instructions,
-                model,
-                temp,
-            )
-            if generated_title:
-                song.title = generated_title[:200]
+            en = (req.lyrics_en or "").strip() or (song.lyrics_en or "").strip()
+            if en:
+                # 영어 가사가 확정된 상태에서 한글 탭 생성 요청 → 영어를 한글로 의역
+                korean_title, content = await translate_lyrics_to_korean(
+                    client,
+                    en,
+                    _model_to_dict(song),
+                    req.additional_instructions,
+                    model,
+                    temp,
+                )
+                if korean_title:
+                    song.title = korean_title[:200]
+                    generated_title = korean_title
+            else:
+                generated_title, content = await generate_lyrics_ko_with_title(
+                    client,
+                    _model_to_dict(profile),
+                    _model_to_dict(album),
+                    _model_to_dict(song),
+                    _model_to_dict(ref) if ref else None,
+                    req.additional_instructions,
+                    model,
+                    temp,
+                )
+                if generated_title:
+                    song.title = generated_title[:200]
     except ValueError as e:
         raise HTTPException(400, str(e))
     except Exception as e:

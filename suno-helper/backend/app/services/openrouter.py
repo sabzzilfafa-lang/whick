@@ -204,6 +204,20 @@ LYRICS_TRANSLATE_SYSTEM = """당신은 K-pop·발라드 전문 작사·번역가
 
 {"title": "English song title", "lyrics": "full English lyrics"}"""
 
+LYRICS_TRANSLATE_KO_SYSTEM = """당신은 K-pop·발라드 전문 작사·번역가입니다. 사용자가 확정한 영어 가사를 Suno AI용 한국어 노래 가사로 옮깁니다.
+
+규칙:
+- 직역 금지 — 실제 한국인이 부르기 좋은 한국어 **노래 가사**로 의역·각색
+- 영어 원문의 의미·감정·이미지·스토리를 유지
+- [Verse], [Chorus], [Bridge], [Outro] 등 **섹션 태그·줄 수·줄바꿈 구조를 영어와 동일하게 유지** (줄을 줄이지 말 것)
+- 실제 한국인이 일상에서 말하는 구어체로 쓸 것 (딱딱한 문어체·번역체 금지)
+- 시간·수량·나이는 아라비아 숫자+단위: 5분, 10분, 3시, 2번
+- "~하여", "~하려 하며" 같은 작문체 종결 지양, "~잖아", "~할까" 등 구어 종결 자연스럽게 사용
+- 영어 곡명을 한국어 노래 제목으로 의역 (직역보다 자연스러운 한국어 곡명)
+- 출력은 아래 JSON만 (마크다운 없음):
+
+{"title": "한국어 곡 제목", "lyrics": "전체 한국어 가사"}"""
+
 def _estimate_track_duration_sec(album: Optional[dict], song: Optional[dict] = None) -> int:
     """앨범 목표 시간과 곡 수로 트랙당 길이(초) 추정."""
     if album:
@@ -844,6 +858,51 @@ async def translate_lyrics_to_english(
     raw = await client.chat(
         model or settings.model_lyrics,
         LYRICS_TRANSLATE_SYSTEM,
+        user_prompt,
+        temperature=temperature,
+        max_tokens=4000,
+        json_mode=True,
+    )
+    title, lyrics = _parse_lyrics_ko_json(raw)
+    if lyrics:
+        return title, lyrics
+    return None, (raw or "").strip()
+
+
+async def translate_lyrics_to_korean(
+    client: AIClient,
+    english_lyrics: str,
+    song: Optional[dict] = None,
+    additional: Optional[str] = None,
+    model: Optional[str] = None,
+    temperature: float = 0.5,
+) -> tuple[Optional[str], str]:
+    """영어 가사를 한국어 가사로 의역. (title, lyrics) 튜플 반환."""
+    user_prompt = "## English lyrics\n" + english_lyrics.strip()
+    if song:
+        if song.get("title_en"):
+            user_prompt += f"\n\nEnglish title: {song['title_en']}"
+        if song.get("theme"):
+            user_prompt += f"\n테마: {song['theme']}"
+    from app.services.suno_prompt_service import _lyrics_stats
+
+    en_stats = _lyrics_stats(english_lyrics)
+    if en_stats["lines"] > 0:
+        user_prompt += (
+            f"\n\n영어 가사는 **{en_stats['lines']}줄**입니다. "
+            "한국어 가사도 섹션·줄 수를 동일하게 유지하세요 (줄을 줄이지 마세요)."
+        )
+    user_prompt += (
+        "\n\n위 영어 가사는 사용자가 확정한 최종본입니다. "
+        "이 내용을 바탕으로 한국어 곡 제목과 **노래 가사**를 JSON으로 의역해주세요. "
+        "단어 대 단어 번역이 아니라, 같은 곡을 한국어로 부를 수 있게 자연스럽게 만들어주세요."
+    )
+    if additional:
+        user_prompt += f"\n\n추가 지시: {additional}"
+
+    raw = await client.chat(
+        model or settings.model_lyrics,
+        LYRICS_TRANSLATE_KO_SYSTEM,
         user_prompt,
         temperature=temperature,
         max_tokens=4000,
