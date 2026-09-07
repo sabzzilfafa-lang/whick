@@ -340,7 +340,9 @@ HTML = """<!DOCTYPE html>
   &copy; 2026 <a href="/" target="_blank" rel="noopener">whick.org</a> &mdash; Suno Helper runs and stores everything on your PC.
 </footer>
 
+<script src="/js/i18n-cats.js?v=20260902-1016"></script>
 <script>
+  /* merge AFTER cats (cats overwrites WAMSS_I18N), BEFORE i18n.js init */
   window.SUNO_I18N_EXTRA = __EXTRA__;
   window.WAMSS_I18N = window.WAMSS_I18N || {};
   for (var lang in window.SUNO_I18N_EXTRA) {
@@ -348,7 +350,6 @@ HTML = """<!DOCTYPE html>
     for (var k in window.SUNO_I18N_EXTRA[lang]) window.WAMSS_I18N[lang][k] = window.SUNO_I18N_EXTRA[lang][k];
   }
 </script>
-<script src="/js/i18n-cats.js?v=20260902-1016"></script>
 <script src="/js/i18n.js?v=20260902-1016"></script>
 </body>
 </html>
