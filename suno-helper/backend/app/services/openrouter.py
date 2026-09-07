@@ -233,6 +233,18 @@ LYRICS_EN_JSON_SYSTEM = """당신은 전문 작사가입니다. Suno AI용 영�
 
 Suno 길이: 프롬프트 시간이 아니라 가사 줄 수가 곡 길이를 결정함. 목표 줄 수 미달 시 실패."""
 
+LYRICS_ALBUM_BATCH_SYSTEM_EN = """You are a professional lyricist. Write English titles and lyrics for multiple songs of an album at once.
+
+Rules:
+- Each song: 1 natural English title matching its theme + section-tagged lyrics ([Verse]/[Chorus]/etc.)
+- **Every song** must meet the per-track target duration · lyric line count allocated from the album
+- Same line-count target for every song (album allocation basis)
+- No short 2:30 pop one-set — secure length with Verse 2~3x, Bridge, Outro etc.
+- Never include the title inside the lyrics body
+- Output ONLY the following JSON (no markdown):
+
+{"tracks":[{"track_number":1,"title":"English song title","lyrics":"full English lyrics"}, ...]}"""
+
 def _estimate_track_duration_sec(album: Optional[dict], song: Optional[dict] = None) -> int:
     """앨범 목표 시간과 곡 수로 트랙당 길이(초) 추정."""
     if album:
@@ -791,6 +803,7 @@ async def _generate_album_lyrics_chunk(
     additional: Optional[str] = None,
     model: Optional[str] = None,
     temperature: float = 0.8,
+    language: str = "ko",
 ) -> list[dict]:
     from app.services.suno_prompt_service import (
         _lyrics_stats,
@@ -799,6 +812,7 @@ async def _generate_album_lyrics_chunk(
         lyrics_meets_target,
     )
 
+    is_en = language == "en"
     context = _build_music_context(profile, album, None, None)
     duration_ctx = build_lyrics_duration_prompt_block(album, profile)
     target = compute_track_lyrics_target(album, profile)
@@ -808,23 +822,34 @@ async def _generate_album_lyrics_chunk(
         theme = s.get("theme") or ""
         lines.append(f"- Track {tn}: {theme}")
     min_lines = target["target_lines_min"] if target else 0
-    base_prompt = (
-        f"{context}{duration_ctx}\n"
-        + "\n".join(lines)
-        + f"\n\n위 {len(songs)}곡 각각 제목+가사를 JSON tracks 배열로 작성해주세요."
-        + "\n각 곡의 lyrics는 해당 곡 가사만 포함하고, 다른 트랙 JSON을 넣지 마세요."
-        + f"\n모든 곡 가사는 각각 최소 {min_lines}줄 이상이어야 합니다."
-        + "\n짧은 팝 한 세트나 2절 반복 루프로 시간을 채우지 마세요."
-    )
+    if is_en:
+        base_prompt = (
+            f"{context}{duration_ctx}\n"
+            + "\n".join(lines)
+            + f"\n\nWrite an English title + English lyrics for each of the above {len(songs)} songs in a JSON tracks array."
+            + "\nEach song's lyrics must contain only that song — do not include other track JSON."
+            + f"\nEvery song's lyrics must be at least {min_lines} lines."
+            + "\nDo not fill time with a short pop one-set or 2-verse loops."
+        )
+    else:
+        base_prompt = (
+            f"{context}{duration_ctx}\n"
+            + "\n".join(lines)
+            + f"\n\n위 {len(songs)}곡 각각 제목+가사를 JSON tracks 배열로 작성해주세요."
+            + "\n각 곡의 lyrics는 해당 곡 가사만 포함하고, 다른 트랙 JSON을 넣지 마세요."
+            + f"\n모든 곡 가사는 각각 최소 {min_lines}줄 이상이어야 합니다."
+            + "\n짧은 팝 한 세트나 2절 반복 루프로 시간을 채우지 마세요."
+        )
     if additional:
         base_prompt += f"\n\n추가 지시: {additional}"
 
     max_tokens = _album_lyrics_chunk_max_tokens(album, profile, len(songs))
+    system = LYRICS_ALBUM_BATCH_SYSTEM_EN if is_en else LYRICS_ALBUM_BATCH_SYSTEM
 
     async def _call(prompt: str, temp: float) -> list[dict]:
         raw = await client.chat(
             model or settings.model_lyrics,
-            LYRICS_ALBUM_BATCH_SYSTEM,
+            system,
             prompt,
             temperature=temp,
             max_tokens=max_tokens,
@@ -885,6 +910,7 @@ async def generate_album_lyrics_batch(
     additional: Optional[str] = None,
     model: Optional[str] = None,
     temperature: float = 0.8,
+    language: str = "ko",
 ) -> list[dict]:
     """앨범 전체 곡 가사 생성 (5곡씩 나눠 호출)."""
     songs_sorted = sorted(songs, key=lambda x: x.get("track_number") or 0)
@@ -900,6 +926,7 @@ async def generate_album_lyrics_batch(
             additional,
             model,
             temperature,
+            language=language,
         )
         all_results.extend(chunk_results)
 
@@ -1185,9 +1212,20 @@ async def suggest_track_themes(
     track_count: int,
     model: Optional[str] = None,
     temperature: float = 0.8,
+    language: str = "ko",
 ) -> list[str]:
     context = _build_music_context(profile, album)
-    user_prompt = f"""{context}
+    is_en = language == "en"
+    if is_en:
+        user_prompt = f"""{context}
+
+Suggest a theme/story for each of the album's {track_count} tracks in **English**.
+Each track should have its own unique story within the album concept.
+
+Output JSON array only:
+{{"themes": ["track 1 theme", "track 2 theme", ...]}}"""
+    else:
+        user_prompt = f"""{context}
 
 앨범 전체 {track_count}곡의 트랙별 테마/스토리를 제안해주세요.
 각 곡은 앨범 컨셉 안에서 고유한 이야기를 가져야 합니다.
@@ -1197,7 +1235,7 @@ JSON 배열로만 출력:
 
     result = await client.chat(
         model or settings.model_lyrics,
-        "앨범 기획 전문가입니다. 트랙 리스트 테마를 제안합니다. JSON만 출력하세요.",
+        "앨범 기획 전문가입니다. 트랙 리스트 테마를 제안합니다. JSON만 출력하세요. 테마는 요청된 언어로 작성하세요.",
         user_prompt,
         temperature=temperature,
         max_tokens=2000,

@@ -236,6 +236,12 @@ async def process_album_job(job_id: int):
     if not themes:
         try:
             lyrics_client, lyrics_model, lyrics_temp = await _load_lyrics_client()
+            # 설정 기본 언어로 테마 생성
+            async with async_session() as sdb:
+                from app.services.settings_service import get_all_settings
+
+                _all = await get_all_settings(sdb)
+            _lang = _all.get("lyrics_primary_lang", "ko") or "ko"
             await _update_job(job_id, message="트랙 테마 생성 중...")
             themes = await asyncio.wait_for(
                 suggest_track_themes(
@@ -245,6 +251,7 @@ async def process_album_job(job_id: int):
                     track_count,
                     model=lyrics_model,
                     temperature=lyrics_temp,
+                    language=_lang,
                 ),
                 timeout=90.0,
             )

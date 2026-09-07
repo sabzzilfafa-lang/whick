@@ -60,6 +60,14 @@
   "settings": {
     "title": "Settings",
     "subtitle": "Manage API keys, AI models, YouTube publishing, description builder and backups in one place",
+    "lang": {
+      "title": "Default lyrics language",
+      "desc": "Album batch generation and per-song generation start in this language. Track titles and moods follow it too.",
+      "primary": "Primary language",
+      "second": "Second language",
+      "none": "Disabled",
+      "hint": "With a second language set, use the paraphrase button on each song screen to convert lyrics easily."
+    },
     "tabs": {
       "license": "License",
       "api": "API · AI per task",

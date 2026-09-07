@@ -204,6 +204,8 @@ export default function SettingsPage() {
         temperature_prompt: settings.temperature_prompt,
         temperature_instruments: settings.temperature_instruments,
         temperature_analyze: settings.temperature_analyze,
+        lyrics_primary_lang: settings.lyrics_primary_lang,
+        lyrics_second_lang: settings.lyrics_second_lang,
       };
       for (const [field, value] of Object.entries(apiKeys)) {
         if (value.trim()) payload[field] = value.trim();
@@ -461,6 +463,43 @@ export default function SettingsPage() {
 
       {tab === "api" && (
         <>
+          <div className="card" style={{ marginBottom: "1.5rem" }}>
+        <div className="card-title">{t("settings.lang.title")}</div>
+        <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "1rem" }}>
+          {t("settings.lang.desc")}
+        </p>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+          <div className="form-group" style={{ margin: 0 }}>
+            <label>{t("settings.lang.primary")}</label>
+            <select
+              value={settings.lyrics_primary_lang || "ko"}
+              onChange={(e) =>
+                setSettings({ ...settings, lyrics_primary_lang: e.target.value } as AppSettings)
+              }
+            >
+              <option value="ko">한국어 (Korean)</option>
+              <option value="en">English (영어)</option>
+            </select>
+          </div>
+          <div className="form-group" style={{ margin: 0 }}>
+            <label>{t("settings.lang.second")}</label>
+            <select
+              value={settings.lyrics_second_lang || "en"}
+              onChange={(e) =>
+                setSettings({ ...settings, lyrics_second_lang: e.target.value } as AppSettings)
+              }
+            >
+              <option value="en">English (영어)</option>
+              <option value="ko">한국어 (Korean)</option>
+              <option value="none">{t("settings.lang.none")}</option>
+            </select>
+          </div>
+        </div>
+        <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginTop: "0.75rem" }}>
+          {t("settings.lang.hint")}
+        </p>
+          </div>
+
           <div className="card" style={{ marginBottom: "1.5rem" }}>
         <div className="card-title">AI 제공업체 API 키</div>
         <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "1rem" }}>

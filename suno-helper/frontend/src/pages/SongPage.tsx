@@ -148,7 +148,7 @@ export default function SongPage() {
   const [variants, setVariants] = useState<GenerationVariant[]>([]);
   const [showAB, setShowAB] = useState(false);
   const [abType, setAbType] = useState<TabField>("lyrics");
-  const [lyricsLang, setLyricsLang] = useState<LyricsLang>("en");
+  const [lyricsLang, setLyricsLang] = useState<LyricsLang>("ko");
   const [translatingLyrics, setTranslatingLyrics] = useState(false);
   const [instrumentData, setInstrumentData] = useState<SongInstrumentSettings | null>(null);
   const [instrumentsOpen, setInstrumentsOpen] = useState(false);
@@ -159,6 +159,14 @@ export default function SongPage() {
 
   const load = () => {
     if (!id) return;
+    // 설정 기본 언어를 초기 탭으로
+    api
+      .getSettings()
+      .then((s) => {
+        const lang = (s as { lyrics_primary_lang?: string }).lyrics_primary_lang;
+        if (lang === "en" || lang === "ko") setLyricsLang(lang);
+      })
+      .catch(() => {});
     api.getSong(Number(id)).then(setSong).finally(() => setLoading(false));
   };
 

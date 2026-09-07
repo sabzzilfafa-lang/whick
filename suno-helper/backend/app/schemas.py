@@ -24,6 +24,8 @@ class SettingsUpdate(BaseModel):
     temperature_prompt: Optional[str] = None
     temperature_instruments: Optional[str] = None
     temperature_analyze: Optional[str] = None
+    lyrics_primary_lang: Optional[str] = None
+    lyrics_second_lang: Optional[str] = None
 
 
 class SettingsResponse(BaseModel):
@@ -47,6 +49,8 @@ class SettingsResponse(BaseModel):
     temperature_prompt: str
     temperature_instruments: str
     temperature_analyze: str
+    lyrics_primary_lang: str
+    lyrics_second_lang: str
 
 
 # --- Music Profile ---

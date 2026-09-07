@@ -163,6 +163,8 @@ export interface AppSettings {
   temperature_prompt: string;
   temperature_instruments: string;
   temperature_analyze: string;
+  lyrics_primary_lang: string;
+  lyrics_second_lang: string;
 }
 
 export interface GenerationVariant {

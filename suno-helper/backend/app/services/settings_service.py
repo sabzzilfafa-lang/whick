@@ -35,6 +35,8 @@ DEFAULTS = {
     "temperature_prompt": "0.5",
     "temperature_instruments": "0.4",
     "temperature_analyze": "0.6",
+    "lyrics_primary_lang": "ko",
+    "lyrics_second_lang": "en",
     "youtube_client_id": "",
     "youtube_client_secret": "",
 }

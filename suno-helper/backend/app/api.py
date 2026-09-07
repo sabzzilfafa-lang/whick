@@ -461,7 +461,14 @@ async def api_generate_lyrics(
     client, model, temp, provider = await get_client_for_task(db, "lyrics")
     model = req.model or model
 
-    lang = req.language if req.language in ("ko", "en") else "ko"
+    # 프론트가 language를 생략하면 설정의 기본 언어를 따름
+    from app.services.settings_service import get_all_settings
+
+    all_settings = await get_all_settings(db)
+    default_lang = all_settings.get("lyrics_primary_lang", "ko") or "ko"
+    if default_lang not in ("ko", "en"):
+        default_lang = "ko"
+    lang = req.language if req.language in ("ko", "en") else default_lang
 
     try:
         generated_title: Optional[str] = None
@@ -750,7 +757,17 @@ async def generate_ab_variants(
     for label in labels:
         try:
             if task == "lyrics":
-                title, content = await generate_lyrics_ko_with_title(
+                # A/B 가사도 설정 기본 언어로 생성
+                from app.services.settings_service import get_all_settings
+
+                _all = await get_all_settings(db)
+                _p = _all.get("lyrics_primary_lang", "ko") or "ko"
+                if _p not in ("ko", "en"):
+                    _p = "ko"
+                gen_fn = (
+                    generate_lyrics_en_with_title if _p == "en" else generate_lyrics_ko_with_title
+                )
+                title, content = await gen_fn(
                     client,
                     _model_to_dict(profile),
                     _model_to_dict(album),
@@ -918,6 +935,10 @@ async def generate_album_tracks(
 
     themes = req.track_themes
     if not themes:
+        from app.services.settings_service import get_all_settings as _gas
+
+        _s = await _gas(db)
+        _lang = _s.get("lyrics_primary_lang", "ko") or "ko"
         themes = await suggest_track_themes(
             lyrics_client,
             _model_to_dict(album),
@@ -925,6 +946,7 @@ async def generate_album_tracks(
             album.track_count,
             model=lyrics_model,
             temperature=lyrics_temp,
+            language=_lang,
         )
 
     if len(themes) < album.track_count:
@@ -977,6 +999,16 @@ async def generate_album_lyrics(
     client, model, temp, provider = await get_client_for_task(db, "lyrics")
     model = req.model or model
 
+    # 설정의 기본 언어로 일괄 생성 (기본 ko 호환)
+    from app.services.settings_service import get_all_settings
+
+    all_settings = await get_all_settings(db)
+    primary_lang = (
+        all_settings.get("lyrics_primary_lang", "ko") or "ko"
+    )
+    if primary_lang not in ("ko", "en"):
+        primary_lang = "ko"
+
     try:
         batch = await generate_album_lyrics_batch(
             client,
@@ -986,6 +1018,7 @@ async def generate_album_lyrics(
             req.additional_instructions,
             model,
             temp,
+            language=primary_lang,
         )
     except ValueError as e:
         raise HTTPException(400, str(e))
@@ -1009,8 +1042,11 @@ async def generate_album_lyrics(
         if not item:
             continue
         if item.get("title"):
-            song.title = str(item["title"])[:200]
-        set_lyrics(song, item["lyrics"], "ko")
+            if primary_lang == "en":
+                song.title_en = str(item["title"])[:200]
+            else:
+                song.title = str(item["title"])[:200]
+        set_lyrics(song, item["lyrics"], primary_lang)
         updated += 1
 
     await db.flush()
