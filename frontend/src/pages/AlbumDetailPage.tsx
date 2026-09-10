@@ -11,6 +11,8 @@ import Modal from "../components/Modal";
 
 import { cleanTheme } from "../lib/theme";
 
+import { useLang } from "../lib/i18n";
+
 
 
 export default function AlbumDetailPage() {
@@ -18,6 +20,7 @@ export default function AlbumDetailPage() {
   const { id } = useParams<{ id: string }>();
 
   const navigate = useNavigate();
+  const { t } = useLang();
 
   const [album, setAlbum] = useState<AlbumDetail | null>(null);
 
@@ -44,6 +47,9 @@ export default function AlbumDetailPage() {
   const [thumbMsg, setThumbMsg] = useState("");
   const [thumbZoom, setThumbZoom] = useState<"A" | "B" | "C" | null>(null);
   const [thumbPrompts, setThumbPrompts] = useState<string[]>([]);
+  // 썸네일 제목 표기 방식 — 설정에서 이동: 생성 화면 바로 아래 인라인 선택 (2026-09-10)
+  const [thumbTitleMode, setThumbTitleMode] = useState<string>("ai");
+  const [titleModeSaving, setTitleModeSaving] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const stopPoll = () => {
@@ -99,6 +105,23 @@ export default function AlbumDetailPage() {
   useEffect(() => {
     loadThumbs();
   }, [id]);
+
+  // 제목 표기 방식 — 현재 설정 로드 (2026-09-10)
+  useEffect(() => {
+    api.getSettings().then((s) => setThumbTitleMode(String(s.thumbnail_title_mode || "ai"))).catch(() => {});
+  }, []);
+
+  const saveThumbTitleMode = async (mode: string) => {
+    setThumbTitleMode(mode);
+    setTitleModeSaving(true);
+    try {
+      await api.updateSettings({ thumbnail_title_mode: mode });
+    } catch {
+      /* 설정 저장 실패는 조용히 무시 — 다음 저장 시 반영 */
+    } finally {
+      setTitleModeSaving(false);
+    }
+  };
 
   const handleThumbGenerate = async () => {
     if (!album) return;
@@ -594,6 +617,20 @@ export default function AlbumDetailPage() {
             ))}
           </div>
         )}
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginTop: "0.75rem", flexWrap: "wrap" }}>
+          <label style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
+            {t("제목 표기 방식")}
+          </label>
+          <select
+            value={thumbTitleMode}
+            disabled={titleModeSaving}
+            onChange={(e) => void saveThumbTitleMode(e.target.value)}
+            style={{ fontSize: "0.85rem" }}
+          >
+            <option value="ai">{t("AI 통합 렌더 (디자인 일체형)")}</option>
+            <option value="overlay">{t("하단 바 표기 (글자 정확)")}</option>
+          </select>
+        </div>
       </div>
 
       {/* 썸네일 크게 보기 라이트박스 (2026-09-10) */}
