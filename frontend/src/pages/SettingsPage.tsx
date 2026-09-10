@@ -57,6 +57,57 @@ function CreativitySlider({
 
 const CUSTOM_MODEL = "__custom__";
 
+function WorkFolderCard() {
+  const { t } = useLang();
+  const [workRoot, setWorkRoot] = useState("");
+  const [saved, setSaved] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    api
+      .getPipelineConfig()
+      .then((c) => {
+        setWorkRoot(c.work_root || "");
+        setSaved(c.work_root || "");
+      })
+      .catch(() => setWorkRoot(""));
+  }, []);
+
+  const save = async () => {
+    const v = workRoot.trim();
+    if (!v) return;
+    setBusy(true);
+    try {
+      await api.updatePipelineConfig({ work_root: v });
+      setSaved(v);
+    } catch {
+      /* 오류는 조용히 — 입력값 유지 */
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="card" style={{ marginBottom: "1.5rem" }}>
+      <div className="card-title">{t("작업 폴더")}</div>
+      <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", margin: "0 0 0.75rem" }}>
+        {t("음악·썸네일 등 생성 결과가 저장되는 폴더입니다. 비워두면 기본 폴더를 사용합니다.")}
+      </p>
+      <div style={{ display: "flex", gap: "0.5rem" }}>
+        <input
+          value={workRoot}
+          placeholder={t("예: D:\\YouTubeMusic 또는 C:\\Users\\user\\Music\\SunoHelper")}
+          onChange={(e) => setWorkRoot(e.target.value)}
+          style={{ flex: 1 }}
+        />
+        <button className="btn btn-primary" disabled={busy || !workRoot.trim() || workRoot.trim() === saved} onClick={save}>
+          {t("저장")}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function ModelSelect({
   providerId,
   value,
@@ -122,6 +173,7 @@ export default function SettingsPage() {
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [providers, setProviders] = useState<AIProvider[]>([]);
   const [modelsByProvider, setModelsByProvider] = useState<Record<string, AIModelOption[]>>({});
+  const [imageModels, setImageModels] = useState<{ id: string; name: string }[]>([]);
   const [loadingModels, setLoadingModels] = useState<Record<string, boolean>>({});
   const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
@@ -184,6 +236,9 @@ export default function SettingsPage() {
           s.provider_thumbnail || "openrouter",
         ]);
         used.forEach((pid) => loadModelsForProvider(pid, p));
+        api.getImageModels()
+          .then((r) => setImageModels(r.models || []))
+          .catch(() => setImageModels([]));
       } catch (e) {
         setError(e instanceof Error ? e.message : "설정을 불러오지 못했습니다");
       } finally {
@@ -713,7 +768,7 @@ export default function SettingsPage() {
             <div className="task-config-row">
               <div className="task-config-label">{t("이미지 생성 AI")}</div>
               <select
-                value={String(settings.image_provider || "google")}
+                value={String(settings.image_provider || "openrouter")}
                 onChange={(e) =>
                   setSettings({ ...settings, image_provider: e.target.value } as AppSettings)
                 }
@@ -724,12 +779,46 @@ export default function SettingsPage() {
                   </option>
                 ))}
               </select>
-              <span className="meta" style={{ gridColumn: "span 2", alignSelf: "center" }}>
+              <select
+                value={String(settings.image_model || "")}
+                onChange={(e) =>
+                  setSettings({ ...settings, image_model: e.target.value } as AppSettings)
+                }
+              >
+                {(imageModels.length
+                  ? imageModels
+                  : [{ id: String(settings.image_model || "google/gemini-2.5-flash-image"), name: String(settings.image_model || "google/gemini-2.5-flash-image") }]
+                ).map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name || m.id}
+                  </option>
+                ))}
+              </select>
+              <span className="meta" style={{ gridColumn: "span 3", alignSelf: "center" }}>
                 {t("선택한 제공업체의 API 키(설정 > AI 제공업체)가 사용됩니다.")}
+              </span>
+            </div>
+            <div className="task-config-row">
+              <div className="task-config-label">{t("썸네일 글자 표기")}</div>
+              <select
+                value={String(settings.thumbnail_overlay ?? "1")}
+                onChange={(e) =>
+                  setSettings({ ...settings, thumbnail_overlay: e.target.value } as AppSettings)
+                }
+              >
+                <option value="1">{t("표기 (제목·곡수·런닝타임)")}</option>
+                <option value="0">{t("숨김")}</option>
+              </select>
+              <span className="meta" style={{ gridColumn: "span 3", alignSelf: "center" }}>
+                {t("이미지 하단에 앨범 제목·곡 수·런닝타임을 표기합니다.")}
               </span>
             </div>
           </div>
         </>
+      )}
+
+      {tab === "api" && (
+        <WorkFolderCard />
       )}
 
       {tab === "youtube" && (

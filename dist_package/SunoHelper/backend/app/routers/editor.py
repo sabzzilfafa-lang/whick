@@ -516,6 +516,18 @@ async def get_album_thumbnail_file(
     return FileResponse(p, media_type="image/jpeg", filename=p.name)
 
 
+@router.get("/album-thumbs/{album_id}/image-models")
+async def list_album_image_models(album_id: int, db: AsyncSession = Depends(get_db)):
+    """이미지 생성 AI 모델 목록 — provider별 (설정 화면 선택용, 2026-09-10)."""
+    from app.services.thumbnail_ai_service import list_image_models
+
+    try:
+        models = await list_image_models(db)
+    except Exception as e:
+        raise HTTPException(500, f"이미지 모델 목록 조회 실패: {str(e)[:200]}") from e
+    return {"ok": True, "models": models}
+
+
 @router.post("/album-thumbs/{album_id}/prompts")
 async def make_album_thumbnail_prompts(
     album_id: int, db: AsyncSession = Depends(get_db)

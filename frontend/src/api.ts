@@ -167,6 +167,8 @@ export interface AppSettings {
   provider_thumbnail: string;
   model_thumbnail: string;
   image_provider: string;
+  image_model: string;
+  thumbnail_overlay: string;
 }
 
 export interface GenerationVariant {
@@ -809,6 +811,10 @@ export const api = {
 
   // Pipeline / Studio
   getPipelineStatus: () => request<PipelineStatus>("/pipeline/status"),
+  getImageModels: () =>
+    request<{ ok: boolean; models: { id: string; name: string }[] }>(
+      "/editor/album-thumbs/0/image-models"
+    ),
   getPipelineConfig: () => request<PipelineConfig>("/pipeline/config"),
   updatePipelineConfig: (data: Partial<PipelineConfig> & { work_root?: string }) =>
     request<PipelineConfig>("/pipeline/config", {

@@ -7,6 +7,15 @@ import type { Dict, Lang } from "./types";
  */
 
 const en: Dict = {
+  "썸네일 글자 표기": "Thumbnail text overlay",
+  "표기 (제목·곡수·런닝타임)": "Show (title · tracks · runtime)",
+  "숨김": "Hide",
+  "이미지 하단에 앨범 제목·곡 수·런닝타임을 표기합니다.": "Shows the album title, track count and runtime at the bottom of the image.",
+  "선택한 제공업체의 API 키(설정 > AI 제공업체)가 사용됩니다.": "The API key of the selected provider (Settings > AI providers) is used.",
+  "작업 폴더": "Work folder",
+  "음악·썸네일 등 생성 결과가 저장되는 폴더입니다. 비워두면 기본 폴더를 사용합니다.": "Folder where generated music, thumbnails and other results are saved. Leave empty to use the default folder.",
+  "예: D:\\YouTubeMusic 또는 C:\\Users\\user\\Music\\SunoHelper": "e.g. D:\\\\YouTubeMusic or C:\\\\Users\\\\user\\\\Music\\\\SunoHelper",
+  "저장": "Save",
   // 사이드바
   "수노 음악 제작 도우미": "Suno music production assistant",
   "홈": "Home",
@@ -215,6 +224,15 @@ const en: Dict = {
 };
 
 const ja: Dict = {
+  "썸네일 글자 표기": "サムネイル文字表記",
+  "표기 (제목·곡수·런닝타임)": "表示 (タイトル・曲数・尺)",
+  "숨김": "非表示",
+  "이미지 하단에 앨범 제목·곡 수·런닝타임을 표기합니다.": "画像の下部にアルバムタイトル・曲数・ランタイムを表記します。",
+  "선택한 제공업체의 API 키(설정 > AI 제공업체)가 사용됩니다.": "選択したプロバイダーのAPIキー(設定 > AIプロバイダー)が使用されます。",
+  "작업 폴더": "作業フォルダー",
+  "음악·썸네일 등 생성 결과가 저장되는 폴더입니다. 비워두면 기본 폴더를 사용합니다.": "音楽・サムネイルなどの生成結果が保存されるフォルダーです。空欄の場合は既定フォルダーを使用します。",
+  "예: D:\\YouTubeMusic 또는 C:\\Users\\user\\Music\\SunoHelper": "例: D:\\\\YouTubeMusic または C:\\\\Users\\\\user\\\\Music\\\\SunoHelper",
+  "저장": "保存",
   // 썸네イル生成AI (2026-09-10)
   "썸네일 생성 AI": "サムネイル生成AI",
   "썸네일 프롬프트": "サムネイルプロンプト",
@@ -287,6 +305,15 @@ const ja: Dict = {
 };
 
 const zh: Dict = {
+  "썸네일 글자 표기": "缩略图文字标注",
+  "표기 (제목·곡수·런닝타임)": "显示 (标题·曲目数·时长)",
+  "숨김": "隐藏",
+  "이미지 하단에 앨범 제목·곡 수·런닝타임을 표기합니다.": "在图片底部标注专辑标题、曲目数和总时长。",
+  "선택한 제공업체의 API 키(설정 > AI 제공업체)가 사용됩니다.": "将使用所选提供商的 API 密钥(设置 > AI 提供商)。",
+  "작업 폴더": "工作文件夹",
+  "음악·썸네일 등 생성 결과가 저장되는 폴더입니다. 비워두면 기본 폴더를 사용합니다.": "保存音乐、缩略图等生成结果的文件夹。留空则使用默认文件夹。",
+  "예: D:\\YouTubeMusic 또는 C:\\Users\\user\\Music\\SunoHelper": "例如 D:\\\\YouTubeMusic 或 C:\\\\Users\\\\user\\\\Music\\\\SunoHelper",
+  "저장": "保存",
   // 缩略图生成AI (2026-09-10)
   "썸네일 생성 AI": "缩略图生成 AI",
   "썸네일 프롬프트": "缩略图提示词",
@@ -357,6 +384,15 @@ const zh: Dict = {
 };
 
 const es: Dict = {
+  "썸네일 글자 표기": "Texto en la miniatura",
+  "표기 (제목·곡수·런닝타임)": "Mostrar (título · pistas · duración)",
+  "숨김": "Ocultar",
+  "이미지 하단에 앨범 제목·곡 수·런닝타임을 표기합니다.": "Muestra el título del álbum, el número de pistas y la duración en la parte inferior de la imagen.",
+  "선택한 제공업체의 API 키(설정 > AI 제공업체)가 사용됩니다.": "Se usa la clave API del proveedor seleccionado (Ajustes > Proveedores de IA).",
+  "작업 폴더": "Carpeta de trabajo",
+  "음악·썸네일 등 생성 결과가 저장되는 폴더입니다. 비워두면 기본 폴더를 사용합니다.": "Carpeta donde se guardan la música, las miniaturas y otros resultados. Si se deja vacía se usa la carpeta predeterminada.",
+  "예: D:\\YouTubeMusic 또는 C:\\Users\\user\\Music\\SunoHelper": "p. ej. D:\\\\YouTubeMusic o C:\\\\Users\\\\user\\\\Music\\\\SunoHelper",
+  "저장": "Guardar",
   // IA de generación de miniaturas (2026-09-10)
   "썸네일 생성 AI": "IA de generación de miniaturas",
   "썸네일 프롬프트": "Prompt de miniatura",
@@ -422,6 +458,15 @@ const es: Dict = {
 };
 
 const fr: Dict = {
+  "썸네일 글자 표기": "Texte sur la miniature",
+  "표기 (제목·곡수·런닝타임)": "Afficher (titre · pistes · durée)",
+  "숨김": "Masquer",
+  "이미지 하단에 앨범 제목·곡 수·런닝타임을 표기합니다.": "Affiche le titre de l’album, le nombre de pistes et la durée en bas de l’image.",
+  "선택한 제공업체의 API 키(설정 > AI 제공업체)가 사용됩니다.": "La clé API du fournisseur sélectionné (Réglages > Fournisseurs d’IA) est utilisée.",
+  "작업 폴더": "Dossier de travail",
+  "음악·썸네일 등 생성 결과가 저장되는 폴더입니다. 비워두면 기본 폴더를 사용합니다.": "Dossier où sont enregistrés la musique, les miniatures et autres résultats. Laissez vide pour utiliser le dossier par défaut.",
+  "예: D:\\YouTubeMusic 또는 C:\\Users\\user\\Music\\SunoHelper": "ex. D:\\\\YouTubeMusic ou C:\\\\Users\\\\user\\\\Music\\\\SunoHelper",
+  "저장": "Enregistrer",
   // IA de génération de miniatures (2026-09-10)
   "썸네일 생성 AI": "IA de génération de miniatures",
   "썸네일 프롬프트": "Prompt de miniature",
@@ -487,6 +532,15 @@ const fr: Dict = {
 };
 
 const de: Dict = {
+  "썸네일 글자 표기": "Text auf dem Thumbnail",
+  "표기 (제목·곡수·런닝타임)": "Anzeigen (Titel · Tracks · Laufzeit)",
+  "숨김": "Ausblenden",
+  "이미지 하단에 앨범 제목·곡 수·런닝타임을 표기합니다.": "Zeigt Albumtitel, Trackanzahl und Laufzeit am unteren Bildrand an.",
+  "선택한 제공업체의 API 키(설정 > AI 제공업체)가 사용됩니다.": "Der API-Schlüssel des gewählten Anbieters (Einstellungen > KI-Anbieter) wird verwendet.",
+  "작업 폴더": "Arbeitsordner",
+  "음악·썸네일 등 생성 결과가 저장되는 폴더입니다. 비워두면 기본 폴더를 사용합니다.": "Ordner, in dem Musik, Thumbnails und andere Ergebnisse gespeichert werden. Leer lassen für den Standardordner.",
+  "예: D:\\YouTubeMusic 또는 C:\\Users\\user\\Music\\SunoHelper": "z. B. D:\\\\YouTubeMusic oder C:\\\\Users\\\\user\\\\Music\\\\SunoHelper",
+  "저장": "Speichern",
   // Thumbnail-KI (2026-09-10)
   "썸네일 생성 AI": "Thumbnail-KI",
   "썸네일 프롬프트": "Thumbnail-Prompt",
@@ -552,6 +606,15 @@ const de: Dict = {
 };
 
 const pt: Dict = {
+  "썸네일 글자 표기": "Texto na miniatura",
+  "표기 (제목·곡수·런닝타임)": "Mostrar (título · faixas · duração)",
+  "숨김": "Ocultar",
+  "이미지 하단에 앨범 제목·곡 수·런닝타임을 표기합니다.": "Mostra o título do álbum, o número de faixas e a duração na parte inferior da imagem.",
+  "선택한 제공업체의 API 키(설정 > AI 제공업체)가 사용됩니다.": "A chave de API do provedor selecionado (Configurações > Provedores de IA) é usada.",
+  "작업 폴더": "Pasta de trabalho",
+  "음악·썸네일 등 생성 결과가 저장되는 폴더입니다. 비워두면 기본 폴더를 사용합니다.": "Pasta onde músicas, miniaturas e outros resultados são salvos. Deixe vazio para usar a pasta padrão.",
+  "예: D:\\YouTubeMusic 또는 C:\\Users\\user\\Music\\SunoHelper": "ex.: D:\\\\YouTubeMusic ou C:\\\\Users\\\\user\\\\Music\\\\SunoHelper",
+  "저장": "Salvar",
   // IA de geração de miniaturas (2026-09-10)
   "썸네일 생성 AI": "IA de geração de miniaturas",
   "썸네일 프롬프트": "Prompt de miniatura",
@@ -617,6 +680,15 @@ const pt: Dict = {
 };
 
 const ru: Dict = {
+  "썸네일 글자 표기": "Текст на миниатюре",
+  "표기 (제목·곡수·런닝타임)": "Показывать (название · треки · длительность)",
+  "숨김": "Скрыть",
+  "이미지 하단에 앨범 제목·곡 수·런닝타임을 표기합니다.": "Показывает название альбома, количество треков и длительность внизу изображения.",
+  "선택한 제공업체의 API 키(설정 > AI 제공업체)가 사용됩니다.": "Используется API-ключ выбранного провайдера (Настройки > ИИ-провайдеры).",
+  "작업 폴더": "Рабочая папка",
+  "음악·썸네일 등 생성 결과가 저장되는 폴더입니다. 비워두면 기본 폴더를 사용합니다.": "Папка для сохранения музыки, миниатюр и других результатов. Оставьте пустым для папки по умолчанию.",
+  "예: D:\\YouTubeMusic 또는 C:\\Users\\user\\Music\\SunoHelper": "напр. D:\\\\YouTubeMusic или C:\\\\Users\\\\user\\\\Music\\\\SunoHelper",
+  "저장": "Сохранить",
   // ИИ генерации миниатюр (2026-09-10)
   "썸네일 생성 AI": "ИИ генерации миниатюр",
   "썸네일 프롬프트": "Промпт миниатюры",
@@ -682,6 +754,15 @@ const ru: Dict = {
 };
 
 const hi: Dict = {
+  "썸네일 글자 표기": "थंबनेल टेक्स्ट",
+  "표기 (제목·곡수·런닝타임)": "दिखाएँ (शीर्षक · ट्रैक · अवधि)",
+  "숨김": "छिपाएँ",
+  "이미지 하단에 앨범 제목·곡 수·런닝타임을 표기합니다.": "छवि के निचले भाग में एल्बम शीर्षक, ट्रैक संख्या और अवधि दिखाता है।",
+  "선택한 제공업체의 API 키(설정 > AI 제공업체)가 사용됩니다.": "चयनित प्रदाता की API कुंजी (सेटिंग्स > AI प्रदाता) का उपयोग होता है।",
+  "작업 폴더": "कार्य फ़ोल्डर",
+  "음악·썸네일 등 생성 결과가 저장되는 폴더입니다. 비워두면 기본 폴더를 사용합니다.": "संगीत, थंबनेल आदि नतीजे सहेजे जाने वाला फ़ोल्डर। खाली छोड़ने पर डिफ़ॉल्ट फ़ोल्डर उपयोग होता है।",
+  "예: D:\\YouTubeMusic 또는 C:\\Users\\user\\Music\\SunoHelper": "जैसे D:\\\\YouTubeMusic या C:\\\\Users\\\\user\\\\Music\\\\SunoHelper",
+  "저장": "सहेजें",
   // थंबनेल जनरेशन AI (2026-09-10)
   "썸네일 생성 AI": "थंबनेल जनरेशन AI",
   "썸네일 프롬프트": "थंबनेल प्रॉम्प्ट",
@@ -747,6 +828,15 @@ const hi: Dict = {
 };
 
 const idn: Dict = {
+  "썸네일 글자 표기": "Teks thumbnail",
+  "표기 (제목·곡수·런닝타임)": "Tampilkan (judul · jumlah lagu · durasi)",
+  "숨김": "Sembunyikan",
+  "이미지 하단에 앨범 제목·곡 수·런닝타임을 표기합니다.": "Menampilkan judul album, jumlah lagu, dan durasi di bagian bawah gambar.",
+  "선택한 제공업체의 API 키(설정 > AI 제공업체)가 사용됩니다.": "Kunci API penyedia terpilih (Pengaturan > Penyedia AI) digunakan.",
+  "작업 폴더": "Folder kerja",
+  "음악·썸네일 등 생성 결과가 저장되는 폴더입니다. 비워두면 기본 폴더를 사용합니다.": "Folder tempat hasil musik, thumbnail, dll. disimpan. Biarkan kosong untuk folder bawaan.",
+  "예: D:\\YouTubeMusic 또는 C:\\Users\\user\\Music\\SunoHelper": "mis. D:\\\\YouTubeMusic atau C:\\\\Users\\\\user\\\\Music\\\\SunoHelper",
+  "저장": "Simpan",
   // AI pembuat thumbnail (2026-09-10)
   "썸네일 생성 AI": "AI pembuat thumbnail",
   "썸네일 프롬프트": "Prompt thumbnail",

@@ -35,6 +35,7 @@ DEFAULTS = {
     "provider_thumbnail": "openrouter",
     "model_thumbnail": "google/gemini-2.5-flash-lite",
     "image_provider": "openrouter",
+    "image_model": "google/gemini-2.5-flash-image",
     "temperature_lyrics": "0.8",
     "temperature_prompt": "0.5",
     "temperature_instruments": "0.4",

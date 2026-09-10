@@ -40,6 +40,41 @@ IMAGE_PROVIDERS: dict[str, dict[str, str]] = {
 }
 
 
+IMAGE_MODELS_OPENROUTER_FALLBACK = [
+    {"id": "google/gemini-2.5-flash-image", "name": "Gemini 2.5 Flash Image (Nano Banana)"},
+    {"id": "openai/gpt-image-1", "name": "GPT Image 1"},
+]
+
+
+async def list_image_models(db: AsyncSession) -> list[dict[str, str]]:
+    """이미지 생성 모델 목록 — openrouter는 /api/v1/images/models, 나머지는 고정."""
+    s = await get_all_settings(db)
+    prov = (s.get("image_provider") or "openrouter").strip().lower()
+    if prov == "openrouter":
+        key = s.get("openrouter_api_key", "")
+        if key:
+            try:
+                async with httpx.AsyncClient(timeout=20.0) as client:
+                    r = await client.get(
+                        "https://openrouter.ai/api/v1/images/models",
+                        headers={"Authorization": f"Bearer {key}"},
+                    )
+                    r.raise_for_status()
+                    data = r.json().get("data") or []
+                    models = [
+                        {"id": m.get("id", ""), "name": m.get("name") or m.get("id", "")}
+                        for m in data
+                        if m.get("id")
+                    ]
+                    if models:
+                        return models
+            except Exception:
+                pass
+        return list(IMAGE_MODELS_OPENROUTER_FALLBACK)
+    conf = IMAGE_PROVIDERS.get(prov)
+    return [{"id": conf["model"], "name": conf["model"]}] if conf else []
+
+
 def thumbnails_dir(album_dir: Path) -> Path:
     return album_dir / "thumbnails"
 
@@ -106,6 +141,90 @@ def _build_prompt_request(album_title: str, mood: str, concept: str) -> tuple[st
         "Return: [\"prompt A\", \"prompt B\", \"prompt C\"]"
     )
     return system, user
+
+
+def _find_font(size: int) -> "ImageFont.FreeTypeFont | ImageFont.ImageFont":
+    """OS별 사용 가능한 굵은 폰트 탐색 — 없으면 기본 폰트."""
+    from PIL import ImageFont
+    candidates = [
+        r"C:\\Windows\\Fonts\\arialbd.ttf",
+        r"C:\\Windows\\Fonts\\malgunbd.ttf",
+        r"C:\\Windows\\Fonts\\seguisb.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+        "/System/Library/Fonts/Helvetica.ttc",
+    ]
+    for c in candidates:
+        try:
+            return ImageFont.truetype(c, size)
+        except Exception:
+            continue
+    return ImageFont.load_default()
+
+
+def _audio_seconds(path: Path) -> int:
+    """오디오 길이(초) — soundfile 우선, 실패 시 av. 모두 실패 시 0."""
+    try:
+        import soundfile as sf
+        info = sf.info(str(path))
+        return int(info.frames / max(info.samplerate, 1))
+    except Exception:
+        pass
+    try:
+        import av as _av
+        with _av.open(str(path)) as c:
+            dur = c.duration or 0
+            return int(dur / 1_000_000)
+    except Exception:
+        return 0
+
+
+def _format_duration(seconds: int) -> str:
+    m, s2 = divmod(max(0, seconds), 60)
+    return f"{m}:{s2:02d}"
+
+
+def _overlay_text(
+    img_bytes: bytes,
+    title: str,
+    subtitle: str = "",
+    track_count: int = 0,
+    total_seconds: int = 0,
+) -> bytes:
+    """썸네일 하단에 반투명 바 + 앨범제목·부제·곡수·런닝타임 오버레이 (2026-09-10).
+
+    AI 이미지에는 정확한 글자를 넣기 어려우므로 PIL 후처리로 확정 표기한다.
+    """
+    from PIL import Image, ImageDraw
+    img = Image.open(io.BytesIO(img_bytes)).convert("RGB")
+    img = img.resize((THUMB_W, THUMB_H), Image.LANCZOS)
+    draw = ImageDraw.Draw(img, "RGBA")
+
+    bar_h = 96 if title else 0
+    if bar_h:
+        draw.rectangle([(0, THUMB_H - bar_h), (THUMB_W, THUMB_H)], fill=(0, 0, 0, 170))
+        f_title = _find_font(40)
+        f_meta = _find_font(24)
+        tx, ty = 28, THUMB_H - bar_h + 10
+        if title:
+            draw.text((tx, ty), title[:40], font=f_title, fill=(255, 255, 255, 235))
+        if subtitle:
+            draw.text((tx, ty + 50), subtitle[:60], font=f_meta, fill=(210, 210, 210, 220))
+        meta_parts = []
+        if track_count:
+            meta_parts.append(f"{track_count} tracks")
+        if total_seconds:
+            meta_parts.append(_format_duration(total_seconds))
+        if meta_parts:
+            mw = draw.textlength(" · ".join(meta_parts), font=f_meta)
+            draw.text(
+                (THUMB_W - mw - 28, THUMB_H - bar_h + 22),
+                " · ".join(meta_parts),
+                font=f_meta,
+                fill=(255, 255, 255, 220),
+            )
+    buf = io.BytesIO()
+    img.save(buf, "JPEG", quality=92)
+    return buf.getvalue()
 
 
 def _crop_to_thumb(img_bytes: bytes) -> bytes:
@@ -227,14 +346,59 @@ async def _cover_b64(album_dir: Path) -> str | None:
     return None
 
 
+def _collect_album_context(album) -> str:
+    """앨범+곡 데이터에서 썸네일 분위기 컨텍스트 수집 (2026-09-10).
+
+    곡의 mood·tags·스타일(suno_prompt)·가사 분위기를 반영해 곡과 상관없는
+    이미지가 나오지 않도록 한다.
+    """
+    lines: list[str] = []
+    mood = str(getattr(album, "mood", "") or "").strip()
+    if mood:
+        lines.append(f"Album mood: {mood}")
+    concept = str(getattr(album, "concept", "") or "").strip()
+    if concept:
+        lines.append(f"Album concept: {concept[:300]}")
+    profile = getattr(album, "music_profile", None)
+    if profile is not None:
+        bits = []
+        for f in ("genre", "mood", "vocal_style", "production_style", "tags", "emoji"):
+            v = str(getattr(profile, f, "") or "").strip()
+            if v:
+                bits.append(f"{f}={v[:120]}")
+        if bits:
+            lines.append("Style preset: " + ", ".join(bits))
+    songs = list(getattr(album, "songs", []) or [])
+    if songs:
+        moods: list[str] = []
+        tags: list[str] = []
+        styles: list[str] = []
+        for sg in songs[:20]:
+            for src, dst in (
+                (str(getattr(sg, "mood", "") or ""), moods),
+                (str(getattr(sg, "tags", "") or ""), tags),
+                (str(getattr(sg, "suno_prompt", "") or ""), styles),
+            ):
+                if src and src not in dst:
+                    dst.append(src)
+        if moods:
+            lines.append("Track moods: " + ", ".join(moods[:10]))
+        if tags:
+            lines.append("Track tags: " + ", ".join(tags[:10]))
+        if styles:
+            lines.append("Track styles: " + " | ".join(x[:150] for x in styles[:5]))
+    return "\n".join(lines)
+
+
 async def generate_prompts(db: AsyncSession, album) -> list[str]:
-    """앨범 정보로 썸네일용 이미지 프롬프트 3개 생성."""
+    """앨범+곡 데이터로 썸네일용 이미지 프롬프트 3개 생성."""
     title = str(getattr(album, "title", "") or "").strip()
     if not title:
         raise ValueError("앨범 제목이 없습니다.")
-    mood = str(getattr(album, "mood", "") or "")
-    concept = str(getattr(album, "concept", "") or "")
-    system, user = _build_prompt_request(title, mood, concept)
+    context = _collect_album_context(album)
+    system, user = _build_prompt_request(title, "", "")
+    if context:
+        user += "\nContext (use this to match the imagery mood):\n" + context
     raw = await _ai_text(db, "thumbnail", system, user)
     return _extract_json(raw)
 
@@ -270,7 +434,7 @@ async def generate_thumbnails(
         raise ValueError(
             f"{PROVIDER_INFO[prov]['name']} API 키가 없습니다. 설정 > AI 제공업체에서 입력하세요."
         )
-    mdl = model or conf["model"]
+    mdl = model or s.get("image_model") or conf["model"]
 
     album_dir = await _resolve_album_dir(db, album)
     if not prompts:
@@ -282,6 +446,24 @@ async def generate_thumbnails(
     tdir = thumbnails_dir(album_dir)
     tdir.mkdir(parents=True, exist_ok=True)
 
+    # 텍스트 오버레이용 메타 (settings.thumbnail_overlay = "1"일 때 하단 바 표기)
+    overlay_on = (s.get("thumbnail_overlay") or "1").strip() == "1"
+    ov_title = str(getattr(album, "title", "") or "").strip()
+    ov_subtitle = str(getattr(album, "mood", "") or getattr(album, "concept", "") or "").strip()
+    ov_tracks = int(getattr(album, "track_count", 0) or 0)
+    ov_seconds = 0
+    for sg in (getattr(album, "songs", []) or []):
+        ap = str(getattr(sg, "audio_path", "") or "")
+        if ap:
+            try:
+                pp = Path(ap)
+                if not pp.is_absolute():
+                    pp = album_dir / ap
+                if pp.is_file():
+                    ov_seconds += _audio_seconds(pp)
+            except Exception:
+                continue
+
     saved: list[dict[str, str]] = []
     for v, prompt in zip(VARIANT_IDS, prompts):
         if prov == "openrouter":
@@ -291,6 +473,14 @@ async def generate_thumbnails(
         else:
             raw = await _gen_image_openai(api_key, mdl, prompt)
         jpg = _crop_to_thumb(raw)
+        if overlay_on and ov_title:
+            jpg = _overlay_text(
+                jpg,
+                title=ov_title,
+                subtitle=ov_subtitle,
+                track_count=ov_tracks,
+                total_seconds=ov_seconds,
+            )
         dest = tdir / f"thumb-{v}.jpg"
         dest.write_bytes(jpg)
         saved.append({"variant": v, "path": str(dest), "ready": True})
