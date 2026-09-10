@@ -64,6 +64,7 @@ async def generate_song_image(
     album_context: str = "",
     provider: str | None = None,
     model: str | None = None,
+    variation: int = 0,
 ) -> dict[str, Any]:
     """곡 1개의 배경 이미지 생성 → uploads/{album_id}/ 저장, song.image_path 갱신."""
     from app.config import settings
@@ -78,6 +79,20 @@ async def generate_song_image(
     mood = str(getattr(song, "mood", "") or "").strip()
     tags = str(getattr(song, "tags", "") or "").strip()
     system, user = _song_prompt_request(title, theme, mood, tags)
+    # 재생성 시 다른 결과 — variation 지시를 프롬프트 AI에 전달 (2026-09-10 v0.9.44)
+    if int(variation or 0):
+        angles = [
+            "a different camera angle (e.g. low-angle or close-up instead of wide)",
+            "a different time of day or weather within the same scene",
+            "a different color palette and lighting mood (e.g. warmer or cooler)",
+            "a different composition and focal point in the same setting",
+            "a different artistic style (e.g. film photograph vs cinematic render)",
+        ]
+        user += (
+            f"\n\nVARIATION: this is regeneration #{int(variation)}. IMPORTANT — produce a "
+            f"clearly DIFFERENT image from previous attempts: {angles[int(variation) % len(angles)]}. "
+            "Same scene described above, but a fresh interpretation."
+        )
     if album_context:
         user += (
             "\nAlbum context (secondary — only for lighting/palette consistency, "
