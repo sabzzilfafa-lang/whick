@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from "react";
 
 import { Link, useNavigate, useParams } from "react-router-dom";
 
-import { AlbumDetail, MusicProfile, api, albumThumbsApi } from "../api";
-import type { AlbumThumbFile } from "../api";
+import { AlbumDetail, MusicProfile, api, albumThumbsApi, songImagesApi } from "../api";
+import type { AlbumThumbFile, SongImageStatus } from "../api";
 
 import { notifyStyleChanged } from "../components/ActiveStyleBar";
 
@@ -50,6 +50,11 @@ export default function AlbumDetailPage() {
   // 썸네일 제목 표기 방식 — 설정에서 이동: 생성 화면 바로 아래 인라인 선택 (2026-09-10)
   const [thumbTitleMode, setThumbTitleMode] = useState<string>("ai");
   const [titleModeSaving, setTitleModeSaving] = useState(false);
+  // 트랙 배경 이미지 (2026-09-10) — 곡별 재생 배경 AI 생성
+  const [songImages, setSongImages] = useState<SongImageStatus[]>([]);
+  const [songImgBusy, setSongImgBusy] = useState(false);
+  const [songImgMsg, setSongImgMsg] = useState("");
+  const [songImgZoom, setSongImgZoom] = useState<number | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const stopPoll = () => {
@@ -110,6 +115,39 @@ export default function AlbumDetailPage() {
   useEffect(() => {
     api.getSettings().then((s) => setThumbTitleMode(String(s.thumbnail_title_mode || "ai"))).catch(() => {});
   }, []);
+
+  // 트랙 배경 이미지 현황 로드 (2026-09-10)
+  const loadSongImages = () => {
+    if (!id) return;
+    songImagesApi.list(Number(id)).then((r) => setSongImages(r.songs || [])).catch(() => setSongImages([]));
+  };
+  useEffect(() => {
+    loadSongImages();
+  }, [id]);
+
+  const handleSongImagesGenerate = async (songIds?: number[]) => {
+    if (!album) return;
+    setSongImgBusy(true);
+    setSongImgMsg(
+      songIds && songIds.length === 1
+        ? "해당 곡 배경 이미지 생성 중... (1~2분)"
+        : `트랙 ${album.songs.length}곡 배경 이미지 순차 생성 중... (곡당 수십 초)`,
+    );
+    try {
+      const res = await songImagesApi.generate(album.id, songIds ? { song_ids: songIds } : undefined);
+      const gen = res.generated?.length || 0;
+      const err = res.errors?.length || 0;
+      setSongImgMsg(
+        `완료: ${gen_txt(gen, album.songs.length)}${err ? ` · 실패 ${err}곡` : ""}`
+      );
+      loadSongImages();
+    } catch (e) {
+      setSongImgMsg(String(e));
+    } finally {
+      setSongImgBusy(false);
+    }
+  };
+  const gen_txt = (n: number, total: number) => `${n}/${total}곡 생성`;
 
   const saveThumbTitleMode = async (mode: string) => {
     setThumbTitleMode(mode);
@@ -633,6 +671,101 @@ export default function AlbumDetailPage() {
         </div>
       </div>
 
+      {/* 트랙 배경 이미지 (2026-09-10) — 곡별 재생 배경 AI 생성 */}
+      <div className="card" style={{ marginBottom: "1rem", padding: "1rem" }}>
+        <div className="card-title">{t("트랙 배경 이미지 (AI 생성)")}</div>
+        <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", margin: "0.25rem 0 0.75rem" }}>
+          {t("각 곡 제목·테마에 맞는 재생 배경 이미지를 트랙별로 생성합니다. 곡 재생 화면의 배경으로 사용됩니다.")}
+        </p>
+        <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", marginBottom: "0.75rem" }}>
+          {songImages.map((si) => (
+            <div
+              key={si.song_id}
+              style={{
+                width: 132,
+                border: "1px solid var(--border, #ddd)",
+                borderRadius: 8,
+                overflow: "hidden",
+                background: "var(--bg-secondary, #fafafa)",
+                cursor: si.ready ? "zoom-in" : "default",
+              }}
+              onClick={() => si.ready && setSongImgZoom(si.song_id)}
+              title={si.ready ? t("클릭하면 큰 이미지로 볼 수 있습니다") : t("미생성")}
+            >
+              {si.ready ? (
+                <img
+                  src={si.url}
+                  alt={`트랙 ${si.track}`}
+                  style={{ width: "100%", display: "block", aspectRatio: "16/9", objectFit: "cover" }}
+                />
+              ) : (
+                <div style={{ width: "100%", aspectRatio: "16/9", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-muted, #999)", fontSize: "0.75rem" }}>
+                  {t("미생성")}
+                </div>
+              )}
+              <div style={{ padding: "0.3rem 0.45rem", fontSize: "0.78rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <strong>#{si.track}</strong>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  disabled={songImgBusy}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void handleSongImagesGenerate([si.song_id]);
+                  }}
+                  style={{ padding: "0.1rem 0.45rem", fontSize: "0.72rem" }}
+                >
+                  {si.ready ? t("다시 생성") : t("생성")}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+          <button
+            type="button"
+            className="btn btn-primary"
+            disabled={songImgBusy}
+            onClick={() => void handleSongImagesGenerate()}
+          >
+            {songImgBusy ? t("생성 중...") : t("전체 트랙 이미지 생성")}
+          </button>
+        </div>
+        {songImgMsg && (
+          <p style={{ fontSize: "0.85rem", marginTop: "0.5rem", color: "var(--text-secondary)" }}>
+            {songImgMsg}
+          </p>
+        )}
+      </div>
+
+      {/* 트랙 배경 이미지 크게 보기 (2026-09-10) */}
+      {songImgZoom !== null && (
+        <div
+          onClick={() => setSongImgZoom(null)}
+          style={{
+            position: "fixed", inset: 0, zIndex: 1000,
+            background: "rgba(0,0,0,0.88)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            padding: "2.5vh 2.5vw", cursor: "zoom-out",
+          }}
+        >
+          <figure style={{ margin: 0, maxWidth: "95vw", textAlign: "center" }} onClick={(e) => e.stopPropagation()}>
+            <img
+              src={`/api/songs/${songImgZoom}/cover-image`}
+              alt="트랙 배경"
+              style={{
+                display: "block", maxWidth: "95vw", maxHeight: "88vh",
+                width: "auto", height: "auto", borderRadius: 8,
+                boxShadow: "0 8px 60px rgba(0,0,0,0.6)",
+              }}
+            />
+            <div style={{ marginTop: "0.6rem", color: "#ddd", fontSize: "0.95rem" }}>
+              {t("클릭하면 닫혀요")}
+            </div>
+          </figure>
+        </div>
+      )}
+
       {/* 썸네일 크게 보기 라이트박스 (2026-09-10, v0.9.37 대형화) */}
       {thumbZoom && (
         <div
@@ -746,6 +879,14 @@ export default function AlbumDetailPage() {
                     className={`status-dot ${song.audio_path ? "filled" : ""}`}
 
                     title="음원"
+
+                  />
+
+                  <span
+
+                    className={`status-dot ${(songImages.find((si) => si.song_id === song.id)?.ready) ? "filled" : ""}`}
+
+                    title="배경 이미지"
 
                   />
 

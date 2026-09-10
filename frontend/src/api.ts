@@ -1149,6 +1149,29 @@ export interface AlbumThumbsResult extends AlbumThumbsStatus {
   prompts?: string[];
 }
 
+export interface SongImageStatus {
+  song_id: number;
+  track: number;
+  title: string;
+  ready: boolean;
+  url: string;
+}
+
+export const songImagesApi = {
+  /** 곡별 배경 이미지 생성 현황 */
+  list: (albumId: number) =>
+    request<{ ok: boolean; songs: SongImageStatus[] }>(`/editor/song-images/${albumId}`),
+  /** 곡 배경 이미지 일괄 생성 (song_ids 미지정 시 앨범 전체) */
+  generate: (
+    albumId: number,
+    options?: { song_ids?: number[]; provider?: string; model?: string },
+  ) =>
+    request<{ ok: boolean; generated: { song_id: number; track: number; prompt: string }[]; errors: { song_id: number; error: string }[]; total: number }>(
+      `/editor/song-images/${albumId}/generate`,
+      { method: "POST", body: JSON.stringify(options ?? {}) },
+    ),
+};
+
 export const albumThumbsApi = {
   /** 3종 생성 현황 */
   list: (albumId: number) =>

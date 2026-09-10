@@ -525,6 +525,82 @@ async def get_album_thumbnail_file(
     return FileResponse(p, media_type="image/jpeg", filename=p.name)
 
 
+@router.get("/song-images/{album_id}")
+async def list_song_images(album_id: int, db: AsyncSession = Depends(get_db)):
+    """곡별 배경 이미지 생성 현황 (image_path 보유 여부) — 2026-09-10."""
+    result = await db.execute(
+        select(Album)
+        .options(selectinload(Album.songs))
+        .where(Album.id == album_id)
+    )
+    album = result.scalar_one_or_none()
+    if not album:
+        raise HTTPException(404, "앨범을 찾을 수 없습니다")
+    songs = [
+        {
+            "song_id": sg.id,
+            "track": sg.track_number,
+            "title": sg.title,
+            "ready": bool(sg.image_path),
+            "url": f"/api/songs/{sg.id}/cover-image" if sg.image_path else "",
+        }
+        for sg in album.songs
+    ]
+    return {"ok": True, "songs": songs}
+
+
+@router.post("/song-images/{album_id}/generate")
+async def generate_song_images(
+    album_id: int,
+    body: ThumbnailGenRequest | None = Body(default=None),
+    db: AsyncSession = Depends(get_db),
+):
+    """곡 배경 이미지 일괄 생성 — 트랙별 제목·테마 기반 (순차 생성).
+
+    body.song_ids가 있으면 해당 곡만, 없으면 앨범 전체.
+    """
+    import asyncio as _asyncio
+    from app.services.song_image_service import generate_song_image
+
+    result = await db.execute(
+        select(Album)
+        .options(selectinload(Album.songs), selectinload(Album.music_profile))
+        .where(Album.id == album_id)
+    )
+    album = result.scalar_one_or_none()
+    if not album:
+        raise HTTPException(404, "앨범을 찾을 수 없습니다")
+    songs = list(album.songs or [])
+    if body and body.song_ids:
+        want = set(body.song_ids)
+        songs = [sg for sg in songs if sg.id in want]
+    if not songs:
+        raise HTTPException(400, "생성할 곡이 없습니다")
+    songs.sort(key=lambda sg: sg.track_number or 0)
+
+    # 앨범 컨텍스트 (썸네일과 동일 수집)
+    from app.services.thumbnail_ai_service import _collect_album_context
+    context = _collect_album_context(album)
+
+    results: list[dict] = []
+    errors: list[dict] = []
+    for sg in songs:
+        try:
+            r = await generate_song_image(
+                db, sg,
+                album_context=context,
+                provider=body.provider if body else None,
+                model=body.model if body else None,
+            )
+            results.append(r)
+        except Exception as e:
+            logger.error("song image failed song=%s: %s", sg.id, e, exc_info=True)
+            msg = str(e)[:200]
+            msg = re.sub(r"[?&]key=[^&\s'\"]+", "?key=***", msg)
+            errors.append({"song_id": sg.id, "track": sg.track_number, "error": msg})
+    return {"ok": True, "generated": results, "errors": errors, "total": len(songs)}
+
+
 @router.get("/album-thumbs/{album_id}/image-models")
 async def list_album_image_models(album_id: int, db: AsyncSession = Depends(get_db)):
     """이미지 생성 AI 모델 목록 — provider별 (설정 화면 선택용, 2026-09-10)."""
@@ -556,6 +632,7 @@ class ThumbnailGenRequest(BaseModel):
     provider: Optional[str] = None  # google | openai (기본: 키 있는 쪽)
     model: Optional[str] = None
     prompts: Optional[list[str]] = None
+    song_ids: Optional[list[int]] = None  # 곡 배경 이미지: 특정 곡만 (2026-09-10)
 
 
 @router.post("/album-thumbs/{album_id}/generate")

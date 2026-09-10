@@ -78,6 +78,13 @@ const en: Dict = {
   "하단 바 표기 모드에서 이미지 하단에 곡 수·런닝타임을 표기합니다.": "In bottom-bar mode, shows track count and runtime at the bottom of the image.",
   "썸네일": "Thumbnail",
   "클릭하면 닫혀요": "Click to close",
+  "트랙 배경 이미지 (AI 생성)": "Track background images (AI generated)",
+  "각 곡 제목·테마에 맞는 재생 배경 이미지를 트랙별로 생성합니다. 곡 재생 화면의 배경으로 사용됩니다.": "Generate playing background images per track from each song's title and theme. Used as the background on the song playing screen.",
+  "미생성": "Not generated",
+  "생성": "Generate",
+  "다시 생성": "Regenerate",
+  "전체 트랙 이미지 생성": "Generate all track images",
+  "생성 중...": "Generating...",
   "활성화됨": "Activated",
   "갱신 만료 임박 — 다음 작업 시 자동 갱신": "renewal expiring — auto-renews on next job",
   "에서 발급한 키를 입력하세요.": "and paste the issued key here.",
@@ -330,6 +337,13 @@ const ja: Dict = {
   "하단 바 표기 모드에서 이미지 하단에 곡 수·런닝타임을 표기합니다.": "下部バーモードでは画像の下部に曲数・再生時間を表示します。",
   "썸네일": "サムネイル",
   "클릭하면 닫혀요": "クリックで閉じる",
+  "트랙 배경 이미지 (AI 생성)": "トラック背景画像（AI生成）",
+  "각 곡 제목·테마에 맞는 재생 배경 이미지를 트랙별로 생성합니다. 곡 재생 화면의 배경으로 사용됩니다.": "各曲のタイトル・テーマに合わせた再生背景画像をトラックごとに生成します。再生画面の背景として使用されます。",
+  "미생성": "未生成",
+  "생성": "生成",
+  "다시 생성": "再生成",
+  "전체 트랙 이미지 생성": "全トラック画像を生成",
+  "생성 중...": "生成中...",
   "활성화됨": "有効",
   
 };
@@ -425,6 +439,13 @@ const zh: Dict = {
   "하단 바 표기 모드에서 이미지 하단에 곡 수·런닝타임을 표기합니다.": "底部条模式下在图像底部显示曲目数和时长。",
   "썸네일": "缩略图",
   "클릭하면 닫혀요": "点击关闭",
+  "트랙 배경 이미지 (AI 생성)": "曲目背景图片（AI 生成）",
+  "각 곡 제목·테마에 맞는 재생 배경 이미지를 트랙별로 생성합니다. 곡 재생 화면의 배경으로 사용됩니다.": "根据每首歌的标题和主题生成播放背景图片，用作播放画面的背景。",
+  "미생성": "未生成",
+  "생성": "生成",
+  "다시 생성": "重新生成",
+  "전체 트랙 이미지 생성": "生成全部曲目图片",
+  "생성 중...": "生成中...",
   "활성화됨": "已激活",
 };
 
@@ -514,6 +535,13 @@ const es: Dict = {
   "하단 바 표기 모드에서 이미지 하단에 곡 수·런닝타임을 표기합니다.": "En modo barra inferior, muestra el número de pistas y la duración en la parte inferior.",
   "썸네일": "Miniatura",
   "클릭하면 닫혀요": "Haz clic para cerrar",
+  "트랙 배경 이미지 (AI 생성)": "Imágenes de fondo de pistas (generadas por IA)",
+  "각 곡 제목·테마에 맞는 재생 배경 이미지를 트랙별로 생성합니다. 곡 재생 화면의 배경으로 사용됩니다.": "Genera imágenes de fondo para reproducción a partir del título y tema de cada canción. Se usan como fondo en la pantalla de reproducción.",
+  "미생성": "Sin generar",
+  "생성": "Generar",
+  "다시 생성": "Regenerar",
+  "전체 트랙 이미지 생성": "Generar imágenes de todas las pistas",
+  "생성 중...": "Generando...",
   "활성화됨": "Activada",
 };
 
@@ -603,6 +631,13 @@ const fr: Dict = {
   "하단 바 표기 모드에서 이미지 하단에 곡 수·런닝타임을 표기합니다.": "En mode bandeau bas, affiche le nombre de pistes et la durée en bas de l'image.",
   "썸네일": "Miniature",
   "클릭하면 닫혀요": "Cliquez pour fermer",
+  "트랙 배경 이미지 (AI 생성)": "Images de fond des pistes (générées par IA)",
+  "각 곡 제목·테마에 맞는 재생 배경 이미지를 트랙별로 생성합니다. 곡 재생 화면의 배경으로 사용됩니다.": "Génère des images de fond de lecture à partir du titre et du thème de chaque chanson. Utilisées comme fond sur l'écran de lecture.",
+  "미생성": "Non générée",
+  "생성": "Générer",
+  "다시 생성": "Régénérer",
+  "전체 트랙 이미지 생성": "Générer les images de toutes les pistes",
+  "생성 중...": "Génération...",
   "활성화됨": "Activée",
 };
 
@@ -692,6 +727,13 @@ const de: Dict = {
   "하단 바 표기 모드에서 이미지 하단에 곡 수·런닝타임을 표기합니다.": "Im Leistenmodus werden Titelanzahl und Laufzeit unten im Bild angezeigt.",
   "썸네일": "Thumbnail",
   "클릭하면 닫혀요": "Klicken zum Schließen",
+  "트랙 배경 이미지 (AI 생성)": "Track-Hintergrundbilder (KI-generiert)",
+  "각 곡 제목·테마에 맞는 재생 배경 이미지를 트랙별로 생성합니다. 곡 재생 화면의 배경으로 사용됩니다.": "Erzeugt Wiedergabe-Hintergrundbilder aus Titel und Thema jedes Songs. Wird als Hintergrund der Wiedergabeanzeige verwendet.",
+  "미생성": "Nicht erstellt",
+  "생성": "Erstellen",
+  "다시 생성": "Neu erstellen",
+  "전체 트랙 이미지 생성": "Alle Track-Bilder erstellen",
+  "생성 중...": "Wird erstellt...",
   "활성화됨": "Aktiviert",
 };
 
@@ -781,6 +823,13 @@ const pt: Dict = {
   "하단 바 표기 모드에서 이미지 하단에 곡 수·런닝타임을 표기합니다.": "No modo barra inferior, mostra o número de faixas e a duração na parte de baixo.",
   "썸네일": "Miniatura",
   "클릭하면 닫혀요": "Clique para fechar",
+  "트랙 배경 이미지 (AI 생성)": "Imagens de fundo das faixas (IA)",
+  "각 곡 제목·테마에 맞는 재생 배경 이미지를 트랙별로 생성합니다. 곡 재생 화면의 배경으로 사용됩니다.": "Gera imagens de fundo de reprodução a partir do título e tema de cada música. Usadas como fundo na tela de reprodução.",
+  "미생성": "Não gerado",
+  "생성": "Gerar",
+  "다시 생성": "Regerar",
+  "전체 트랙 이미지 생성": "Gerar imagens de todas as faixas",
+  "생성 중...": "Gerando...",
   "활성화됨": "Ativada",
 };
 
@@ -870,6 +919,13 @@ const ru: Dict = {
   "하단 바 표기 모드에서 이미지 하단에 곡 수·런닝타임을 표기합니다.": "В режиме плашки внизу изображения показываются число треков и длительность.",
   "썸네일": "Миниатюра",
   "클릭하면 닫혀요": "Нажмите, чтобы закрыть",
+  "트랙 배경 이미지 (AI 생성)": "Фоновые изображения треков (ИИ)",
+  "각 곡 제목·테마에 맞는 재생 배경 이미지를 트랙별로 생성합니다. 곡 재생 화면의 배경으로 사용됩니다.": "Создаёт фоновые изображения для воспроизведения из названия и темы каждой песни. Используются как фон на экране воспроизведения.",
+  "미생성": "Не создано",
+  "생성": "Создать",
+  "다시 생성": "Пересоздать",
+  "전체 트랙 이미지 생성": "Создать изображения всех треков",
+  "생성 중...": "Создание...",
   "활성화됨": "Активирован",
 };
 
@@ -959,6 +1015,13 @@ const hi: Dict = {
   "하단 바 표기 모드에서 이미지 하단에 곡 수·런닝타임을 표기합니다.": "पट्टी मोड में छवि के नीचे ट्रैक संख्या और अवधि दिखाई जाती है।",
   "썸네일": "थंबनेल",
   "클릭하면 닫혀요": "बंद करने के लिए क्लिक करें",
+  "트랙 배경 이미지 (AI 생성)": "ट्रैक पृष्ठभूमि छवियाँ (AI जनरेटेड)",
+  "각 곡 제목·테마에 맞는 재생 배경 이미지를 트랙별로 생성합니다. 곡 재생 화면의 배경으로 사용됩니다.": "हर गाने के शीर्षक और थीम के अनुसार प्लेबैक पृष्ठभूमि छवियाँ बनाता है। प्लेबैक स्क्रीन की पृष्ठभूमि के रूप में उपयोग होता है।",
+  "미생성": "निर्मित नहीं",
+  "생성": "बनाएँ",
+  "다시 생성": "पुनः बनाएँ",
+  "전체 트랙 이미지 생성": "सभी ट्रैक छवियाँ बनाएँ",
+  "생성 중...": "बना रहा है...",
   "활성화됨": "सक्रिय",
 };
 
@@ -1048,6 +1111,13 @@ const idn: Dict = {
   "하단 바 표기 모드에서 이미지 하단에 곡 수·런닝타임을 표기합니다.": "Pada mode bilah bawah, jumlah lagu dan durasi ditampilkan di bawah gambar.",
   "썸네일": "Thumbnail",
   "클릭하면 닫혀요": "Klik untuk menutup",
+  "트랙 배경 이미지 (AI 생성)": "Gambar latar trek (dibuat AI)",
+  "각 곡 제목·테마에 맞는 재생 배경 이미지를 트랙별로 생성합니다. 곡 재생 화면의 배경으로 사용됩니다.": "Membuat gambar latar pemutaran dari judul dan tema setiap lagu. Digunakan sebagai latar layar pemutaran.",
+  "미생성": "Belum dibuat",
+  "생성": "Buat",
+  "다시 생성": "Buat ulang",
+  "전체 트랙 이미지 생성": "Buat semua gambar trek",
+  "생성 중...": "Membuat...",
   "활성화됨": "Aktif",
 };
 
