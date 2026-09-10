@@ -633,16 +633,33 @@ export default function AlbumDetailPage() {
         </div>
       </div>
 
-      {/* 썸네일 크게 보기 라이트박스 (2026-09-10) */}
-      <Modal open={thumbZoom !== null} onClose={() => setThumbZoom(null)} title={thumbZoom ? `썸네일 ${thumbZoom}` : ""}>
-        {thumbZoom && (
-          <img
-            src={albumThumbsApi.thumbnailFileUrl(album.id, thumbZoom)}
-            alt={`썸네일 ${thumbZoom}`}
-            style={{ width: "100%", display: "block", borderRadius: 6 }}
-          />
-        )}
-      </Modal>
+      {/* 썸네일 크게 보기 라이트박스 (2026-09-10, v0.9.37 대형화) */}
+      {thumbZoom && (
+        <div
+          onClick={() => setThumbZoom(null)}
+          style={{
+            position: "fixed", inset: 0, zIndex: 1000,
+            background: "rgba(0,0,0,0.88)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            padding: "2.5vh 2.5vw", cursor: "zoom-out",
+          }}
+        >
+          <figure style={{ margin: 0, maxWidth: "95vw", textAlign: "center" }} onClick={(e) => e.stopPropagation()}>
+            <img
+              src={albumThumbsApi.thumbnailFileUrl(album.id, thumbZoom)}
+              alt={`썸네일 ${thumbZoom}`}
+              style={{
+                display: "block", maxWidth: "95vw", maxHeight: "88vh",
+                width: "auto", height: "auto", borderRadius: 8,
+                boxShadow: "0 8px 60px rgba(0,0,0,0.6)",
+              }}
+            />
+            <div style={{ marginTop: "0.6rem", color: "#ddd", fontSize: "0.95rem" }}>
+              {t("썸네일")} {thumbZoom} — {t("클릭하면 닫혀요")}
+            </div>
+          </figure>
+        </div>
+      )}
 
       <div className="card">
 

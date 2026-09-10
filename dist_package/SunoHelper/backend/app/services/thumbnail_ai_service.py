@@ -310,7 +310,7 @@ def _overlay_text(
                 fill=(255, 255, 255, 220),
             )
     buf = io.BytesIO()
-    img.save(buf, "JPEG", quality=92)
+    img.save(buf, "JPEG", quality=95, subsampling=0)
     return buf.getvalue()
 
 
@@ -485,9 +485,21 @@ async def generate_prompts(db: AsyncSession, album) -> list[str]:
     context = _collect_album_context(album)
     s_cfg = await get_all_settings(db)
     title_mode = (s_cfg.get("thumbnail_title_mode") or "ai").strip().lower()
-    system, user = _build_prompt_request(title, "", "", title_mode)
+    concept = str(getattr(album, "concept", "") or "").strip()
+    mood = str(getattr(album, "mood", "") or "").strip()
+    system, user = _build_prompt_request(title, mood, concept, title_mode)
     if context:
-        user += "\nContext (use this to match the imagery mood):\n" + context
+        user += (
+            "\nContext (the imagery MUST faithfully express this — title meaning, "
+            "concept story, genre, mood, era, palette):\n" + context
+        )
+    user += (
+        "\n\nQUALITY BAR: each prompt must be a concrete art-direction brief of "
+        "3+ sentences naming (1) the exact scene and setting inspired by the title "
+        "meaning, (2) lighting & color palette derived from the mood/genre, (3) "
+        "typography treatment for the title, (4) composition & camera feel. "
+        "Generic or unrelated imagery is a failure."
+    )
     raw = await _ai_text(db, "thumbnail", system, user)
     return _extract_json(raw)
 

@@ -76,6 +76,8 @@ const en: Dict = {
   "AI 통합 렌더는 제목이 이미지 디자인의 일부로 그려집니다(예: 플레이리스트 커버). 하단 바 표기는 글자가 항상 정확합니다.": "With AI-integrated render the title is drawn as part of the image design (like premium playlist covers). Bottom-bar text always renders letters exactly.",
   "하단 정보 표기": "Bottom info overlay",
   "하단 바 표기 모드에서 이미지 하단에 곡 수·런닝타임을 표기합니다.": "In bottom-bar mode, shows track count and runtime at the bottom of the image.",
+  "썸네일": "Thumbnail",
+  "클릭하면 닫혀요": "Click to close",
   "활성화됨": "Activated",
   "갱신 만료 임박 — 다음 작업 시 자동 갱신": "renewal expiring — auto-renews on next job",
   "에서 발급한 키를 입력하세요.": "and paste the issued key here.",
@@ -326,6 +328,8 @@ const ja: Dict = {
   "AI 통합 렌더는 제목이 이미지 디자인의 일부로 그려집니다(예: 플레이리스트 커버). 하단 바 표기는 글자가 항상 정확합니다.": "AI統合レンダリングはタイトルを画像デザインの一部として描画します（プレイリストカバー風）。下部バー表記は文字が常に正確です。",
   "하단 정보 표기": "下部情報表記",
   "하단 바 표기 모드에서 이미지 하단에 곡 수·런닝타임을 표기합니다.": "下部バーモードでは画像の下部に曲数・再生時間を表示します。",
+  "썸네일": "サムネイル",
+  "클릭하면 닫혀요": "クリックで閉じる",
   "활성화됨": "有効",
   
 };
@@ -419,6 +423,8 @@ const zh: Dict = {
   "AI 통합 렌더는 제목이 이미지 디자인의 일부로 그려집니다(예: 플레이리스트 커버). 하단 바 표기는 글자가 항상 정확합니다.": "AI 统合渲染会把标题绘制成图像设计的一部分（如精品播放列表封面）。底部条显示的文字始终准确。",
   "하단 정보 표기": "底部信息显示",
   "하단 바 표기 모드에서 이미지 하단에 곡 수·런닝타임을 표기합니다.": "底部条模式下在图像底部显示曲目数和时长。",
+  "썸네일": "缩略图",
+  "클릭하면 닫혀요": "点击关闭",
   "활성화됨": "已激活",
 };
 
@@ -506,6 +512,8 @@ const es: Dict = {
   "AI 통합 렌더는 제목이 이미지 디자인의 일부로 그려집니다(예: 플레이리스트 커버). 하단 바 표기는 글자가 항상 정확합니다.": "Con el render integrado por IA, el título se dibuja como parte del diseño de la imagen (como portadas de playlist premium). La barra inferior siempre muestra las letras exactas.",
   "하단 정보 표기": "Información inferior",
   "하단 바 표기 모드에서 이미지 하단에 곡 수·런닝타임을 표기합니다.": "En modo barra inferior, muestra el número de pistas y la duración en la parte inferior.",
+  "썸네일": "Miniatura",
+  "클릭하면 닫혀요": "Haz clic para cerrar",
   "활성화됨": "Activada",
 };
 
@@ -593,6 +601,8 @@ const fr: Dict = {
   "AI 통합 렌더는 제목이 이미지 디자인의 일부로 그려집니다(예: 플레이리스트 커버). 하단 바 표기는 글자가 항상 정확합니다.": "Avec le rendu intégré par IA, le titre fait partie du design de l'image (comme les pochettes de playlist premium). Le bandeau bas affiche toujours les lettres exactes.",
   "하단 정보 표기": "Infos en bas",
   "하단 바 표기 모드에서 이미지 하단에 곡 수·런닝타임을 표기합니다.": "En mode bandeau bas, affiche le nombre de pistes et la durée en bas de l'image.",
+  "썸네일": "Miniature",
+  "클릭하면 닫혀요": "Cliquez pour fermer",
   "활성화됨": "Activée",
 };
 
@@ -680,6 +690,8 @@ const de: Dict = {
   "AI 통합 렌더는 제목이 이미지 디자인의 일부로 그려집니다(예: 플레이리스트 커버). 하단 바 표기는 글자가 항상 정확합니다.": "Beim KI-integrierten Rendering wird der Titel Teil des Bilddesigns (wie Premium-Playlist-Cover). Die untere Leiste zeigt immer exakte Buchstaben.",
   "하단 정보 표기": "Info unten",
   "하단 바 표기 모드에서 이미지 하단에 곡 수·런닝타임을 표기합니다.": "Im Leistenmodus werden Titelanzahl und Laufzeit unten im Bild angezeigt.",
+  "썸네일": "Thumbnail",
+  "클릭하면 닫혀요": "Klicken zum Schließen",
   "활성화됨": "Aktiviert",
 };
 
@@ -767,6 +779,8 @@ const pt: Dict = {
   "AI 통합 렌더는 제목이 이미지 디자인의 일부로 그려집니다(예: 플레이리스트 커버). 하단 바 표기는 글자가 항상 정확합니다.": "Na renderização integrada por IA, o título é desenhado como parte do design da imagem (como capas de playlist premium). A barra inferior sempre mostra letras exatas.",
   "하단 정보 표기": "Informações inferiores",
   "하단 바 표기 모드에서 이미지 하단에 곡 수·런닝타임을 표기합니다.": "No modo barra inferior, mostra o número de faixas e a duração na parte de baixo.",
+  "썸네일": "Miniatura",
+  "클릭하면 닫혀요": "Clique para fechar",
   "활성화됨": "Ativada",
 };
 
@@ -854,6 +868,8 @@ const ru: Dict = {
   "AI 통합 렌더는 제목이 이미지 디자인의 일부로 그려집니다(예: 플레이리스트 커버). 하단 바 표기는 글자가 항상 정확합니다.": "При интегрированном рендере ИИ заголовок рисуется как часть дизайна изображения (как премиальные обложки плейлистов). Нижняя плашка всегда даёт точные буквы.",
   "하단 정보 표기": "Информация внизу",
   "하단 바 표기 모드에서 이미지 하단에 곡 수·런닝타임을 표기합니다.": "В режиме плашки внизу изображения показываются число треков и длительность.",
+  "썸네일": "Миниатюра",
+  "클릭하면 닫혀요": "Нажмите, чтобы закрыть",
   "활성화됨": "Активирован",
 };
 
@@ -941,6 +957,8 @@ const hi: Dict = {
   "AI 통합 렌더는 제목이 이미지 디자인의 일부로 그려집니다(예: 플레이리스트 커버). 하단 바 표기는 글자가 항상 정확합니다.": "AI-एकीकृत रेंडर में शीर्षक छवि डिज़ाइन का हिस्से के रूप में बनता है (प्रीमियम प्लेलिस्ट कवर जैसा)। निचली पट्टी में अक्षर हमेशा सटीक होते हैं।",
   "하단 정보 표기": "निचली जानकारी",
   "하단 바 표기 모드에서 이미지 하단에 곡 수·런닝타임을 표기합니다.": "पट्टी मोड में छवि के नीचे ट्रैक संख्या और अवधि दिखाई जाती है।",
+  "썸네일": "थंबनेल",
+  "클릭하면 닫혀요": "बंद करने के लिए क्लिक करें",
   "활성화됨": "सक्रिय",
 };
 
@@ -1028,6 +1046,8 @@ const idn: Dict = {
   "AI 통합 렌더는 제목이 이미지 디자인의 일부로 그려집니다(예: 플레이리스트 커버). 하단 바 표기는 글자가 항상 정확합니다.": "Pada render terpadu AI, judul digambar sebagai bagian dari desain gambar (seperti sampul playlist premium). Bilah bawah selalu menampilkan huruf yang akurat.",
   "하단 정보 표기": "Info bawah",
   "하단 바 표기 모드에서 이미지 하단에 곡 수·런닝타임을 표기합니다.": "Pada mode bilah bawah, jumlah lagu dan durasi ditampilkan di bawah gambar.",
+  "썸네일": "Thumbnail",
+  "클릭하면 닫혀요": "Klik untuk menutup",
   "활성화됨": "Aktif",
 };
 
