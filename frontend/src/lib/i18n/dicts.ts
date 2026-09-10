@@ -7,6 +7,8 @@ import type { Dict, Lang } from "./types";
  */
 
 const en: Dict = {
+  "모델을 선택하세요": "Select a model",
+  "항목": "Task",
   "썸네일 글자 표기": "Thumbnail text overlay",
   "표기 (제목·곡수·런닝타임)": "Show (title · tracks · runtime)",
   "숨김": "Hide",
@@ -224,6 +226,8 @@ const en: Dict = {
 };
 
 const ja: Dict = {
+  "모델을 선택하세요": "モデルを選択してください",
+  "항목": "項目",
   "썸네일 글자 표기": "サムネイル文字表記",
   "표기 (제목·곡수·런닝타임)": "表示 (タイトル・曲数・尺)",
   "숨김": "非表示",
@@ -305,6 +309,8 @@ const ja: Dict = {
 };
 
 const zh: Dict = {
+  "모델을 선택하세요": "请选择模型",
+  "항목": "任务",
   "썸네일 글자 표기": "缩略图文字标注",
   "표기 (제목·곡수·런닝타임)": "显示 (标题·曲目数·时长)",
   "숨김": "隐藏",
@@ -384,6 +390,8 @@ const zh: Dict = {
 };
 
 const es: Dict = {
+  "모델을 선택하세요": "Selecciona un modelo",
+  "항목": "Tarea",
   "썸네일 글자 표기": "Texto en la miniatura",
   "표기 (제목·곡수·런닝타임)": "Mostrar (título · pistas · duración)",
   "숨김": "Ocultar",
@@ -458,6 +466,8 @@ const es: Dict = {
 };
 
 const fr: Dict = {
+  "모델을 선택하세요": "Sélectionner un modèle",
+  "항목": "Tâche",
   "썸네일 글자 표기": "Texte sur la miniature",
   "표기 (제목·곡수·런닝타임)": "Afficher (titre · pistes · durée)",
   "숨김": "Masquer",
@@ -532,6 +542,8 @@ const fr: Dict = {
 };
 
 const de: Dict = {
+  "모델을 선택하세요": "Modell auswählen",
+  "항목": "Aufgabe",
   "썸네일 글자 표기": "Text auf dem Thumbnail",
   "표기 (제목·곡수·런닝타임)": "Anzeigen (Titel · Tracks · Laufzeit)",
   "숨김": "Ausblenden",
@@ -606,6 +618,8 @@ const de: Dict = {
 };
 
 const pt: Dict = {
+  "모델을 선택하세요": "Selecione um modelo",
+  "항목": "Tarefa",
   "썸네일 글자 표기": "Texto na miniatura",
   "표기 (제목·곡수·런닝타임)": "Mostrar (título · faixas · duração)",
   "숨김": "Ocultar",
@@ -680,6 +694,8 @@ const pt: Dict = {
 };
 
 const ru: Dict = {
+  "모델을 선택하세요": "Выберите модель",
+  "항목": "Задача",
   "썸네일 글자 표기": "Текст на миниатюре",
   "표기 (제목·곡수·런닝타임)": "Показывать (название · треки · длительность)",
   "숨김": "Скрыть",
@@ -754,6 +770,8 @@ const ru: Dict = {
 };
 
 const hi: Dict = {
+  "모델을 선택하세요": "मॉडल चुनें",
+  "항목": "कार्य",
   "썸네일 글자 표기": "थंबनेल टेक्स्ट",
   "표기 (제목·곡수·런닝타임)": "दिखाएँ (शीर्षक · ट्रैक · अवधि)",
   "숨김": "छिपाएँ",
@@ -828,6 +846,8 @@ const hi: Dict = {
 };
 
 const idn: Dict = {
+  "모델을 선택하세요": "Pilih model",
+  "항목": "Tugas",
   "썸네일 글자 표기": "Teks thumbnail",
   "표기 (제목·곡수·런닝타임)": "Tampilkan (judul · jumlah lagu · durasi)",
   "숨김": "Sembunyikan",
