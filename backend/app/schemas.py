@@ -230,6 +230,10 @@ class GenerateLyricsRequest(BaseModel):
         default=None,
         description="영어 번역 시 사용할 한글 가사 (화면에서 수정한 최신본)",
     )
+    lyrics_en: Optional[str] = Field(
+        default=None,
+        description="한국어 의역 시 사용할 영어 가사 (화면에서 수정한 최신본)",
+    )
 
 
 class GeneratePromptRequest(BaseModel):

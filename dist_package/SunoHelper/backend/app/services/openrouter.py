@@ -203,7 +203,19 @@ LYRICS_TRANSLATE_SYSTEM = """당신은 K-pop·발라드 전문 작사·번역가
 - 한국어 곡명을 영어 노래 제목으로 의역 (직역보다 자연스러운 영어 곡명)
 - 출력은 아래 JSON만 (마크다운 없음):
 
-{"title": "English song title", "lyrics": "full English lyrics"}"""
+{"title": "English song title", "lyrics": "full English lyrics}"""
+
+LYRICS_TRANSLATE_TO_KO_SYSTEM = """당신은 K-pop·발라드 전문 작사·번역가입니다. 사용자가 확정한 영어 가사를 Suno AI용 한국어 노래 가사로 옮깁니다.
+
+규칙:
+- 직역 금지 — 한국어로 부르기 좋은 **노래 가사**로 의역·각색
+- 영어 원문의 의미·감정·이미지·스토리를 유지
+- [Verse], [Chorus], [Bridge], [Outro] 등 **섹션 태그·줄 수·줄바꿈 구조를 영어와 동일하게 유지** (줄을 줄이지 말 것)
+- 한국어 가사처럼 자연스럽게 (어색한 번역체·문어체 금지)
+- 영어 곡명을 한국어 노래 제목으로 의역 (직역보다 자연스러운 한국어 곡명)
+- 출력은 아래 JSON만 (마크다운 없음):
+
+{"title": "한국어 곡 제목", "lyrics": "전체 한국어 가사"}"""
 
 def _estimate_track_duration_sec(album: Optional[dict], song: Optional[dict] = None) -> int:
     """앨범 목표 시간과 곡 수로 트랙당 길이(초) 추정."""
@@ -897,6 +909,67 @@ async def translate_lyrics_to_english(
         return title, lyrics
     return None, (raw or "").strip()
 
+
+
+async def translate_lyrics_between(
+    client: AIClient,
+    source_lyrics: str,
+    direction: str = "ko2en",
+    song: Optional[dict] = None,
+    additional: Optional[str] = None,
+    model: Optional[str] = None,
+    temperature: float = 0.5,
+) -> tuple[Optional[str], str]:
+    """가사 의역 번역 범용 — ko→en / en→ko 양방향 (2026-09-10 v0.9.52).
+
+    기존 ko→en 전용(translate_lyrics_to_english)을 대체하지 않고 병행 유지.
+    """
+    if direction == "en2ko":
+        system = LYRICS_TRANSLATE_TO_KO_SYSTEM
+        src_label, dst_label = "영어", "한국어"
+        dst_title_hint = "한국어"
+    else:
+        system = LYRICS_TRANSLATE_SYSTEM
+        src_label, dst_label = "한국어", "영어"
+        dst_title_hint = "English"
+    user_prompt = f"## {src_label} 가사\n" + source_lyrics.strip()
+    if song:
+        if song.get("title"):
+            user_prompt += f"\n\n{src_label} 곡명: {song['title']}"
+        if song.get("title_en") and direction == "ko2en":
+            user_prompt += f"\n{src_label} 곡명(참고): {song['title_en']}"
+        if song.get("title_en") and direction == "en2ko":
+            user_prompt += f"\n영어 곡명(참고): {song['title_en']}"
+        if song.get("theme"):
+            user_prompt += f"\n테마: {song['theme']}"
+    from app.services.suno_prompt_service import _lyrics_stats
+
+    st = _lyrics_stats(source_lyrics)
+    if st["lines"] > 0:
+        user_prompt += (
+            f"\n\n{src_label} 가사는 **{st['lines']}줄**입니다. "
+            f"{dst_label} 가사도 섹션·줄 수를 동일하게 유지하세요 (줄을 줄이지 마세요)."
+        )
+    user_prompt += (
+        f"\n\n위 {src_label} 가사는 사용자가 수정한 최종본입니다. "
+        f"이 내용을 바탕으로 {dst_label} 곡 제목과 **노래 가사**를 JSON으로 의역해주세요. "
+        "단어 대 단어 번역이 아니라, 같은 곡으로 부를 수 있게 자연스럽게 만들어주세요."
+    )
+    if additional:
+        user_prompt += f"\n\n추가 지시: {additional}"
+
+    raw = await client.chat(
+        model or settings.model_lyrics,
+        system,
+        user_prompt,
+        temperature=temperature,
+        max_tokens=4000,
+        json_mode=True,
+    )
+    title, lyrics = _parse_lyrics_ko_json(raw)
+    if lyrics:
+        return title, lyrics
+    raise ValueError("AI 응답에서 가사를 파싱하지 못했습니다 — 다시 시도해주세요")
 
 async def generate_suno_prompt(
     client: AIClient,

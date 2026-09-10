@@ -16,6 +16,7 @@ import SongWorkflowBar from "../components/SongWorkflowBar";
 import { isStructuredSunoPrompt, SUNO_PROMPT_MAX_CHARS } from "../lib/sunoPrompt";
 import { cleanTheme } from "../lib/theme";
 import { currentWorkflowStep, getSongWorkflowSteps } from "../lib/songWorkflow";
+import { useLang } from "../lib/i18n";
 
 type TabField = "lyrics" | "prompt" | "instruments";
 type LyricsLang = "ko" | "en";
@@ -153,7 +154,10 @@ export default function SongPage() {
   const [variants, setVariants] = useState<GenerationVariant[]>([]);
   const [showAB, setShowAB] = useState(false);
   const [abType, setAbType] = useState<TabField>("lyrics");
-  const [lyricsLang, setLyricsLang] = useState<LyricsLang>("en");
+  // 초기 가사 언어 = 앱 UI 언어 (설정에서 한국어 → ko, 그 외 → en) — v0.9.52
+  // UI 언어는 어디까지나 "보기 언어"이며, 어느 쪽이든 먼저 만들고 반대편으로 의역 가능
+  const { lang: uiLang } = useLang();
+  const [lyricsLang, setLyricsLang] = useState<LyricsLang>(uiLang === "ko" ? "ko" : "en");
   const [translatingLyrics, setTranslatingLyrics] = useState(false);
   const [instrumentData, setInstrumentData] = useState<SongInstrumentSettings | null>(null);
   const [instrumentsOpen, setInstrumentsOpen] = useState(false);
@@ -391,33 +395,72 @@ export default function SongPage() {
 
   const handleLyricsLangChange = async (lang: LyricsLang) => {
     if (!song || lang === lyricsLang) return;
-    if (lang === "ko") {
+    const ko = koLyrics(song).trim();
+    const en = enLyrics(song).trim();
+
+    // 목표 언어 가사가 이미 있으면 — 의역 없이 그냥 보기 전환
+    if (lang === "ko" && ko) {
       setLyricsLang("ko");
       return;
     }
-    setLyricsLang("en");
-    const ko = koLyrics(song).trim();
-    const en = enLyrics(song).trim();
-    if (!ko || en) return;
+    if (lang === "en" && en) {
+      setLyricsLang("en");
+      return;
+    }
 
+    // 없는 쪽으로 전환 — 반대편 가사가 있으면 "의역", 없으면 "신규 생성"
+    if (lang === "ko" && !ko && !en) {
+      setLyricsLang("ko");
+      return;
+    }
+    if (lang === "en" && !en && !ko) {
+      setLyricsLang("en");
+      return;
+    }
+
+    setLyricsLang(lang);
     setTranslatingLyrics(true);
     setError("");
     try {
-      const result = await api.generateLyrics(song.id, undefined, "en", koLyrics(song));
-      setSong({
-        ...song,
-        lyrics_en: result.content,
-        ...(result.title?.trim() ? { title_en: result.title.trim() } : {}),
-        ...durationFieldsFromResult(result),
-      });
-      setMessage(
-        result.title?.trim()
-          ? `영어 제목과 가사를 의역했습니다: ${result.title.trim()}`
-          : "수정한 한글 가사를 바탕으로 영어 가사를 의역했습니다."
-      );
+      const result =
+        lang === "en"
+          ? await api.generateLyrics(song.id, undefined, "en", koLyrics(song))
+          : await api.generateLyrics(
+              song.id,
+              undefined,
+              "ko",
+              undefined,
+              enLyrics(song)
+            );
+      if (lang === "en") {
+        setSong({
+          ...song,
+          lyrics_en: result.content,
+          ...(result.title?.trim() ? { title_en: result.title.trim() } : {}),
+          ...durationFieldsFromResult(result),
+        });
+        setMessage(
+          result.title?.trim()
+            ? `영어 제목과 가사를 의역했습니다: ${result.title.trim()}`
+            : "수정한 한글 가사를 바탕으로 영어 가사를 의역했습니다."
+        );
+      } else {
+        setSong({
+          ...song,
+          lyrics_ko: result.content,
+          lyrics: result.content,
+          ...(result.title?.trim() ? { title: result.title.trim() } : {}),
+          ...durationFieldsFromResult(result),
+        });
+        setMessage(
+          result.title?.trim()
+            ? `한글 제목과 가사를 의역했습니다: ${result.title.trim()}`
+            : "수정한 영어 가사를 바탕으로 한글 가사를 의역했습니다."
+        );
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "가사 번역 실패");
-      setLyricsLang("ko");
+      setLyricsLang(lang === "en" ? "ko" : "en");
     } finally {
       setTranslatingLyrics(false);
     }
@@ -448,7 +491,7 @@ export default function SongPage() {
           song.id,
           undefined,
           lyricsLang,
-          lyricsLang === "en" ? koLyrics(song) : undefined
+          lyricsLang === "en" ? koLyrics(song) : enLyrics(song)
         );
       } else if (type === "prompt") {
         const instJson =

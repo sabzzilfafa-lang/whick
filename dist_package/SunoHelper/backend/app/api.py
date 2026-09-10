@@ -464,7 +464,28 @@ async def api_generate_lyrics(
 
     try:
         generated_title: Optional[str] = None
-        if lang == "en":
+        if lang == "ko" and (req.lyrics_en or "").strip():
+            # 영어 → 한국어 의역 (v0.9.52 — 설정 언어와 무관하게 양방향 의역)
+            from app.services.openrouter import translate_lyrics_between
+
+            en = req.lyrics_en.strip()
+            if not (song.lyrics_en or "").strip():
+                song.lyrics_en = en
+            ko_title, content = await translate_lyrics_between(
+                client,
+                en,
+                direction="en2ko",
+                song=_model_to_dict(song),
+                additional=req.additional_instructions,
+                model=model,
+                temperature=temp,
+            )
+            if ko_title:
+                song.title = ko_title[:200]
+                generated_title = ko_title
+                song.title = ko_title[:200]
+                generated_title = ko_title
+        elif lang == "en":
             ko = (req.lyrics_ko or "").strip() or (lyrics_ko_text(song) or "").strip()
             if req.lyrics_ko and req.lyrics_ko.strip():
                 song.lyrics_ko = req.lyrics_ko.strip()

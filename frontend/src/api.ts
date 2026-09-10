@@ -634,7 +634,8 @@ export const api = {
     songId: number,
     additional?: string,
     language: "ko" | "en" = "ko",
-    lyricsKo?: string
+    lyricsKo?: string,
+    lyricsEn?: string
   ) =>
     request<GenerationResult>("/generate/lyrics", {
       method: "POST",
@@ -643,6 +644,7 @@ export const api = {
         additional_instructions: additional,
         language,
         ...(lyricsKo !== undefined ? { lyrics_ko: lyricsKo } : {}),
+        ...(lyricsEn !== undefined ? { lyrics_en: lyricsEn } : {}),
       }),
     }),
   generatePrompt: (songId: number, additional?: string, instrumentSettings?: string) =>
