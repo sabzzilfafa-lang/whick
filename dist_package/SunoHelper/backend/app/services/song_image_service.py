@@ -73,7 +73,10 @@ async def generate_song_image(
     system, user = _song_prompt_request(title, theme, mood, tags)
     if album_context:
         user += "\nAlbum context (must faithfully match):\n" + album_context
-    raw = await _ai_text(db, "thumbnail", system, user)
+    try:
+        raw = await _ai_text(db, "thumbnail", system, user)
+    except Exception as e:
+        raise ValueError(f"[프롬프트 생성 실패] {e}") from e
     prompts = _extract_json(raw)
     prompt = prompts[0] if prompts else (
         f"Cinematic atmospheric scene for the song '{title}', "
@@ -98,12 +101,15 @@ async def generate_song_image(
         )
     mdl = model or s.get("image_model") or conf["model"]
 
-    if prov == "openrouter":
-        raw_img = await _gen_image_openrouter(api_key, mdl, prompt)
-    elif prov == "google":
-        raw_img = await _gen_image_google(api_key, mdl, prompt, None)
-    else:
-        raw_img = await _gen_image_openai(api_key, mdl, prompt)
+    try:
+        if prov == "openrouter":
+            raw_img = await _gen_image_openrouter(api_key, mdl, prompt)
+        elif prov == "google":
+            raw_img = await _gen_image_google(api_key, mdl, prompt, None)
+        else:
+            raw_img = await _gen_image_openai(api_key, mdl, prompt)
+    except Exception as e:
+        raise ValueError(f"[이미지 생성 실패 {prov}:{mdl}] {e}") from e
 
     jpg = _crop_to_thumb(raw_img)
 
@@ -114,7 +120,10 @@ async def generate_song_image(
     upload_dir.mkdir(parents=True, exist_ok=True)
     filename = f"cover_{int(getattr(song, 'track_number', 0) or 0):02d}_{getattr(song, 'id', 0)}.jpg"
     filepath = upload_dir / filename
-    filepath.write_bytes(jpg)
+    try:
+        filepath.write_bytes(jpg)
+    except OSError as e:
+        raise ValueError(f"[저장 실패] {filepath.parent} — {e}") from e
 
     song.image_path = str(filepath)
     await db.flush()

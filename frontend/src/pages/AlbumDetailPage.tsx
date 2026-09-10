@@ -136,10 +136,17 @@ export default function AlbumDetailPage() {
     try {
       const res = await songImagesApi.generate(album.id, songIds ? { song_ids: songIds } : undefined);
       const gen = res.generated?.length || 0;
-      const err = res.errors?.length || 0;
-      setSongImgMsg(
-        `완료: ${gen_txt(gen, album.songs.length)}${err ? ` · 실패 ${err}곡` : ""}`
-      );
+      const errs = res.errors || [];
+      if (errs.length) {
+        // 실패 원인을 바로 볼 수 있게 트랙·메시지 표시 (2026-09-10)
+        const detail = errs
+          .slice(0, 3)
+          .map((x) => `#${x.track ?? "?"}: ${x.error || "unknown"}`)
+          .join(" / ");
+        setSongImgMsg(`${t("실패")} ${errs.length}곡 — ${detail}${errs.length > 3 ? " …" : ""}`);
+      } else {
+        setSongImgMsg(`${t("완료")}: ${gen}/${album.songs.length} ${t("곡 생성")}`);
+      }
       loadSongImages();
     } catch (e) {
       setSongImgMsg(String(e));
@@ -147,7 +154,6 @@ export default function AlbumDetailPage() {
       setSongImgBusy(false);
     }
   };
-  const gen_txt = (n: number, total: number) => `${n}/${total}곡 생성`;
 
   const saveThumbTitleMode = async (mode: string) => {
     setThumbTitleMode(mode);
