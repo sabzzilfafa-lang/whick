@@ -168,6 +168,19 @@ def _extract_json(text: str) -> list[str]:
     if len(picked) >= 3:
         return picked[:3]
 
+    # 폴백 2: 불완전 JSON(응답 잘림) — 완전한 문자열 리터럴만 추출 (2026-09-10 v0.9.42)
+    # 추론 모델이 max_tokens로 잘리면 배열이 닫히지 않아 json.loads가 실패한다.
+    # 따옴표로 감싸고 쉼표로 끝나는(=완성된) 문자열만 골라 사용.
+    if "[" in text:
+        literals = re.findall(r'"((?:[^"\\]|\\.)*)"', text)
+        cleaned = []
+        for lit in literals:
+            lit = lit.replace('\\"', '"').replace("\\n", " ").strip()
+            if len(lit) > 30:
+                cleaned.append(lit)
+        if len(cleaned) >= 1:
+            return cleaned[:3]
+
     raise ValueError(
         "AI가 프롬프트 3개를 반환하지 않았습니다. "
         f"응답 일부: {text[:150]!r} — 썸네일 AI 모델을 다른 모델로 바꿔 시도해 보세요."

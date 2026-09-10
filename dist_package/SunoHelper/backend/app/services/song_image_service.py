@@ -36,7 +36,8 @@ def _song_prompt_request(title: str, theme: str, mood: str, tags: str) -> tuple[
         "prompt for a single song's PLAYING BACKGROUND image (16:9 landscape). "
         "The prompt must faithfully express the song title's meaning, theme and mood: "
         "name the exact scene & setting, lighting, color palette, era, and camera "
-        "feel derived from the title/theme. Cinematic, high detail, atmospheric. "
+        "feel derived from the title/theme. Keep it CONCISE: 2-3 sentences, under 120 "
+        "words total — the response must not be truncated. "
         "ABSOLUTELY NO text, letters, words, captions, watermarks or logos in the "
         "image (it plays behind other UI). Do not draw any typography."
     )
