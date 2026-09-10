@@ -352,19 +352,30 @@ async def _gen_image_openrouter(api_key: str, model: str, prompt: str, seed: int
     OpenAI 호환 게이트웨이 — openrouter_api_key 하나로 Gemini·GPT-Image 등
     이미지 모델을 모두 쓸 수 있다. 기본 모델 google/gemini-2.5-flash-image.
     """
-    async with httpx.AsyncClient(timeout=180.0) as client:
-        resp = await client.post(
-            "https://openrouter.ai/api/v1/images",
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json",
-            },
-            json={
-                **{"model": model, "prompt": prompt, "aspect_ratio": "16:9"},
-                **({"seed": seed} if seed is not None else {}),
-            },
-        )
-        resp.raise_for_status()
+    async with httpx.AsyncClient(timeout=300.0) as client:
+        try:
+            resp = await client.post(
+                "https://openrouter.ai/api/v1/images",
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    **{"model": model, "prompt": prompt, "aspect_ratio": "16:9"},
+                    **({"seed": seed} if seed is not None else {}),
+                },
+            )
+        except httpx.TimeoutException as e:
+            raise ValueError(
+                f"{model} 응답 대기 300초 초과 (모델이 느리거나 과부하) — 잠시 후 재시도하거나 더 빠른 모델(gemini-3.1-flash-image 등)을 선택하세요"
+            ) from e
+        if resp.status_code != 200:
+            body = ""
+            try:
+                body = resp.json().get("error", {}).get("message", "") or resp.text[:300]
+            except Exception:
+                body = resp.text[:300]
+            raise ValueError(f"HTTP {resp.status_code} — {body}")
         data = resp.json()
     b64 = ((data.get("data") or [{}])[0].get("b64_json")) or ""
     if not b64:
@@ -386,7 +397,7 @@ async def _gen_image_google(
         "generationConfig": {"responseModalities": ["TEXT", "IMAGE"]},
     }
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
-    async with httpx.AsyncClient(timeout=180.0) as client:
+    async with httpx.AsyncClient(timeout=300.0) as client:
         resp = await client.post(
             url,
             # 키는 헤더로 전달 — URL 쿼리(?key=)로 보내면 httpx 에러 메시지에
@@ -405,7 +416,7 @@ async def _gen_image_google(
 
 async def _gen_image_openai(api_key: str, model: str, prompt: str) -> bytes:
     """OpenAI images/generations — gpt-image-1, 1280x720 근사(1536x1024 → 크롭)."""
-    async with httpx.AsyncClient(timeout=180.0) as client:
+    async with httpx.AsyncClient(timeout=300.0) as client:
         resp = await client.post(
             "https://api.openai.com/v1/images/generations",
             headers={"Authorization": f"Bearer {api_key}"},
