@@ -945,8 +945,8 @@ export default function SongPage() {
               }}
               placeholder={
                 lyricsLang === "en"
-                  ? "영어 가사 번역 시 함께 만들어지며, 직접 수정할 수 있습니다"
-                  : "한글 가사 생성 시 함께 만들어지며, 직접 수정할 수 있습니다"
+                  ? "한글 가사를 먼저 만들면 여기서 「영어로 의역」 가능 — 역방향도 동일"
+                  : "영어 가사 생성 후 「한글로 의역」을 누르면 이 곡의 한글 가사가 만들어집니다"
               }
             />
           </div>
@@ -966,7 +966,7 @@ export default function SongPage() {
                   ? "한글 가사 (AI 생성 또는 직접 입력)"
                   : enLyrics(song).trim()
                     ? "English lyrics"
-                    : "English 탭 또는 「영어로 의역」으로 수정한 한글을 영어 가사로 옮깁니다"
+                    : "한글 가사가 있으면 「영어로 의역」, 영어 가사가 있으면 「한글로 의역」으로 서로 옮길 수 있습니다"
             }
             rows={16}
             disabled={translatingLyrics}

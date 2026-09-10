@@ -642,16 +642,23 @@ label {
 
 /* 중앙하단 whick.org 라이센스 마크 (2026-09-09 파파님 지시) */
 .app-footer {
-  position: sticky;
+  position: fixed;
+  left: 240px;
+  right: 0;
   bottom: 0;
-  margin-top: auto;
+  z-index: 30;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
   padding: 8px 0;
   border-top: 1px solid var(--border);
-  background: var(--bg-secondary);
+  background: #14141c;
+  pointer-events: none;
+}
+
+.app-footer-link {
+  pointer-events: auto;
 }
 
 .app-footer-mark {
