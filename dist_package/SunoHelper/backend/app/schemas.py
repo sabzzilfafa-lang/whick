@@ -24,6 +24,12 @@ class SettingsUpdate(BaseModel):
     temperature_prompt: Optional[str] = None
     temperature_instruments: Optional[str] = None
     temperature_analyze: Optional[str] = None
+    # 썸네일 생성 AI 설정 — 스키마에 없으면 PATCH 요청이 Pydantic에서 버려져 저장 불가
+    provider_thumbnail: Optional[str] = None
+    model_thumbnail: Optional[str] = None
+    image_provider: Optional[str] = None
+    image_model: Optional[str] = None
+    thumbnail_overlay: Optional[str] = None
 
 
 class SettingsResponse(BaseModel):
@@ -47,6 +53,13 @@ class SettingsResponse(BaseModel):
     temperature_prompt: str
     temperature_instruments: str
     temperature_analyze: str
+    # 썸네일 생성 AI 설정 — response_model 필드 누락 시 FastAPI가 응답에서
+    # 잘라내므로 저장 직후 화면이 빈 모델로 갱신되는 버그 (2026-09-10 확정)
+    provider_thumbnail: str = "openrouter"
+    model_thumbnail: str = ""
+    image_provider: str = "openrouter"
+    image_model: str = ""
+    thumbnail_overlay: str = "1"
 
 
 # --- Music Profile ---
