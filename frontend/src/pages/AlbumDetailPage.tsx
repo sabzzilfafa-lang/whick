@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react";
 
 import { Link, useNavigate, useParams } from "react-router-dom";
 
-import { AlbumDetail, MusicProfile, api } from "../api";
+import { AlbumDetail, MusicProfile, api, albumThumbsApi } from "../api";
+import type { AlbumThumbFile } from "../api";
 
 import { notifyStyleChanged } from "../components/ActiveStyleBar";
 
@@ -38,9 +39,11 @@ export default function AlbumDetailPage() {
 
   const [styleMsg, setStyleMsg] = useState("");
 
+  const [thumbFiles, setThumbFiles] = useState<AlbumThumbFile[]>([]);
+  const [thumbBusy, setThumbBusy] = useState(false);
+  const [thumbMsg, setThumbMsg] = useState("");
+  const [thumbPrompts, setThumbPrompts] = useState<string[]>([]);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-
 
   const stopPoll = () => {
 
@@ -79,12 +82,68 @@ export default function AlbumDetailPage() {
 
 
   useEffect(() => {
-
     load();
-
     return () => stopPoll();
-
   }, [id]);
+
+  /* --- 앨범 썸네일 3종 (2026-09-09) --- */
+  const loadThumbs = () => {
+    if (!id) return;
+    albumThumbsApi
+      .list(Number(id))
+      .then((r) => setThumbFiles(r.files || []))
+      .catch(() => setThumbFiles([]));
+  };
+
+  useEffect(() => {
+    loadThumbs();
+  }, [id]);
+
+  const handleThumbGenerate = async () => {
+    if (!album) return;
+    setThumbBusy(true);
+    setThumbMsg("AI 썸네일 3장 생성 중... (1~2분)");
+    try {
+      const res = await albumThumbsApi.generate(album.id);
+      setThumbFiles(res.files || []);
+      setThumbPrompts(res.prompts || []);
+      setThumbMsg(`생성 완료 — ${res.provider || ""} ${res.model || ""}`);
+    } catch (e) {
+      setThumbMsg(String(e));
+    } finally {
+      setThumbBusy(false);
+    }
+  };
+
+  const handleThumbPreviewPrompts = async () => {
+    if (!album) return;
+    setThumbBusy(true);
+    setThumbMsg("프롬프트 생성 중...");
+    try {
+      const res = await albumThumbsApi.makePrompts(album.id);
+      setThumbPrompts(res.prompts || []);
+      setThumbMsg("프롬프트 3개 생성 완료");
+    } catch (e) {
+      setThumbMsg(String(e));
+    } finally {
+      setThumbBusy(false);
+    }
+  };
+
+  const handleThumbApply = async (variant: "A" | "B" | "C") => {
+    if (!album) return;
+    setThumbBusy(true);
+    try {
+      /* project_path 미지정 — 백엔드가 앨범 첫 곡 pipeline_path를 자동 선택 */
+      await albumThumbsApi.apply(album.id, variant);
+      setThumbMsg(`첫 곡 thumbnail.jpg를 ${variant}로 교체했습니다`);
+      loadThumbs();
+    } catch (e) {
+      setThumbMsg(String(e));
+    } finally {
+      setThumbBusy(false);
+    }
+  };
 
 
 
@@ -429,7 +488,110 @@ export default function AlbumDetailPage() {
 
       </div>
 
-
+      <div className="card" style={{ marginBottom: "1rem", padding: "1rem" }}>
+        <div className="card-title">유튜브 썸네일 3종 (AI 생성)</div>
+        <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", margin: "0.25rem 0 0.75rem" }}>
+          앨범 커버와 콘셉트로 썸네일 후보 3장(A/B/C)을 만듭니다.
+          유튜브 스튜디오의 「Test &amp; Compare」(썸네일 A/B 테스트)에 3장을 모두 올리면
+          유튜브가 가장 클릭률이 높은 썸네일을 자동으로 대표 노출합니다.
+        </p>
+        <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
+          {(thumbFiles.length
+            ? thumbFiles
+            : ([
+                { variant: "A" },
+                { variant: "B" },
+                { variant: "C" },
+              ] as AlbumThumbFile[])
+          ).map((f) => (
+            <div
+              key={f.variant}
+              style={{
+                width: 212,
+                border: "1px solid var(--border, #ddd)",
+                borderRadius: 8,
+                overflow: "hidden",
+                background: "var(--bg-secondary, #fafafa)",
+              }}
+            >
+              {f.ready && f.variant && thumbFiles.length > 0 ? (
+                <img
+                  src={albumThumbsApi.thumbnailFileUrl(album.id, f.variant as "A" | "B" | "C")}
+                  alt={`썸네일 ${f.variant}`}
+                  style={{ width: "100%", display: "block", aspectRatio: "16/9", objectFit: "cover" }}
+                />
+              ) : (
+                <div
+                  style={{
+                    width: "100%",
+                    aspectRatio: "16/9",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "var(--text-muted, #999)",
+                    fontSize: "0.8rem",
+                  }}
+                >
+                  미생성
+                </div>
+              )}
+              <div
+                style={{
+                  padding: "0.4rem 0.5rem",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                }}
+              >
+                <strong style={{ fontSize: "0.85rem" }}>썸네일 {f.variant}</strong>
+                {f.ready && (
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    disabled={thumbBusy}
+                    onClick={() => handleThumbApply(f.variant as "A" | "B" | "C")}
+                    title="첫 곡의 thumbnail.jpg로 적용"
+                  >
+                    첫 곡에 적용
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+        <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.75rem", flexWrap: "wrap" }}>
+          <button
+            type="button"
+            className="btn btn-primary"
+            disabled={thumbBusy}
+            onClick={() => void handleThumbGenerate()}
+          >
+            {thumbBusy ? "생성 중..." : "썸네일 3장 AI 생성"}
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            disabled={thumbBusy}
+            onClick={() => void handleThumbPreviewPrompts()}
+          >
+            프롬프트만 먼저 보기
+          </button>
+        </div>
+        {thumbMsg && (
+          <p style={{ fontSize: "0.85rem", marginTop: "0.5rem", color: "var(--text-secondary)" }}>
+            {thumbMsg}
+          </p>
+        )}
+        {thumbPrompts.length > 0 && (
+          <div style={{ marginTop: "0.5rem", fontSize: "0.8rem", color: "var(--text-secondary)" }}>
+            {thumbPrompts.map((p, i) => (
+              <div key={i} style={{ marginBottom: "0.25rem" }}>
+                <strong>{"ABC"[i]}</strong>: {p}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       <div className="card">
 

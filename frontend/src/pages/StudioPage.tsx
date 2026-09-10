@@ -675,6 +675,36 @@ export default function StudioPage() {
                     <span className="meta">설정에서 YouTube 연동 필요</span>
                   )}
                 </div>
+                {youtubeMeta?.video_id && (
+                  <div
+                    className="card"
+                    style={{ marginTop: "0.75rem", padding: "0.75rem", fontSize: "0.85rem" }}
+                  >
+                    <strong>썸네일 A/B 테스트 (Test &amp; Compare)</strong>
+                    <p style={{ margin: "0.35rem 0" }}>
+                      앨범 페이지에서 만든 썸네일 3종(A/B/C)을 유튜브 스튜디오에 모두 등록하면,
+                      유튜브가 클릭률이 가장 높은 썸네일을 자동으로 대표 노출합니다.
+                    </p>
+                    <ol style={{ margin: "0.25rem 0 0.5rem 1.2rem", padding: 0 }}>
+                      <li>
+                        <a
+                          href="https://studio.youtube.com/"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          YouTube 스튜디오
+                        </a>
+                        에서 이 영상을 연 뒤 「썸네일」 → 「Test &amp; Compare」 선택
+                      </li>
+                      <li>
+                        작업 폴더 <code>01_음악작업/&lt;앨범&gt;/thumbnails/</code> 의{" "}
+                        <code>thumb-A.jpg · thumb-B.jpg · thumb-C.jpg</code> 3장을 업로드
+                      </li>
+                      <li>테스트 기간(최대 2주) 후 승자 썸네일이 자동 적용됩니다</li>
+                    </ol>
+                    <span className="meta">※ Test &amp; Compare는 유튜브 API가 없어 스튜디오에서 직접 등록해야 합니다</span>
+                  </div>
+                )}
               </div>
             </>
           )}

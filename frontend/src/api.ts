@@ -163,6 +163,10 @@ export interface AppSettings {
   temperature_prompt: string;
   temperature_instruments: string;
   temperature_analyze: string;
+  /** 썸네일 3종 생성 (2026-09-10): 프롬프트용 텍스트 AI + 이미지 생성 AI */
+  provider_thumbnail: string;
+  model_thumbnail: string;
+  image_provider: string;
 }
 
 export interface GenerationVariant {
@@ -1068,3 +1072,97 @@ export function formatSunoCopy(song: Song): string {
   if (song.instrument_settings) parts.push(`[Instruments]\n${song.instrument_settings}`);
   return parts.join("\n\n");
 }
+
+// ---------------------------------------------------------------------------
+// Whick 라이선스·API키 (2026-09-08 API키 전환)
+// ---------------------------------------------------------------------------
+
+export interface WhickLicenseStatus {
+  state: "valid" | "grace" | "expired" | "none";
+  email?: string;
+  has_api_key?: boolean;
+  expired_at?: string | null;
+  [k: string]: unknown;
+}
+
+export const licenseApi = {
+  /** 라이선스·API키 상태 */
+  status: () => request<WhickLicenseStatus>("/license/status"),
+  /** whick.org 내 계정 → API키 발급 후 붙여넣어 활성화 */
+  activateWithApiKey: (apiKey: string) =>
+    request<WhickLicenseStatus>("/license/activate-api-key", {
+      method: "POST",
+      body: JSON.stringify({ api_key: apiKey }),
+    }),
+  /** 보관된 API키 재검증 (작업 게이트와 동일 기준) */
+  verifyKey: () => request<Record<string, unknown>>("/license/verify-key", { method: "POST" }),
+  /** 로컬 활성 해제 (기기 이전 전 웹에서 해지 권장) */
+  deactivate: () => request<{ state: string }>("/license/deactivate", { method: "POST" }),
+};
+
+// ---------------------------------------------------------------------------
+// 업데이트 체크 (2026-09-09 — whick.org 채널, 기동 시 1회 확인)
+// ---------------------------------------------------------------------------
+
+export interface UpdateInfo {
+  version: string;
+  update: {
+    version: string;
+    current: string;
+    notes?: string;
+    download_url?: string;
+  } | null;
+}
+
+export const updateApi = {
+  /** 현재 버전 + 새 버전 메타데이터 (새 버전 없으면 update: null) */
+  check: () => request<UpdateInfo>("/version"),
+};
+
+// ---------------------------------------------------------------------------
+// 앨범 썸네일 3종 AI 생성 (2026-09-09 — 유튜브 Test&Compare 대비 3변형)
+// ---------------------------------------------------------------------------
+
+export interface AlbumThumbFile {
+  variant: "A" | "B" | "C";
+  path: string;
+  ready: boolean;
+  url?: string;
+}
+
+export interface AlbumThumbsStatus {
+  ok: boolean;
+  files: AlbumThumbFile[];
+  dir: string;
+}
+
+export interface AlbumThumbsResult extends AlbumThumbsStatus {
+  provider?: string;
+  model?: string;
+  prompts?: string[];
+}
+
+export const albumThumbsApi = {
+  /** 3종 생성 현황 */
+  list: (albumId: number) =>
+    request<AlbumThumbsStatus>(`/editor/album-thumbs/${albumId}`),
+  /** 이미지 프롬프트 3개만 생성 (미리보기) */
+  makePrompts: (albumId: number) =>
+    request<{ ok: boolean; prompts: string[] }>(`/editor/album-thumbs/${albumId}/prompts`, {
+      method: "POST",
+    }),
+  /** 썸네일 3장 AI 생성 (google gemini / openai gpt-image) */
+  generate: (albumId: number, options?: { provider?: string; model?: string; prompts?: string[] }) =>
+    request<AlbumThumbsResult>(`/editor/album-thumbs/${albumId}/generate`, {
+      method: "POST",
+      body: JSON.stringify(options ?? {}),
+    }),
+  thumbnailFileUrl: (albumId: number, variant: "A" | "B" | "C") =>
+    `${API_BASE}/editor/album-thumbs/${albumId}/file/${variant}?t=${Date.now()}`,
+  /** 생성본을 곡 thumbnail.jpg로 적용 (projectPath 미지정 시 첫 곡 자동 선택) */
+  apply: (albumId: number, variant: "A" | "B" | "C", projectPath?: string) =>
+    request<{ ok: boolean; path: string; applied_to?: string }>(
+      `/editor/album-thumbs/${albumId}/apply/${variant}${projectPath ? `?project_path=${encodeURIComponent(projectPath)}` : ""}`,
+      { method: "POST" }
+    ),
+};

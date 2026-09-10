@@ -25,7 +25,7 @@
 
 | 엔드포인트 | 역할 |
 |---|---|
-| `POST /api/suno/activate` | `{install_token, machine_id}` → 서명된 라이선스 JWT 발급 |
+| `POST /api/suno/verify-key` | 통합 API키(whick_) 검증 + 사용량 기록 (2026-09-08 토큰 체계 폐지) |
 | `POST /api/suno/renew` | 기존 인증서로 연장 발급 (자동 갱신용) |
 | `GET /api/suno/version` | `{version, notes, url, sha256}` 업데이트 메타데이터 |
 | `GET /api/suno/download/{ver}` | 설치 zip (로그인 게이트) |

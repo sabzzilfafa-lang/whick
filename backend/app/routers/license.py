@@ -1,0 +1,54 @@
+"""라이선스 API — 상태·활성화(API키)·갱신 (설정 페이지에서 사용).
+
+2026-09-08: sh_ 활성화 토큰 체계 완전 제거 — 통합 API키(whick_) 전용.
+"""
+
+from __future__ import annotations
+
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
+
+from app.services import license_service
+
+router = APIRouter()
+
+
+class ApiKeyActivateRequest(BaseModel):
+    api_key: str
+
+
+@router.get("/license/status")
+async def api_license_status():
+    return license_service.license_status()
+
+
+@router.post("/license/activate-api-key")
+async def api_license_activate_api_key(req: ApiKeyActivateRequest):
+    """통합 API키(whick_)로 활성화 — 2026-09-08 API키 전환."""
+    try:
+        return await license_service.activate_with_api_key(req.api_key)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@router.post("/license/verify-key")
+async def api_license_verify_key():
+    """보관된 API키 재검증 (작업 시작 게이트·설정 화면용)."""
+    result = await license_service.verify_api_key_remote()
+    if not result:
+        raise HTTPException(403, "API 키가 유효하지 않습니다 — whick.org 내 계정에서 재발급·등록하세요")
+    return result
+
+
+@router.post("/license/renew")
+async def api_license_renew():
+    try:
+        return await license_service.renew()
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@router.post("/license/deactivate")
+async def api_license_deactivate():
+    license_service.deactivate_local()
+    return {"state": "none"}
