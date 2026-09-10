@@ -42,6 +42,7 @@ export default function AlbumDetailPage() {
   const [thumbFiles, setThumbFiles] = useState<AlbumThumbFile[]>([]);
   const [thumbBusy, setThumbBusy] = useState(false);
   const [thumbMsg, setThumbMsg] = useState("");
+  const [thumbZoom, setThumbZoom] = useState<"A" | "B" | "C" | null>(null);
   const [thumbPrompts, setThumbPrompts] = useState<string[]>([]);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -518,7 +519,9 @@ export default function AlbumDetailPage() {
                 <img
                   src={albumThumbsApi.thumbnailFileUrl(album.id, f.variant as "A" | "B" | "C")}
                   alt={`썸네일 ${f.variant}`}
-                  style={{ width: "100%", display: "block", aspectRatio: "16/9", objectFit: "cover" }}
+                  onClick={() => setThumbZoom(f.variant as "A" | "B" | "C")}
+                  style={{ width: "100%", display: "block", aspectRatio: "16/9", objectFit: "cover", cursor: "zoom-in" }}
+                  title="클릭하면 큰 이미지로 볼 수 있습니다"
                 />
               ) : (
                 <div
@@ -592,6 +595,17 @@ export default function AlbumDetailPage() {
           </div>
         )}
       </div>
+
+      {/* 썸네일 크게 보기 라이트박스 (2026-09-10) */}
+      <Modal open={thumbZoom !== null} onClose={() => setThumbZoom(null)} title={thumbZoom ? `썸네일 ${thumbZoom}` : ""}>
+        {thumbZoom && (
+          <img
+            src={albumThumbsApi.thumbnailFileUrl(album.id, thumbZoom)}
+            alt={`썸네일 ${thumbZoom}`}
+            style={{ width: "100%", display: "block", borderRadius: 6 }}
+          />
+        )}
+      </Modal>
 
       <div className="card">
 
