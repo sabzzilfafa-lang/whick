@@ -117,15 +117,49 @@ async def _ai_text(db: AsyncSession, task: str, system: str, user: str) -> str:
 
 
 def _extract_json(text: str) -> list[str]:
-    """AI 응답에서 JSON 배열(문자열 3개) 추출 — 코드펜스·잡담 허용."""
+    """AI 응답에서 이미지 프롬프트 3개 추출 — 견고한 폴백 (2026-09-10).
+
+    1) JSON 배열 [..]  2) 객체 래핑 {"prompts": [..]} 등  3) 코드펜스 내 배열
+    4) 불릿·번호 나열에서 문자열 수집 — AI가 배열 대신 나열로 답해도 처리.
+    """
+    text = text.strip()
+
+    def _parse_arr(raw: str) -> list[str]:
+        data = json.loads(raw)
+        if isinstance(data, dict):
+            for v in data.values():
+                if isinstance(v, list):
+                    data = v
+                    break
+        if not isinstance(data, list):
+            return []
+        return [str(x).strip() for x in data if str(x).strip()]
+
+    candidates: list[str] = []
+    fence = re.search(r"```(?:json)?\s*([\s\S]*?)```", text)
+    if fence:
+        candidates.append(fence.group(1))
     m = re.search(r"\[[\s\S]*\]", text)
-    if not m:
-        raise ValueError("AI가 프롬프트 3개를 JSON 배열로 반환하지 않았습니다.")
-    data = json.loads(m.group(0))
-    prompts = [str(p).strip() for p in data if str(p).strip()]
-    if len(prompts) < 3:
-        raise ValueError(f"AI가 3개 미만의 프롬프트를 반환했습니다: {len(prompts)}개")
-    return prompts[:3]
+    if m:
+        candidates.append(m.group(0))
+    for raw in candidates:
+        try:
+            prompts = _parse_arr(raw)
+            if len(prompts) >= 3:
+                return prompts[:3]
+        except Exception:
+            continue
+
+    # 폴백: 불릿/번호 나열에서 수집 — 30자 이상 줄을 프롬프트로 간주
+    lines = re.findall(r"^[ \t]*(?:[-*\u2022]|\d+[.)])?[ \t]*(.+)[ \t]*$", text, re.M)
+    picked = [ln.strip().strip('"').strip() for ln in lines if len(ln.strip()) > 30]
+    if len(picked) >= 3:
+        return picked[:3]
+
+    raise ValueError(
+        "AI가 프롬프트 3개를 반환하지 않았습니다. "
+        f"응답 일부: {text[:150]!r} — 썸네일 AI 모델을 다른 모델로 바꿔 시도해 보세요."
+    )
 
 
 def _build_prompt_request(album_title: str, mood: str, concept: str) -> tuple[str, str]:
