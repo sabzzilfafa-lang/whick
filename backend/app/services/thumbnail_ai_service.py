@@ -34,6 +34,7 @@ VARIANT_IDS = ("A", "B", "C")
 
 # 이미지 생성 지원 제공업체 → (모델, 키 필드)
 IMAGE_PROVIDERS: dict[str, dict[str, str]] = {
+    "openrouter": {"model": "google/gemini-2.5-flash-image", "key_field": "openrouter_api_key"},
     "google": {"model": "gemini-2.5-flash-image", "key_field": "google_api_key"},
     "openai": {"model": "gpt-image-1", "key_field": "openai_api_key"},
 }
@@ -124,6 +125,29 @@ def _crop_to_thumb(img_bytes: bytes) -> bytes:
     buf = io.BytesIO()
     img.save(buf, "JPEG", quality=92)
     return buf.getvalue()
+
+
+async def _gen_image_openrouter(api_key: str, model: str, prompt: str) -> bytes:
+    """OpenRouter Image API — POST /api/v1/images, 응답 data[0].b64_json (2026-09-10).
+
+    OpenAI 호환 게이트웨이 — openrouter_api_key 하나로 Gemini·GPT-Image 등
+    이미지 모델을 모두 쓸 수 있다. 기본 모델 google/gemini-2.5-flash-image.
+    """
+    async with httpx.AsyncClient(timeout=180.0) as client:
+        resp = await client.post(
+            "https://openrouter.ai/api/v1/images",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+            json={"model": model, "prompt": prompt, "aspect_ratio": "16:9"},
+        )
+        resp.raise_for_status()
+        data = resp.json()
+    b64 = ((data.get("data") or [{}])[0].get("b64_json")) or ""
+    if not b64:
+        raise ValueError("OpenRouter 이미지 응답에 b64_json이 없습니다.")
+    return base64.b64decode(b64)
 
 
 async def _gen_image_google(
@@ -260,7 +284,9 @@ async def generate_thumbnails(
 
     saved: list[dict[str, str]] = []
     for v, prompt in zip(VARIANT_IDS, prompts):
-        if prov == "google":
+        if prov == "openrouter":
+            raw = await _gen_image_openrouter(api_key, mdl, prompt)
+        elif prov == "google":
             raw = await _gen_image_google(api_key, mdl, prompt, cover_b64)
         else:
             raw = await _gen_image_openai(api_key, mdl, prompt)

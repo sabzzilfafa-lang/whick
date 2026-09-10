@@ -34,7 +34,7 @@ DEFAULTS = {
     # 썸네일 3종 생성: 텍스트 프롬프트 생성 AI + 이미지 생성 AI 지정 (2026-09-10)
     "provider_thumbnail": "openrouter",
     "model_thumbnail": "google/gemini-2.5-flash-lite",
-    "image_provider": "google",
+    "image_provider": "openrouter",
     "temperature_lyrics": "0.8",
     "temperature_prompt": "0.5",
     "temperature_instruments": "0.4",

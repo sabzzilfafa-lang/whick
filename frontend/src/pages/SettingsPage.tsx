@@ -15,8 +15,9 @@ type TaskKey =
   | (typeof TASK_CONFIG)[number]["key"]
   | "thumbnail";
 
-/** 썸네일 3종 생성 AI 지정 (2026-09-10): 이미지 생성 제공업체는 google(제미나이)·openai(gpt-image) 2종 */
+/** 썸네일 3종 생성 AI 지정 (2026-09-10): openrouter·google·openai — openrouter는 openrouter_api_key 하나로 이미지 모델 사용 */
 const IMAGE_PROVIDERS = [
+  { id: "openrouter", name: "OpenRouter (Gemini 이미지)" },
   { id: "google", name: "Google Gemini (이미지)" },
   { id: "openai", name: "OpenAI (gpt-image-1)" },
 ] as const;
@@ -724,7 +725,7 @@ export default function SettingsPage() {
                 ))}
               </select>
               <span className="meta" style={{ gridColumn: "span 2", alignSelf: "center" }}>
-                {t("Google 선택 시 google_api_key, OpenAI 선택 시 openai_api_key가 사용됩니다.")}
+                {t("선택한 제공업체의 API 키(설정 > AI 제공업체)가 사용됩니다.")}
               </span>
             </div>
           </div>
