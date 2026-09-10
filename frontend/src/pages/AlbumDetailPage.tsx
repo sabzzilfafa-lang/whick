@@ -757,7 +757,7 @@ export default function AlbumDetailPage() {
         >
           <figure style={{ margin: 0, maxWidth: "95vw", textAlign: "center" }} onClick={(e) => e.stopPropagation()}>
             <img
-              src={`/api/songs/${songImgZoom}/cover-image`}
+              src={`/api/songs/${songImgZoom}/cover-image?v=${songImages.find((si) => si.song_id === songImgZoom)?.url?.split("v=")[1] || Date.now()}`}
               alt="트랙 배경"
               style={{
                 display: "block", maxWidth: "95vw", maxHeight: "88vh",

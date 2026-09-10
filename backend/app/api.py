@@ -430,7 +430,8 @@ async def song_cover_image(song_id: int, db: AsyncSession = Depends(get_db)):
         raise HTTPException(403, "접근 거부")
     if not filepath.is_file():
         raise HTTPException(404, "파일을 찾을 수 없습니다")
-    return FileResponse(filepath)
+    # 재생성 시 즉시 새 이미지가 보이도록 캐시 금지 (2026-09-10 v0.9.48)
+    return FileResponse(filepath, headers={"Cache-Control": "no-store"})
 
 
 # --- AI Generation ---

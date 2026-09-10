@@ -536,16 +536,25 @@ async def list_song_images(album_id: int, db: AsyncSession = Depends(get_db)):
     album = result.scalar_one_or_none()
     if not album:
         raise HTTPException(404, "앨범을 찾을 수 없습니다")
-    songs = [
-        {
+    import re as _re
+    from pathlib import Path as _Path
+    songs = []
+    for sg in album.songs:
+        url = ""
+        if sg.image_path:
+            # 캐시 파기 — 파일명의 .vN(또는 mtime)을 쿼리로 붙여 재생성 시 URL이 바뀌게
+            # (2026-09-10 v0.9.48 — 같은 URL이라 브라우저가 이전 이미지를 캐시로 보여주던 버그)
+            stem = _Path(sg.image_path).stem
+            m2 = _re.search(r"\.v(\d+)$", stem)
+            ver = int(m2.group(1)) if m2 else 1
+            url = f"/api/songs/{sg.id}/cover-image?v={ver}"
+        songs.append({
             "song_id": sg.id,
             "track": sg.track_number,
             "title": sg.title,
             "ready": bool(sg.image_path),
-            "url": f"/api/songs/{sg.id}/cover-image" if sg.image_path else "",
-        }
-        for sg in album.songs
-    ]
+            "url": url,
+        })
     return {"ok": True, "songs": songs}
 
 
