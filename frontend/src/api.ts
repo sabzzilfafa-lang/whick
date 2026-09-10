@@ -1166,7 +1166,7 @@ export const songImagesApi = {
     albumId: number,
     options?: { song_ids?: number[]; provider?: string; model?: string },
   ) =>
-    request<{ ok: boolean; generated: { song_id: number; track: number; prompt: string }[]; errors: { song_id: number; error: string }[]; total: number }>(
+    request<{ ok: boolean; generated: { song_id: number; track: number; prompt: string }[]; errors: { song_id?: number; track?: number; error?: string }[]; total: number }>(
       `/editor/song-images/${albumId}/generate`,
       { method: "POST", body: JSON.stringify(options ?? {}) },
     ),
