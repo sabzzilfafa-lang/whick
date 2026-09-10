@@ -128,7 +128,7 @@ function ModelSelect({
   return (
     <div className="model-select-wrap">
       <select
-        value={selectValue}
+        value={selectValue || "__none__"}
         onChange={(e) => {
           const v = e.target.value;
           if (v === CUSTOM_MODEL) {
@@ -141,6 +141,9 @@ function ModelSelect({
         title={value}
       >
         {loading && <option value="">{t("모델 불러오는 중...")}</option>}
+        {!loading && !value && models.length > 0 && (
+          <option value="__none__">{t("모델을 선택하세요")}</option>
+        )}
         {!loading &&
           models.map((m) => (
             <option key={m.id} value={m.id}>
@@ -313,7 +316,8 @@ export default function SettingsPage() {
         temperature_instruments: settings.temperature_instruments,
         temperature_analyze: settings.temperature_analyze,
         provider_thumbnail: settings.provider_thumbnail || "openrouter",
-        model_thumbnail: settings.model_thumbnail || "",
+        // 빈 값이면 백엔드 기본(google/gemini-2.5-flash-lite)으로 저장 — '' 저장으로 딥시크 폴백 방지
+        model_thumbnail: settings.model_thumbnail || "google/gemini-2.5-flash-lite",
         image_provider: settings.image_provider || "openrouter",
         image_model: settings.image_model || "",
         thumbnail_overlay: settings.thumbnail_overlay ?? "1",

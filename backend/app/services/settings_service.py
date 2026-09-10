@@ -107,6 +107,10 @@ async def get_public_settings(db: AsyncSession) -> dict:
     public = {
         k: v for k, v in all_settings.items() if k not in API_KEY_SETTING_KEYS
     }
+    # model_thumbnail 빈 값(구버전 저장 결함) → 기본 모델로 치유해 반환 (2026-09-10).
+    # 빈 값 그대로면 UI select가 첫 항목(딥시크)을 표시해 '저장하면 딥시크로 돌아간다'로 보임.
+    if not (public.get("model_thumbnail") or "").strip():
+        public["model_thumbnail"] = DEFAULTS["model_thumbnail"]
     public.update(api_keys_status)
 
     # 하위 호환
