@@ -171,6 +171,7 @@ LYRICS_KO_JSON_SYSTEM = """당신은 전문 작사가입니다. Suno AI용 한�
 규칙:
 - 곡 테마·앨범 컨셉·트랙 테마에 맞는 감성적인 한국어 곡 제목 1개
 - 앨범에서 배분된 **곡당 목표 시간**에 맞는 가사 **줄 수·섹션 수**를 반드시 채울 것
+- 줄 수는 지정된 최소~최대 범위 안에서 — **최대 줄 수 초과 금지** (앨범 총 러닝타임 초과 원인)
 - 짧은 2분 30초 팝 한 세트(Verse+Chorus 1~2회) 금지
 - 가사는 [Verse], [Chorus], [Bridge], [Outro] 등 섹션 태그 사용
 - 제목을 가사 본문에 넣지 말 것
@@ -185,7 +186,7 @@ LYRICS_ALBUM_BATCH_SYSTEM = """당신은 전문 작사가입니다. 앨범의 �
 규칙:
 - 각 곡은 테마에 맞는 제목 1개 + [Verse]/[Chorus] 등 섹션 태그 가사
 - **모든 곡**이 앨범에서 배분된 곡당 목표 시간·가사 줄 수를 반드시 지킬 것
-- 곡마다 동일한 줄 수 목표 (앨범 배분 기준)
+- 곡마다 동일한 줄 수 목표 (앨범 배분 기준) — **최대 줄 수 초과 금지** (앨범 총 러닝타임 초과 원인)
 - 짧은 2분 30초 팝 한 세트 금지 — Verse 2~3회 이상, Bridge, Outro 등으로 분량 확보
 - 곡마다 제목을 가사 본문에 넣지 말 것
 - 출력은 아래 JSON만 (마크다운 없음):
@@ -350,9 +351,21 @@ def _lyrics_retry_suffix(
     if not target:
         return ""
     stats = _lyrics_stats(lyrics)
+    min_l = int(target["target_lines_min"])
+    max_l = int(target["target_lines_max"])
+    mid_l = int(target["target_lines_mid"])
+    if stats["lines"] > max_l:
+        # 너무 긴 경우 — 줄이도록 지시 (v0.9.50: 길어도 "더 채워라" 재시도하던 버그)
+        return (
+            f"\n\n[재시도] 이전 결과는 가사 {stats['lines']}줄로 **너무 깁니다** "
+            f"(최대 {max_l}줄 초과 — 이대로면 앨범 총 러닝타임이 목표를 넘깁니다). "
+            f"**최대 {max_l}줄, 권장 {mid_l}줄 전후로 줄이세요.** "
+            "Verse/Pre-Chorus 중 중복되는 장면을 삭제하고, Bridge와 Outro는 간결하게 유지하세요. "
+            "절대 가사를 반복해서 늘리지 말 것."
+        )
     return (
         f"\n\n[재시도] 이전 결과는 가사 {stats['lines']}줄로 너무 짧습니다. "
-        f"최소 {target['target_lines_min']}줄, 권장 {target['target_lines_mid']}줄 이상 필요합니다. "
+        f"최소 {min_l}줄, 권장 {mid_l}줄 (최대 {max_l}줄 이내) 필요합니다. "
         "2절부터 같은 가사를 반복하지 말고, 새 Verse/Bridge/Outro 가사를 추가하세요."
     )
 
@@ -653,11 +666,25 @@ async def generate_lyrics_ko_with_title(
             min(0.95, temperature + 0.05),
             max_tokens,
         )
-        if r_lyrics and (
-            not lyrics
-            or _lyrics_stats_simple(r_lyrics) >= _lyrics_stats_simple(lyrics)
-        ):
-            title, lyrics = r_title or title, r_lyrics
+        if r_lyrics:
+            # 채택 판정: 목표 범위 안이 최우선, 벗어나면 목표 중간값에 가까운 쪽
+            # (v0.9.50 — 항상 더 긴 쪽을 채택해 가사가 계속 길어지던 버그 수정)
+            from app.services.suno_prompt_service import compute_track_lyrics_target
+
+            t = compute_track_lyrics_target(album, profile)
+            if t:
+                mid = int(t["target_lines_mid"])
+                lo, hi = int(t["target_lines_min"]), int(t["target_lines_max"])
+
+                def _score(n: int) -> tuple[int, int]:
+                    return (0 if lo <= n <= hi else 1, abs(n - mid))
+
+                old_n = _lyrics_stats_simple(lyrics)
+                new_n = _lyrics_stats_simple(r_lyrics)
+                if _score(new_n) <= _score(old_n):
+                    title, lyrics = r_title or title, r_lyrics
+            elif _lyrics_stats_simple(r_lyrics) >= _lyrics_stats_simple(lyrics):
+                title, lyrics = r_title or title, r_lyrics
 
     if lyrics and title:
         return title, lyrics
@@ -753,10 +780,17 @@ async def _generate_album_lyrics_chunk(
         retry_prompt = base_prompt + _lyrics_retry_suffix(
             worst.get("lyrics", ""), album, profile
         )
-        retry_prompt += (
-            f"\n특히 Track {worst.get('track_number')} 등 "
-            f"{len(short_tracks)}곡이 가사 줄 수 부족입니다."
-        )
+        worst_lines = _lyrics_stats(worst.get("lyrics", ""))["lines"]
+        if target and worst_lines > int(target["target_lines_max"]):
+            retry_prompt += (
+                f"\n특히 Track {worst.get('track_number')} 등 "
+                f"{len(short_tracks)}곡이 가사 줄 수가 **초과**입니다 — 줄이세요."
+            )
+        else:
+            retry_prompt += (
+                f"\n특히 Track {worst.get('track_number')} 등 "
+                f"{len(short_tracks)}곡이 가사 줄 수 부족입니다."
+            )
         try:
             retry_parsed = await _call(retry_prompt, min(0.95, temperature + 0.05))
             by_track = {item["track_number"]: item for item in parsed}
@@ -768,7 +802,16 @@ async def _generate_album_lyrics_chunk(
                     continue
                 old_lines = _lyrics_stats(old.get("lyrics", ""))["lines"]
                 new_lines = _lyrics_stats(item.get("lyrics", ""))["lines"]
-                if new_lines >= old_lines:
+                if target:
+                    mid = int(target["target_lines_mid"])
+                    lo, hi = int(target["target_lines_min"]), int(target["target_lines_max"])
+
+                    def _sc(n: int) -> tuple[int, int]:
+                        return (0 if lo <= n <= hi else 1, abs(n - mid))
+
+                    if _sc(new_lines) <= _sc(old_lines):
+                        by_track[tn] = item
+                elif new_lines >= old_lines:
                     by_track[tn] = item
             parsed = [by_track[k] for k in sorted(by_track)]
         except Exception:

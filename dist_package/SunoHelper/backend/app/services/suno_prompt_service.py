@@ -214,30 +214,55 @@ def _album_duration_hint_sec(album: Optional[dict]) -> Optional[int]:
 
 
 def _structure_blueprint_for_duration(per_track_sec: int, target_lines: int) -> str:
-    """곡당 목표 시간에 맞는 가사 섹션 뼈대."""
-    if per_track_sec <= 180:
+    """곡당 목표 줄 수에 맞춘 가사 섹션 뼈대 (동적).
+
+    기존은 180/240초 3단계라 200초(18곡/60분)와 240초(15곡/60분)가 같은
+    뼈대를 공유 → 곡 수와 무관하게 비슷한 길이의 가사가 나오는 원인.
+    2026-09-10 v0.9.50 — 목표 줄 수 기반 6단계로 세분화.
+    """
+    if target_lines <= 26:
         return (
             "[Verse 1] 4~5줄\n[Chorus] 4줄\n[Verse 2] 4~5줄 (1절과 다른 내용)\n"
             "[Chorus] 4줄\n[Bridge] 3~4줄\n[Chorus] 4줄"
         )
-    if per_track_sec <= 240:
+    if target_lines <= 36:
         return (
             "[Verse 1] 5~6줄\n[Pre-Chorus] 2~3줄\n[Chorus] 4줄\n"
             "[Verse 2] 5~6줄 (스토리 전개)\n[Pre-Chorus] 2~3줄\n[Chorus] 4줄\n"
-            "[Verse 3] 5~6줄 (또 다른 장면)\n[Chorus] 4줄\n"
-            "[Bridge] 4~5줄\n[Chorus] 4줄\n[Outro] 2~4줄"
+            "[Bridge] 3~4줄\n[Chorus] 4줄"
+        )
+    if target_lines <= 46:
+        return (
+            "[Verse 1] 5~6줄\n[Pre-Chorus] 2~3줄\n[Chorus] 4줄\n"
+            "[Verse 2] 5~6줄 (스토리 전개)\n[Pre-Chorus] 2~3줄\n[Chorus] 4줄\n"
+            "[Verse 3] 4~5줄 (또 다른 장면)\n[Bridge] 4~5줄\n[Chorus] 4줄\n[Outro] 2~3줄"
+        )
+    if target_lines <= 52:
+        return (
+            "[Verse 1] 6줄\n[Pre-Chorus] 3줄\n[Chorus] 4줄\n"
+            "[Verse 2] 6줄\n[Pre-Chorus] 3줄\n[Chorus] 4줄\n"
+            "[Verse 3] 5~6줄\n[Bridge] 4~5줄\n[Chorus] 4줄\n[Outro] 3줄"
+        )
+    if target_lines <= 68:
+        return (
+            "[Verse 1] 6~8줄\n[Pre-Chorus] 3줄\n[Chorus] 4~5줄\n"
+            "[Verse 2] 6~8줄\n[Pre-Chorus] 3줄\n[Chorus] 4~5줄\n"
+            "[Verse 3] 6~8줄\n[Bridge] 5~6줄\n[Chorus] 4~5줄\n"
+            "[Verse 4] 4~6줄\n[Chorus] 4~5줄\n[Outro] 3~5줄"
         )
     return (
         "[Verse 1] 6~8줄\n[Pre-Chorus] 3줄\n[Chorus] 4~5줄\n"
         "[Verse 2] 6~8줄\n[Pre-Chorus] 3줄\n[Chorus] 4~5줄\n"
         "[Verse 3] 6~8줄\n[Chorus] 4~5줄\n[Bridge] 5~6줄\n"
-        "[Chorus] 4~5줄\n[Verse 4] 4~6줄 (마무리 전개)\n[Chorus] 4~5줄\n[Outro] 3~5줄"
+        "[Chorus] 4~5줄\n[Verse 4] 4~6줄 (마무리 전개)\n[Chorus] 4~5줄\n"
+        "[Verse 5] 4~6줄\n[Outro] 3~5줄"
     )
 
 
 LYRICS_SUNO_LENGTH_RULES = """
 Suno AI 길이 맞추기 규칙 (필수 — 프롬프트 시간 지정보다 중요):
 - Suno는 **가사 줄 수·섹션 수**로 곡 길이를 맞춤. 목표 가사 줄 수를 반드시 채울 것.
+- 목표 최소~최대 줄 수 범위를 지킬 것 — **최대 줄 수 초과 금지** (앨범 총 러닝타임이 목표를 초과하는 원인).
 - 시간을 채우려고 2절 이후 **같은 가사 전체를 처음부터 반복**하지 말 것 (무의미한 루프 금지).
 - 후렴만 짧게 여러 번 반복하지 말 것.
 - 대신 Verse / Pre-Chorus / Bridge / Outro마다 **새 가사**로 스토리를 늘릴 것.
@@ -350,6 +375,7 @@ def build_lyrics_duration_prompt_block(
         f"- 앨범 전체 {total_min}분 / {track_count}곡 → **이 곡 목표 약 {per_track} ({per_sec}초)**\n"
         f"- Suno는 프롬프트 시간이 아니라 **가사 줄 수**로 길이를 맞춤\n"
         f"- **이 곡 가사 목표: {min_l}~{max_l}줄** (권장 {mid_l}줄 전후, 섹션 태그 줄 제외)\n"
+        f"- **{max_l}줄 초과 절대 금지** — 넘치면 앨범 총 러닝타임({total_min}분)이 초과됨. 분량은 줄 수로 통제\n"
         f"- 짧은 2분 30초 팝 한 세트(Verse+Chorus 1~2회)로 끝내지 말 것\n"
         f"- 아래 뼈대를 참고해 섹션·줄 수를 채울 것:\n{blueprint}\n"
         f"{LYRICS_SUNO_LENGTH_RULES}"
@@ -367,9 +393,19 @@ def estimate_track_duration_sec(
     album: Optional[dict] = None,
     song: Optional[dict] = None,
 ) -> int:
-    """트랙 길이(초). 앨범 목표가 있으면 항상 곡당 배분값 우선, 없으면 가사 분량 추정."""
+    """트랙 길이(초). 앨범 목표 배분 기본, 단 가사 분량이 배분을 15% 이상 초과하면 실측 반영.
+
+    기존은 목표가 있으면 가사 분량과 무관하게 항상 배분값을 반환해
+    실제 Suno 결과가 길어져도 화면에서 알 수 없었다 (v0.9.50).
+    """
     album_hint = _album_duration_hint_sec(album)
     if album_hint:
+        stats = _lyrics_stats(lyrics)
+        if stats["lines"] > 0:
+            lyric_based = _lyrics_based_duration_sec(stats, _parse_bpm(profile, song, lyrics))
+            # 가사 기반 추정이 배분값을 15% 이상 초과하면 실측 우선 (넘침 경고 목적)
+            if lyric_based > album_hint * 1.15:
+                return lyric_based
         return album_hint
 
     bpm = _parse_bpm(
@@ -380,20 +416,25 @@ def estimate_track_duration_sec(
     )
     stats = _lyrics_stats(lyrics)
     if stats["lines"] > 0:
-        ref_bpm = 85
-        sec_per_line = 3.25 * (ref_bpm / bpm)
-        avg_chars = stats["chars"] / stats["lines"]
-        sec_per_line *= min(1.35, 0.85 + avg_chars / 40)
-
-        vocal_sec = stats["lines"] * sec_per_line
-        section_count = max(stats["sections"], 1)
-        intro_sec = 10 + min(8, section_count * 2)
-        outro_sec = 12 + min(10, section_count * 2)
-        interlude_sec = max(0, section_count - 1) * (5.5 * (ref_bpm / bpm))
-        lyric_based = int(vocal_sec + intro_sec + outro_sec + interlude_sec)
-        return max(90, min(420, lyric_based))
+        return _lyrics_based_duration_sec(stats, bpm)
 
     return 210
+
+
+def _lyrics_based_duration_sec(stats: dict, bpm: int) -> int:
+    """가사 줄 수·섹션 수 기반 트랙 길이(초) 추정."""
+    ref_bpm = 85
+    sec_per_line = 3.25 * (ref_bpm / max(40, bpm))
+    avg_chars = stats["chars"] / max(stats["lines"], 1)
+    sec_per_line *= min(1.35, 0.85 + avg_chars / 40)
+
+    vocal_sec = stats["lines"] * sec_per_line
+    section_count = max(stats["sections"], 1)
+    intro_sec = 10 + min(8, section_count * 2)
+    outro_sec = 12 + min(10, section_count * 2)
+    interlude_sec = max(0, section_count - 1) * (5.5 * ref_bpm / max(40, bpm))
+    lyric_based = int(vocal_sec + intro_sec + outro_sec + interlude_sec)
+    return max(90, min(420, lyric_based))
 
 
 def get_track_duration_info(
