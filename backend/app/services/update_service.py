@@ -15,7 +15,7 @@ import httpx
 
 from app.config import settings
 
-APP_VERSION = "0.9.52"
+APP_VERSION = "0.9.53"
 
 # whick.org 업데이트 채널 (배포 시 확정 — env로 Override 가능)
 UPDATE_CHECK_URL = os.environ.get(

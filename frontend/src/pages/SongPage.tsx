@@ -487,11 +487,13 @@ export default function SongPage() {
     try {
       let result;
       if (type === "lyrics") {
+        // v0.9.53 — ko 탭: 한글 가사가 "없고" 영어가 있을 때만 en→ko 의역.
+        // 한글이 이미 있으면 신규 생성(사용자가 의역을 원하면 토글 사용)
         result = await api.generateLyrics(
           song.id,
           undefined,
           lyricsLang,
-          lyricsLang === "en" ? koLyrics(song) : enLyrics(song)
+          lyricsLang === "en" ? koLyrics(song) : (koLyrics(song).trim() ? undefined : enLyrics(song))
         );
       } else if (type === "prompt") {
         const instJson =
@@ -779,11 +781,15 @@ export default function SongPage() {
             disabled={!!generating || translatingLyrics}
           >
             {generating === "lyrics"
-              ? lyricsLang === "en" && koLyrics(song).trim()
+              ? (lyricsLang === "en" ? koLyrics(song).trim() : enLyrics(song).trim())
                 ? "번역 중..."
                 : "가사 생성 중..."
               : lyricsLang === "ko"
-                ? "한글 가사 생성"
+                ? koLyrics(song).trim()
+                  ? "한글 가사 생성"
+                  : enLyrics(song).trim()
+                    ? "한글로 의역"
+                    : "한글 가사 생성"
                 : koLyrics(song).trim()
                   ? "영어로 의역"
                   : "영어 가사 생성"}

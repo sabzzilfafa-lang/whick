@@ -483,8 +483,6 @@ async def api_generate_lyrics(
             if ko_title:
                 song.title = ko_title[:200]
                 generated_title = ko_title
-                song.title = ko_title[:200]
-                generated_title = ko_title
         elif lang == "en":
             ko = (req.lyrics_ko or "").strip() or (lyrics_ko_text(song) or "").strip()
             if req.lyrics_ko and req.lyrics_ko.strip():
