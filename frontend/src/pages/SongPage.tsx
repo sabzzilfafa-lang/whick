@@ -961,7 +961,9 @@ export default function SongPage() {
             }}
             placeholder={
               translatingLyrics
-                ? "한글 가사를 영어로 번역하는 중..."
+                ? lyricsLang === "en"
+                  ? "한글 가사를 영어로 의역하는 중..."
+                  : "영어 가사를 한글로 의역하는 중..."
                 : lyricsLang === "ko"
                   ? "한글 가사 (AI 생성 또는 직접 입력)"
                   : enLyrics(song).trim()
