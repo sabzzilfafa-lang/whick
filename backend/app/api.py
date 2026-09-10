@@ -500,6 +500,11 @@ async def api_generate_lyrics(
                 if english_title:
                     song.title_en = english_title[:200]
                     generated_title = english_title
+                elif not (song.title_en or "").strip():
+                    # AI가 제목을 안 줘도 title_en을 비워두면 프론트(en 모드)가
+                    # 한글 제목을 그대로 보여주는 버그(2026-09-10) — 한글 제목이라도
+                    # 채워 편집 대상이 되게 한다 (한글 원제목은 song.title에 보존).
+                    song.title_en = (song.title or "")[:200]
             else:
                 content = await generate_lyrics(
                     client,

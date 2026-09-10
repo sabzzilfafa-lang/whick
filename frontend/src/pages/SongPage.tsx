@@ -436,7 +436,11 @@ export default function SongPage() {
         setSong({
           ...song,
           lyrics_en: result.content,
-          ...(result.title?.trim() ? { title_en: result.title.trim() } : {}),
+          ...(result.title?.trim()
+            ? { title_en: result.title.trim() }
+            : !song.title_en?.trim()
+              ? { title_en: song.title }
+              : {}),
           ...durationFieldsFromResult(result),
         });
         setMessage(
@@ -511,7 +515,12 @@ export default function SongPage() {
           setSong({
             ...song,
             lyrics_en: result.content,
-            ...(result.title?.trim() ? { title_en: result.title.trim() } : {}),
+            // AI 제목이 없고 title_en이 비어 있으면 한글 제목이라도 채워 en 모드 편집 대상으로
+            ...(result.title?.trim()
+              ? { title_en: result.title.trim() }
+              : !song.title_en?.trim()
+                ? { title_en: song.title }
+                : {}),
             ...durationFieldsFromResult(result),
           });
           setMessage(
