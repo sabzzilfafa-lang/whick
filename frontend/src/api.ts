@@ -1189,6 +1189,15 @@ export const albumThumbsApi = {
     }),
   thumbnailFileUrl: (albumId: number, variant: "A" | "B" | "C") =>
     `${API_BASE}/editor/album-thumbs/${albumId}/file/${variant}?t=${Date.now()}`,
+  /** 사용자 파일로 앨범 썸네일 직접 업로드 (variant A로 저장 — 2026-09-10 v0.9.51) */
+  upload: (albumId: number, file: File) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    return request<{ ok: boolean; variant: string; path: string }>(
+      `/editor/album-thumbs/${albumId}/upload`,
+      { method: "POST", body: fd }
+    );
+  },
   /** 생성본을 곡 thumbnail.jpg로 적용 (projectPath 미지정 시 첫 곡 자동 선택) */
   apply: (albumId: number, variant: "A" | "B" | "C", projectPath?: string) =>
     request<{ ok: boolean; path: string; applied_to?: string }>(

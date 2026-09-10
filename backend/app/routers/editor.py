@@ -509,6 +509,39 @@ async def list_album_thumbnails(album_id: int, db: AsyncSession = Depends(get_db
     return {"ok": True, "files": files, "dir": str(tdir)}
 
 
+@router.post("/album-thumbs/{album_id}/upload")
+async def upload_album_thumbnail(
+    album_id: int,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+):
+    """앨범 썸네일(유튜브 목록용)을 사용자 파일로 직접 업로드 — variant A에 저장.
+
+    AI 생성본(A/B/C)과 동일한 저장 규칙을 쓰므로 기존 "첫 곡에 적용" 흐름 그대로 동작.
+    2026-09-10 v0.9.51 — 앨범 썸네일이 첫 곡 이미지에 종속되던 것에서 분리.
+    """
+    from app.services.thumbnail_ai_service import thumbnails_dir
+
+    _album, tdir = await _album_dir(db, album_id)
+    tdir.mkdir(parents=True, exist_ok=True)
+
+    ext = Path(file.filename or "thumb.jpg").suffix.lower()
+    if ext not in {".jpg", ".jpeg", ".png", ".webp"}:
+        ext = ".jpg"
+    dest = tdir / f"thumb-A{ext}"
+    content = await file.read()
+    if not content:
+        raise HTTPException(400, "빈 파일입니다")
+    dest.write_bytes(content)
+
+    # 다른 확장자 잔여 파일 정리 (표시 일관성)
+    for old in tdir.glob("thumb-A.*"):
+        if old != dest:
+            old.unlink()
+
+    return {"ok": True, "variant": "A", "path": str(dest)}
+
+
 @router.get("/album-thumbs/{album_id}/file/{variant}")
 async def get_album_thumbnail_file(
     album_id: int, variant: str, db: AsyncSession = Depends(get_db)

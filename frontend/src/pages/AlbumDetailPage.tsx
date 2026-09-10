@@ -213,6 +213,22 @@ export default function AlbumDetailPage() {
     }
   };
 
+  const handleThumbUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!album || !e.target.files?.[0]) return;
+    setThumbBusy(true);
+    setThumbMsg("");
+    try {
+      await albumThumbsApi.upload(album.id, e.target.files[0]);
+      setThumbMsg("앨범 썸네일을 업로드했습니다 — 「첫 곡에 적용」으로 유튜브 목록 썸네일에 반영하세요");
+      loadThumbs();
+    } catch (err) {
+      setThumbMsg(String(err));
+    } finally {
+      setThumbBusy(false);
+      e.target.value = "";
+    }
+  };
+
 
 
   const handleGenerateAll = async () => {
@@ -646,6 +662,14 @@ export default function AlbumDetailPage() {
           >
             프롬프트만 먼저 보기
           </button>
+          <label
+            className="btn btn-secondary"
+            style={{ cursor: "pointer" }}
+            title="직접 만든 이미지를 앨범 썸네일로 올립니다 (첫 곡에 적용 가능)"
+          >
+            썸네일 파일 직접 올리기
+            <input type="file" accept="image/*" onChange={handleThumbUpload} hidden />
+          </label>
         </div>
         {thumbMsg && (
           <p style={{ fontSize: "0.85rem", marginTop: "0.5rem", color: "var(--text-secondary)" }}>
