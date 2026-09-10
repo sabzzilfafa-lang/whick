@@ -321,6 +321,7 @@ export default function SettingsPage() {
         image_provider: settings.image_provider || "openrouter",
         image_model: settings.image_model || "",
         thumbnail_overlay: settings.thumbnail_overlay ?? "1",
+        thumbnail_title_mode: settings.thumbnail_title_mode || "ai",
       };
       for (const [field, value] of Object.entries(apiKeys)) {
         if (value.trim()) payload[field] = value.trim();
@@ -811,7 +812,22 @@ export default function SettingsPage() {
               </span>
             </div>
             <div className="task-config-row">
-              <div className="task-config-label">{t("썸네일 글자 표기")}</div>
+              <div className="task-config-label">{t("제목 표기 방식")}</div>
+              <select
+                value={String(settings.thumbnail_title_mode || "ai")}
+                onChange={(e) =>
+                  setSettings({ ...settings, thumbnail_title_mode: e.target.value } as AppSettings)
+                }
+              >
+                <option value="ai">{t("AI 통합 렌더 (디자인 일체형)")}</option>
+                <option value="overlay">{t("하단 바 표기 (글자 정확)")}</option>
+              </select>
+              <span className="meta" style={{ gridColumn: "span 3", alignSelf: "center" }}>
+                {t("AI 통합 렌더는 제목이 이미지 디자인의 일부로 그려집니다(예: 플레이리스트 커버). 하단 바 표기는 글자가 항상 정확합니다.")}
+              </span>
+            </div>
+            <div className="task-config-row">
+              <div className="task-config-label">{t("하단 정보 표기")}</div>
               <select
                 value={String(settings.thumbnail_overlay ?? "1")}
                 onChange={(e) =>
@@ -822,7 +838,7 @@ export default function SettingsPage() {
                 <option value="0">{t("숨김")}</option>
               </select>
               <span className="meta" style={{ gridColumn: "span 3", alignSelf: "center" }}>
-                {t("이미지 하단에 앨범 제목·곡 수·런닝타임을 표기합니다.")}
+                {t("하단 바 표기 모드에서 이미지 하단에 곡 수·런닝타임을 표기합니다.")}
               </span>
             </div>
           </div>

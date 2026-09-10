@@ -70,6 +70,12 @@ const en: Dict = {
   "OpenRouter (Gemini)": "OpenRouter (Gemini)",
   "Google Gemini": "Google Gemini",
   "OpenAI (gpt-image-1)": "OpenAI (gpt-image-1)",
+  "제목 표기 방식": "Title text mode",
+  "AI 통합 렌더 (디자인 일체형)": "AI-integrated render (typography in design)",
+  "하단 바 표기 (글자 정확)": "Bottom-bar text (exact letters)",
+  "AI 통합 렌더는 제목이 이미지 디자인의 일부로 그려집니다(예: 플레이리스트 커버). 하단 바 표기는 글자가 항상 정확합니다.": "With AI-integrated render the title is drawn as part of the image design (like premium playlist covers). Bottom-bar text always renders letters exactly.",
+  "하단 정보 표기": "Bottom info overlay",
+  "하단 바 표기 모드에서 이미지 하단에 곡 수·런닝타임을 표기합니다.": "In bottom-bar mode, shows track count and runtime at the bottom of the image.",
   "활성화됨": "Activated",
   "갱신 만료 임박 — 다음 작업 시 자동 갱신": "renewal expiring — auto-renews on next job",
   "에서 발급한 키를 입력하세요.": "and paste the issued key here.",
@@ -314,6 +320,12 @@ const ja: Dict = {
   "OpenRouter (Gemini)": "OpenRouter (Gemini)",
   "Google Gemini": "Google Gemini",
   "OpenAI (gpt-image-1)": "OpenAI (gpt-image-1)",
+  "제목 표기 방식": "タイトル表記方式",
+  "AI 통합 렌더 (디자인 일체형)": "AI統合レンダリング（デザイン一体型）",
+  "하단 바 표기 (글자 정확)": "下部バー表記（文字が正確）",
+  "AI 통합 렌더는 제목이 이미지 디자인의 일부로 그려집니다(예: 플레이리스트 커버). 하단 바 표기는 글자가 항상 정확합니다.": "AI統合レンダリングはタイトルを画像デザインの一部として描画します（プレイリストカバー風）。下部バー表記は文字が常に正確です。",
+  "하단 정보 표기": "下部情報表記",
+  "하단 바 표기 모드에서 이미지 하단에 곡 수·런닝타임을 표기합니다.": "下部バーモードでは画像の下部に曲数・再生時間を表示します。",
   "활성화됨": "有効",
   
 };
@@ -401,6 +413,12 @@ const zh: Dict = {
   "OpenRouter (Gemini)": "OpenRouter (Gemini)",
   "Google Gemini": "Google Gemini",
   "OpenAI (gpt-image-1)": "OpenAI (gpt-image-1)",
+  "제목 표기 방식": "标题显示方式",
+  "AI 통합 렌더 (디자인 일체형)": "AI 融合渲染（设计一体型）",
+  "하단 바 표기 (글자 정확)": "底部条显示（文字准确）",
+  "AI 통합 렌더는 제목이 이미지 디자인의 일부로 그려집니다(예: 플레이리스트 커버). 하단 바 표기는 글자가 항상 정확합니다.": "AI 统合渲染会把标题绘制成图像设计的一部分（如精品播放列表封面）。底部条显示的文字始终准确。",
+  "하단 정보 표기": "底部信息显示",
+  "하단 바 표기 모드에서 이미지 하단에 곡 수·런닝타임을 표기합니다.": "底部条模式下在图像底部显示曲目数和时长。",
   "활성화됨": "已激活",
 };
 
@@ -482,6 +500,12 @@ const es: Dict = {
   "OpenRouter (Gemini)": "OpenRouter (Gemini)",
   "Google Gemini": "Google Gemini",
   "OpenAI (gpt-image-1)": "OpenAI (gpt-image-1)",
+  "제목 표기 방식": "Modo de texto del título",
+  "AI 통합 렌더 (디자인 일체형)": "Render integrado por IA (tipografía en el diseño)",
+  "하단 바 표기 (글자 정확)": "Texto en barra inferior (letras exactas)",
+  "AI 통합 렌더는 제목이 이미지 디자인의 일부로 그려집니다(예: 플레이리스트 커버). 하단 바 표기는 글자가 항상 정확합니다.": "Con el render integrado por IA, el título se dibuja como parte del diseño de la imagen (como portadas de playlist premium). La barra inferior siempre muestra las letras exactas.",
+  "하단 정보 표기": "Información inferior",
+  "하단 바 표기 모드에서 이미지 하단에 곡 수·런닝타임을 표기합니다.": "En modo barra inferior, muestra el número de pistas y la duración en la parte inferior.",
   "활성화됨": "Activada",
 };
 
@@ -563,6 +587,12 @@ const fr: Dict = {
   "OpenRouter (Gemini)": "OpenRouter (Gemini)",
   "Google Gemini": "Google Gemini",
   "OpenAI (gpt-image-1)": "OpenAI (gpt-image-1)",
+  "제목 표기 방식": "Mode du texte du titre",
+  "AI 통합 렌더 (디자인 일체형)": "Rendu intégré par IA (typographie dans le design)",
+  "하단 바 표기 (글자 정확)": "Texte en bandeau bas (lettres exactes)",
+  "AI 통합 렌더는 제목이 이미지 디자인의 일부로 그려집니다(예: 플레이리스트 커버). 하단 바 표기는 글자가 항상 정확합니다.": "Avec le rendu intégré par IA, le titre fait partie du design de l'image (comme les pochettes de playlist premium). Le bandeau bas affiche toujours les lettres exactes.",
+  "하단 정보 표기": "Infos en bas",
+  "하단 바 표기 모드에서 이미지 하단에 곡 수·런닝타임을 표기합니다.": "En mode bandeau bas, affiche le nombre de pistes et la durée en bas de l'image.",
   "활성화됨": "Activée",
 };
 
@@ -644,6 +674,12 @@ const de: Dict = {
   "OpenRouter (Gemini)": "OpenRouter (Gemini)",
   "Google Gemini": "Google Gemini",
   "OpenAI (gpt-image-1)": "OpenAI (gpt-image-1)",
+  "제목 표기 방식": "Titel-Textmodus",
+  "AI 통합 렌더 (디자인 일체형)": "KI-integriertes Rendering (Typografie im Design)",
+  "하단 바 표기 (글자 정확)": "Untere Leiste (exakte Buchstaben)",
+  "AI 통합 렌더는 제목이 이미지 디자인의 일부로 그려집니다(예: 플레이리스트 커버). 하단 바 표기는 글자가 항상 정확합니다.": "Beim KI-integrierten Rendering wird der Titel Teil des Bilddesigns (wie Premium-Playlist-Cover). Die untere Leiste zeigt immer exakte Buchstaben.",
+  "하단 정보 표기": "Info unten",
+  "하단 바 표기 모드에서 이미지 하단에 곡 수·런닝타임을 표기합니다.": "Im Leistenmodus werden Titelanzahl und Laufzeit unten im Bild angezeigt.",
   "활성화됨": "Aktiviert",
 };
 
@@ -725,6 +761,12 @@ const pt: Dict = {
   "OpenRouter (Gemini)": "OpenRouter (Gemini)",
   "Google Gemini": "Google Gemini",
   "OpenAI (gpt-image-1)": "OpenAI (gpt-image-1)",
+  "제목 표기 방식": "Modo do texto do título",
+  "AI 통합 렌더 (디자인 일체형)": "Renderização integrada por IA (tipografia no design)",
+  "하단 바 표기 (글자 정확)": "Barra inferior (letras exatas)",
+  "AI 통합 렌더는 제목이 이미지 디자인의 일부로 그려집니다(예: 플레이리스트 커버). 하단 바 표기는 글자가 항상 정확합니다.": "Na renderização integrada por IA, o título é desenhado como parte do design da imagem (como capas de playlist premium). A barra inferior sempre mostra letras exatas.",
+  "하단 정보 표기": "Informações inferiores",
+  "하단 바 표기 모드에서 이미지 하단에 곡 수·런닝타임을 표기합니다.": "No modo barra inferior, mostra o número de faixas e a duração na parte de baixo.",
   "활성화됨": "Ativada",
 };
 
@@ -806,6 +848,12 @@ const ru: Dict = {
   "OpenRouter (Gemini)": "OpenRouter (Gemini)",
   "Google Gemini": "Google Gemini",
   "OpenAI (gpt-image-1)": "OpenAI (gpt-image-1)",
+  "제목 표기 방식": "Режим текста заголовка",
+  "AI 통합 렌더 (디자인 일체형)": "Интегрированный рендер ИИ (типографика в дизайне)",
+  "하단 바 표기 (글자 정확)": "Нижняя плашка (точные буквы)",
+  "AI 통합 렌더는 제목이 이미지 디자인의 일부로 그려집니다(예: 플레이리스트 커버). 하단 바 표기는 글자가 항상 정확합니다.": "При интегрированном рендере ИИ заголовок рисуется как часть дизайна изображения (как премиальные обложки плейлистов). Нижняя плашка всегда даёт точные буквы.",
+  "하단 정보 표기": "Информация внизу",
+  "하단 바 표기 모드에서 이미지 하단에 곡 수·런닝타임을 표기합니다.": "В режиме плашки внизу изображения показываются число треков и длительность.",
   "활성화됨": "Активирован",
 };
 
@@ -887,6 +935,12 @@ const hi: Dict = {
   "OpenRouter (Gemini)": "OpenRouter (Gemini)",
   "Google Gemini": "Google Gemini",
   "OpenAI (gpt-image-1)": "OpenAI (gpt-image-1)",
+  "제목 표기 방식": "शीर्षक पाठ मोड",
+  "AI 통합 렌더 (디자인 일체형)": "AI-एकीकृत रेंडर (डिज़ाइन में टाइपोग्राफी)",
+  "하단 바 표기 (글자 정확)": "निचली पट्टी (सटीक अक्षर)",
+  "AI 통합 렌더는 제목이 이미지 디자인의 일부로 그려집니다(예: 플레이리스트 커버). 하단 바 표기는 글자가 항상 정확합니다.": "AI-एकीकृत रेंडर में शीर्षक छवि डिज़ाइन का हिस्से के रूप में बनता है (प्रीमियम प्लेलिस्ट कवर जैसा)। निचली पट्टी में अक्षर हमेशा सटीक होते हैं।",
+  "하단 정보 표기": "निचली जानकारी",
+  "하단 바 표기 모드에서 이미지 하단에 곡 수·런닝타임을 표기합니다.": "पट्टी मोड में छवि के नीचे ट्रैक संख्या और अवधि दिखाई जाती है।",
   "활성화됨": "सक्रिय",
 };
 
@@ -968,6 +1022,12 @@ const idn: Dict = {
   "OpenRouter (Gemini)": "OpenRouter (Gemini)",
   "Google Gemini": "Google Gemini",
   "OpenAI (gpt-image-1)": "OpenAI (gpt-image-1)",
+  "제목 표기 방식": "Mode teks judul",
+  "AI 통합 렌더 (디자인 일체형)": "Render terpadu AI (tipografi dalam desain)",
+  "하단 바 표기 (글자 정확)": "Bilah bawah (huruf akurat)",
+  "AI 통합 렌더는 제목이 이미지 디자인의 일부로 그려집니다(예: 플레이리스트 커버). 하단 바 표기는 글자가 항상 정확합니다.": "Pada render terpadu AI, judul digambar sebagai bagian dari desain gambar (seperti sampul playlist premium). Bilah bawah selalu menampilkan huruf yang akurat.",
+  "하단 정보 표기": "Info bawah",
+  "하단 바 표기 모드에서 이미지 하단에 곡 수·런닝타임을 표기합니다.": "Pada mode bilah bawah, jumlah lagu dan durasi ditampilkan di bawah gambar.",
   "활성화됨": "Aktif",
 };
 

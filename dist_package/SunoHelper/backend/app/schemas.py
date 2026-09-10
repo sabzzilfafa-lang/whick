@@ -30,6 +30,7 @@ class SettingsUpdate(BaseModel):
     image_provider: Optional[str] = None
     image_model: Optional[str] = None
     thumbnail_overlay: Optional[str] = None
+    thumbnail_title_mode: Optional[str] = None
 
 
 class SettingsResponse(BaseModel):
@@ -60,6 +61,7 @@ class SettingsResponse(BaseModel):
     image_provider: str = "openrouter"
     image_model: str = ""
     thumbnail_overlay: str = "1"
+    thumbnail_title_mode: str = "ai"
 
 
 # --- Music Profile ---

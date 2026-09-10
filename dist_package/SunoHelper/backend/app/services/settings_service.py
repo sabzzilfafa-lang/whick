@@ -36,6 +36,8 @@ DEFAULTS = {
     "model_thumbnail": "google/gemini-2.5-flash-lite",
     "image_provider": "openrouter",
     "image_model": "google/gemini-2.5-flash-image",
+    # 썸네일 제목 표기 방식: "ai"=AI 일체 렌더(디자인 일체형) / "overlay"=하단 바 표기 (2026-09-10)
+    "thumbnail_title_mode": "ai",
     "temperature_lyrics": "0.8",
     "temperature_prompt": "0.5",
     "temperature_instruments": "0.4",

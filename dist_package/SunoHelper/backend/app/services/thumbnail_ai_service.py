@@ -174,18 +174,46 @@ def _extract_json(text: str) -> list[str]:
     )
 
 
-def _build_prompt_request(album_title: str, mood: str, concept: str) -> tuple[str, str]:
-    system = (
-        "You are a YouTube thumbnail art director for music albums. "
-        "Reply with ONLY a JSON array of exactly 3 strings — each an image-generation "
-        "prompt for ONE distinct thumbnail concept (A: bold photo-composition with big "
-        "readable title text, B: moody atmospheric scene, C: minimal graphic/poster "
-        "style). Each prompt must specify: 16:9 landscape, music album mood, no "
-        "watermarks, no logos. IMPORTANT: concept A must include the album title as "
-        "large, creative, stylized typography rendered INTO the image (bold display "
-        "font, artistic placement, matching the mood). Keep the album title text "
-        "short and in English."
-    )
+def _build_prompt_request(album_title: str, mood: str, concept: str, title_mode: str = "ai") -> tuple[str, str]:
+    """썸네일 프롬프트 3개 생성 요청 (2026-09-10 v0.9.34 대폭 강화).
+
+    title_mode="ai": 예시 커버처럼 글자가 디자인의 주인공인 일체형 이미지를 유도.
+    title_mode="overlay": 글자 없는 배경(제목 영역 여백 확보)을 유도 — PIL 합성용.
+    """
+    if title_mode == "overlay":
+        system = (
+            "You are a YouTube thumbnail art director for music albums. "
+            "Reply with ONLY a JSON array of exactly 3 strings — each an image-generation "
+            "prompt for ONE distinct background concept (A: photo-composition with clear "
+            "empty sky or open space in the upper area, B: moody atmospheric scene with "
+            "negative space on one side, C: minimal graphic/poster with large clean "
+            "empty center). The text will be composited later, so ABSOLUTELY NO text, "
+            "letters, words, captions or typography in the image. Each prompt must "
+            "specify: 16:9 landscape, music album mood, leave clean space where a big "
+            "title would go, no watermarks, no logos."
+        )
+    else:
+        system = (
+            "You are a world-class YouTube playlist-cover art director for music albums. "
+            "Reply with ONLY a JSON array of exactly 3 strings — each an image-generation "
+            "prompt for ONE distinct thumbnail concept where TYPOGRAPHY IS THE HERO of "
+            "the design, like premium Spotify/YouTube playlist covers:\n"
+            "A: giant stylized title word dominating the frame — letters filled with or "
+            "textured by the scene itself (sky, road, ocean, flowers matching the mood), "
+            "photographic depth of field around the text.\n"
+            "B: title as a huge semi-transparent glass/neon/signage element integrated "
+            "into a real scene, characters interacting with the letters.\n"
+            "C: minimal poster — one huge elegant word on a bold color field or gradient, "
+            "swiss-style, with a small scene element.\n"
+            "Each prompt must: specify 16:9 landscape; state the EXACT title text to "
+            "render in quotes; describe font style (display serif / rounded sans / "
+            "script), letter color & material (e.g. white with soft shadow, orange "
+            "retro serif), placement (center/lower-third); include a short divider or "
+            "subtitle line like 'WHERE : <location>' style if it fits the mood; end "
+            "with 'no watermarks, no logos, no misspelling'. Keep the album title "
+            "short and in English; translate non-English titles to a short English "
+            "rendering and note the original in parentheses."
+        )
     user = (
         f"Album title: {album_title}\n"
         f"Mood: {mood or 'unspecified'}\n"
@@ -455,7 +483,9 @@ async def generate_prompts(db: AsyncSession, album) -> list[str]:
     if not title:
         raise ValueError("앨범 제목이 없습니다.")
     context = _collect_album_context(album)
-    system, user = _build_prompt_request(title, "", "")
+    s_cfg = await get_all_settings(db)
+    title_mode = (s_cfg.get("thumbnail_title_mode") or "ai").strip().lower()
+    system, user = _build_prompt_request(title, "", "", title_mode)
     if context:
         user += "\nContext (use this to match the imagery mood):\n" + context
     raw = await _ai_text(db, "thumbnail", system, user)
@@ -505,8 +535,9 @@ async def generate_thumbnails(
     tdir = thumbnails_dir(album_dir)
     tdir.mkdir(parents=True, exist_ok=True)
 
-    # 텍스트 오버레이용 메타 (settings.thumbnail_overlay = "1"일 때 하단 바 표기)
-    overlay_on = (s.get("thumbnail_overlay") or "1").strip() == "1"
+    # 제목 표기 방식: ai=AI 일체 렌더(오버레이 생략) / overlay=하단 바 표기 (2026-09-10)
+    title_mode = (s.get("thumbnail_title_mode") or "ai").strip().lower()
+    overlay_on = title_mode == "overlay" and (s.get("thumbnail_overlay") or "1").strip() == "1"
     ov_title = str(getattr(album, "title", "") or "").strip()
     ov_subtitle = str(getattr(album, "mood", "") or getattr(album, "concept", "") or "").strip()
     ov_tracks = int(getattr(album, "track_count", 0) or 0)

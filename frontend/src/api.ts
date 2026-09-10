@@ -168,6 +168,7 @@ export interface AppSettings {
   model_thumbnail: string;
   image_provider: string;
   image_model: string;
+  thumbnail_title_mode?: string;
   thumbnail_overlay: string;
 }
 
