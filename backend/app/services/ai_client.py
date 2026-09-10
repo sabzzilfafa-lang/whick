@@ -64,10 +64,9 @@ API_KEY_FIELDS = {
 
 RECOMMENDED_MODELS: dict[str, list[dict[str, str]]] = {
     "openrouter": [
-        {"id": "~deepseek/deepseek-v4-flash-latest", "name": "DeepSeek V4 Flash Latest (가사)"},
-        {"id": "google/gemini-2.5-flash-lite", "name": "Gemini 2.5 Flash Lite (프롬프트)"},
-        {"id": "google/gemini-2.5-flash-lite", "name": "Gemini 2.5 Flash Lite (악기)"},
-        {"id": "deepseek/deepseek-v3.2", "name": "DeepSeek V3.2 (분석)"},
+        {"id": "~deepseek/deepseek-v4-flash-latest", "name": "DeepSeek V4 Flash Latest"},
+        {"id": "google/gemini-2.5-flash-lite", "name": "Gemini 2.5 Flash Lite"},
+        {"id": "deepseek/deepseek-v3.2", "name": "DeepSeek V3.2"},
         {"id": "qwen/qwen3.7-flash", "name": "Qwen 3.7 Flash"},
         {"id": "xiaomi/mimo-v2.5", "name": "MiMo V2.5"},
         {"id": "deepseek/deepseek-v4-flash", "name": "DeepSeek V4 Flash"},
@@ -313,15 +312,24 @@ class AIClient:
         recommended_ids = {
             m["id"] for m in RECOMMENDED_MODELS.get(self.provider, [])
         }
-        normalized.sort(
-            key=lambda m: (
-                0 if m["id"] in recommended_ids else 1,
-                m["name"].lower(),
-            )
+        # 정렬: 권장 → 주요 시리즈(GPT·Claude 등) → 나머지 일부 (2026-09-10 v0.9.30)
+        known_series = (
+            "gpt", "claude", "gemini", "deepseek", "llama", "qwen",
+            "mistral", "grok", "kimi", "glm", "o3", "o4",
         )
-        # 적합(권장) 모델 전부 + 나머지 일부만 노출 — 목록 과밀 방지 (2026-09-10)
-        rec_count = sum(1 for m in normalized if m["id"] in recommended_ids)
-        return normalized[: rec_count + 10]
+
+        def _rank(m: dict[str, str]) -> int:
+            if m["id"] in recommended_ids:
+                return 0
+            mid = m["id"].lower()
+            return 1 if any(k in mid for k in known_series) else 2
+
+        normalized.sort(key=lambda m: (_rank(m), m["name"].lower()))
+        tail = sum(1 for m in normalized if _rank(m) == 2)
+        if tail > 20:
+            keep = [m for m in normalized if _rank(m) < 2]
+            rest = [m for m in normalized if _rank(m) == 2][:20]
+            normalized = keep + rest
 
 
 # 하위 호환
