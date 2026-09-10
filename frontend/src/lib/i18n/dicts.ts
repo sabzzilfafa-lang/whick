@@ -65,6 +65,11 @@ const en: Dict = {
   "유튜브 설명 위젯": "YouTube description builder",
   "백업 · 복원": "Backup & restore",
   // 설정 — Whick API 키
+  "Whick API 키": "Whick API key",
+  "내 계정 → API 키": "My Account → API Keys",
+  "OpenRouter (Gemini)": "OpenRouter (Gemini)",
+  "Google Gemini": "Google Gemini",
+  "OpenAI (gpt-image-1)": "OpenAI (gpt-image-1)",
   "활성화됨": "Activated",
   "갱신 만료 임박 — 다음 작업 시 자동 갱신": "renewal expiring — auto-renews on next job",
   "에서 발급한 키를 입력하세요.": "and paste the issued key here.",
@@ -304,6 +309,11 @@ const ja: Dict = {
   "연결됨:": "接続済み:",
   "활성화": "有効化",
   "키 교체": "キー交換",
+  "Whick API 키": "Whick APIキー",
+  "내 계정 → API 키": "マイアカウント → APIキー",
+  "OpenRouter (Gemini)": "OpenRouter (Gemini)",
+  "Google Gemini": "Google Gemini",
+  "OpenAI (gpt-image-1)": "OpenAI (gpt-image-1)",
   "활성화됨": "有効",
   
 };
@@ -386,6 +396,11 @@ const zh: Dict = {
   "연결됨:": "已连接:",
   "활성화": "激活",
   "키 교체": "更换密钥",
+  "Whick API 키": "Whick API 密钥",
+  "내 계정 → API 키": "我的账户 → API 密钥",
+  "OpenRouter (Gemini)": "OpenRouter (Gemini)",
+  "Google Gemini": "Google Gemini",
+  "OpenAI (gpt-image-1)": "OpenAI (gpt-image-1)",
   "활성화됨": "已激活",
 };
 
@@ -462,6 +477,11 @@ const es: Dict = {
   "연결됨:": "Conectado:",
   "활성화": "Activar",
   "키 교체": "Cambiar clave",
+  "Whick API 키": "Clave API de Whick",
+  "내 계정 → API 키": "Mi cuenta → Claves API",
+  "OpenRouter (Gemini)": "OpenRouter (Gemini)",
+  "Google Gemini": "Google Gemini",
+  "OpenAI (gpt-image-1)": "OpenAI (gpt-image-1)",
   "활성화됨": "Activada",
 };
 
@@ -538,6 +558,11 @@ const fr: Dict = {
   "연결됨:": "Connecté :",
   "활성화": "Activer",
   "키 교체": "Remplacer la clé",
+  "Whick API 키": "Clé API Whick",
+  "내 계정 → API 키": "Mon compte → Clés API",
+  "OpenRouter (Gemini)": "OpenRouter (Gemini)",
+  "Google Gemini": "Google Gemini",
+  "OpenAI (gpt-image-1)": "OpenAI (gpt-image-1)",
   "활성화됨": "Activée",
 };
 
@@ -614,6 +639,11 @@ const de: Dict = {
   "연결됨:": "Verbunden:",
   "활성화": "Aktivieren",
   "키 교체": "Schlüssel ersetzen",
+  "Whick API 키": "Whick-API-Schlüssel",
+  "내 계정 → API 키": "Mein Konto → API-Schlüssel",
+  "OpenRouter (Gemini)": "OpenRouter (Gemini)",
+  "Google Gemini": "Google Gemini",
+  "OpenAI (gpt-image-1)": "OpenAI (gpt-image-1)",
   "활성화됨": "Aktiviert",
 };
 
@@ -690,6 +720,11 @@ const pt: Dict = {
   "연결됨:": "Conectado:",
   "활성화": "Ativar",
   "키 교체": "Trocar chave",
+  "Whick API 키": "Chave de API Whick",
+  "내 계정 → API 키": "Minha conta → Chaves de API",
+  "OpenRouter (Gemini)": "OpenRouter (Gemini)",
+  "Google Gemini": "Google Gemini",
+  "OpenAI (gpt-image-1)": "OpenAI (gpt-image-1)",
   "활성화됨": "Ativada",
 };
 
@@ -766,6 +801,11 @@ const ru: Dict = {
   "연결됨:": "Подключено:",
   "활성화": "Активировать",
   "키 교체": "Заменить ключ",
+  "Whick API 키": "API-ключ Whick",
+  "내 계정 → API 키": "Мой аккаунт → API-ключи",
+  "OpenRouter (Gemini)": "OpenRouter (Gemini)",
+  "Google Gemini": "Google Gemini",
+  "OpenAI (gpt-image-1)": "OpenAI (gpt-image-1)",
   "활성화됨": "Активирован",
 };
 
@@ -842,6 +882,11 @@ const hi: Dict = {
   "연결됨:": "कनेक्टेड:",
   "활성화": "सक्रिय करें",
   "키 교체": "कुंजी बदलें",
+  "Whick API 키": "Whick API कुंजी",
+  "내 계정 → API 키": "मेरा खाता → API कुंजियाँ",
+  "OpenRouter (Gemini)": "OpenRouter (Gemini)",
+  "Google Gemini": "Google Gemini",
+  "OpenAI (gpt-image-1)": "OpenAI (gpt-image-1)",
   "활성화됨": "सक्रिय",
 };
 
@@ -918,6 +963,11 @@ const idn: Dict = {
   "연결됨:": "Terhubung:",
   "활성화": "Aktifkan",
   "키 교체": "Ganti kunci",
+  "Whick API 키": "Kunci API Whick",
+  "내 계정 → API 키": "Akun saya → Kunci API",
+  "OpenRouter (Gemini)": "OpenRouter (Gemini)",
+  "Google Gemini": "Google Gemini",
+  "OpenAI (gpt-image-1)": "OpenAI (gpt-image-1)",
   "활성화됨": "Aktif",
 };
 

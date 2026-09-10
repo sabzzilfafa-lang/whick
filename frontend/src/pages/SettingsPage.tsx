@@ -17,8 +17,8 @@ type TaskKey =
 
 /** 썸네일 3종 생성 AI 지정 (2026-09-10): openrouter·google·openai — openrouter는 openrouter_api_key 하나로 이미지 모델 사용 */
 const IMAGE_PROVIDERS = [
-  { id: "openrouter", name: "OpenRouter (Gemini 이미지)" },
-  { id: "google", name: "Google Gemini (이미지)" },
+  { id: "openrouter", name: "OpenRouter (Gemini)" },
+  { id: "google", name: "Google Gemini" },
   { id: "openai", name: "OpenAI (gpt-image-1)" },
 ] as const;
 
@@ -589,7 +589,7 @@ export default function SettingsPage() {
         <>
           {/* Whick 라이선스·API키 — whick.org 계정 키로 실행 자격 획득 (2026-09-08) */}
           <div className="card" style={{ marginBottom: "1.5rem" }}>
-            <div className="card-title">Whick API 키</div>
+            <div className="card-title">{t("Whick API 키")}</div>
             {licenseState === "valid" || licenseState === "grace" || licenseState === "active" ? (
               <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "0.75rem" }}>
                 {t("활성화됨")}
@@ -598,7 +598,7 @@ export default function SettingsPage() {
               </p>
             ) : (
               <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "0.75rem" }}>
-                whick.org {t("에서 발급한 키를 입력하세요.")} <b>내 계정 → API 키</b>
+                whick.org {t("에서 발급한 키를 입력하세요.")} <b>{t("내 계정 → API 키")}</b>
                 <br />
                 {t("키가 있어야 작업(파이프라인)을 실행할 수 있습니다.")}
               </p>
@@ -781,7 +781,7 @@ export default function SettingsPage() {
               >
                 {IMAGE_PROVIDERS.map((p) => (
                   <option key={p.id} value={p.id}>
-                    {p.name}
+                    {t(p.name)}
                   </option>
                 ))}
               </select>
