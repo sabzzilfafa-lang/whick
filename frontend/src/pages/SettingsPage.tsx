@@ -388,6 +388,12 @@ export default function SettingsPage() {
       temperature_prompt: VALUE_TEMPERATURES.prompt,
       temperature_instruments: VALUE_TEMPERATURES.instruments,
       temperature_analyze: VALUE_TEMPERATURES.analyze,
+      // 썸네일 텍스트 AI도 가성비 조합에 포함 (2026-09-10)
+      provider_thumbnail: "openrouter",
+      model_thumbnail: "google/gemini-2.5-flash-lite",
+      // 이미지 생성 AI는 이미지 전용 목록(OpenRouter 등)을 유지 — provider만 가성비 기본으로
+      image_provider: settings.image_provider || "openrouter",
+      image_model: settings.image_model || "google/gemini-2.5-flash-image",
     });
     setMessage(t("가성비 권장 모델·창의성이 선택되었습니다. 「설정 저장」을 눌러 적용하세요."));
     setError("");

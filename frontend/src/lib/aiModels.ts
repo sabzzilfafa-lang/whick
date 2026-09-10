@@ -19,10 +19,10 @@ export const VALUE_TEMPERATURES: Record<string, string> = {
 /** API 실패 시 사용하는 기본 모델 목록 */
 export const STATIC_MODELS: Record<string, AIModelOption[]> = {
   openrouter: [
-    { id: VALUE_MODELS.lyrics, name: "DeepSeek V4 Flash Latest (가사)" },
-    { id: VALUE_MODELS.prompt, name: "Gemini 2.5 Flash Lite (프롬프트)" },
-    { id: VALUE_MODELS.instruments, name: "Gemini 2.5 Flash Lite (악기)" },
-    { id: VALUE_MODELS.analyze, name: "DeepSeek V3.2 (분석)" },
+    { id: VALUE_MODELS.lyrics, name: "DeepSeek V4 Flash Latest" },
+    { id: VALUE_MODELS.prompt, name: "Gemini 2.5 Flash Lite" },
+    { id: VALUE_MODELS.instruments, name: "Gemini 2.5 Flash Lite" },
+    { id: VALUE_MODELS.analyze, name: "DeepSeek V3.2" },
     { id: "qwen/qwen3.7-flash", name: "Qwen 3.7 Flash" },
     { id: "xiaomi/mimo-v2.5", name: "MiMo V2.5" },
     { id: "deepseek/deepseek-v4-flash", name: "DeepSeek V4 Flash" },
@@ -70,5 +70,5 @@ export function mergeModels(
   if (!currentValue || models.some((m) => m.id === currentValue)) {
     return models;
   }
-  return [{ id: currentValue, name: `${currentValue} (현재)` }, ...models];
+  return [{ id: currentValue, name: `${currentValue} (current)` }, ...models];
 }
