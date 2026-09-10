@@ -479,6 +479,12 @@ async def _album_dir(db: AsyncSession, album_id: int) -> tuple[Any, Path]:
         album_dir = ensure_album_work_folder(root, album, "music")
     except ValueError as e:
         raise HTTPException(400, str(e)) from e
+    except OSError as e:
+        # 작업폴더 생성 실패(권한·경로) — 순수 500 대신 원인 전달 (2026-09-10)
+        raise HTTPException(400, f"작업 폴더 생성 실패: {e}") from e
+    except Exception as e:
+        logger.error("album work folder failed album=%s: %s", album_id, e, exc_info=True)
+        raise HTTPException(500, f"작업 폴더 처리 오류: {str(e)[:200]}") from e
     return album, thumbnails_dir(album_dir)
 
 

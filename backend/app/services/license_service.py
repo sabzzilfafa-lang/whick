@@ -153,13 +153,38 @@ def _jwt_expiry(token: str) -> float | None:
 # 상태
 # ---------------------------------------------------------------------------
 def license_status() -> dict[str, Any]:
-    """현재 라이선스 상태 — 파이프라인 게이트와 UI가 참조."""
+    """현재 라이선스 상태 — 파이프라인 게이트와 UI가 참조.
+
+    2026-09-08 API키 전환: 레거시 JWT 라이선스가 없어도 whick_ API키가
+    license.json에 보관돼 있으면 state='active'로 반환한다. UI(설정·대시보드)
+    는 valid/grace와 동일하게 '활성화됨'으로 표시한다 (2026-09-10 수정 —
+    키 활성화 후에도 회색으로 보이던 버그).
+    """
     saved = _load_saved()
     token = (saved.get("license") or "").strip()
+    # 레거시 JWT 우선 — 있으면 기존 체계 유지 (전환 기간 호환)
     if not token:
+        api_key = (saved.get("api_key") or "").strip()
+        if api_key:
+            return {
+                "state": "active",
+                "email": str(saved.get("email") or ""),
+                "plan": "api-key",
+                "expires_at": "",
+                "grace_until": "",
+            }
         return {"state": "none", "email": "", "plan": "", "expires_at": "", "grace_until": ""}
     payload = verify_license(token)
     if payload is None:
+        api_key = (saved.get("api_key") or "").strip()
+        if api_key:
+            return {
+                "state": "active",
+                "email": str(saved.get("email") or ""),
+                "plan": "api-key",
+                "expires_at": "",
+                "grace_until": "",
+            }
         return {"state": "none", "email": "", "plan": "", "expires_at": "", "grace_until": ""}
     if payload.get("machine_id") != machine_id():
         return {"state": "mismatch", "email": payload.get("email", ""), "plan": payload.get("plan", ""), "expires_at": "", "grace_until": ""}

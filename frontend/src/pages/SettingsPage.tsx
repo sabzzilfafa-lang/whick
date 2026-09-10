@@ -528,7 +528,7 @@ export default function SettingsPage() {
           {/* Whick 라이선스·API키 — whick.org 계정 키로 실행 자격 획득 (2026-09-08) */}
           <div className="card" style={{ marginBottom: "1.5rem" }}>
             <div className="card-title">Whick API 키</div>
-            {licenseState === "valid" || licenseState === "grace" ? (
+            {licenseState === "valid" || licenseState === "grace" || licenseState === "active" ? (
               <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "0.75rem" }}>
                 {t("활성화됨")}
                 {licenseEmail ? ` — ${licenseEmail}` : ""}
