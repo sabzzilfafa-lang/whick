@@ -56,6 +56,11 @@ export default function AlbumDetailPage() {
   const [songImgMsg, setSongImgMsg] = useState("");
   const [songImgZoom, setSongImgZoom] = useState<number | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // 앨범 곡수·목표시간 수정 (2026-09-10)
+  const [showAlbumEdit, setShowAlbumEdit] = useState(false);
+  const [editForm, setEditForm] = useState({ track_count: 10, target_duration_min: 40, concept: "", mood: "" });
+  const [albumEditSaving, setAlbumEditSaving] = useState(false);
+  const [albumEditMsg, setAlbumEditMsg] = useState("");
 
   const stopPoll = () => {
 
@@ -432,6 +437,39 @@ export default function AlbumDetailPage() {
 
   };
 
+  /* 명곡: 곡수 · 목표시간 수정 (2026-09-10) — 저장된 값은 트랙 일괄 생성·가사 러닝타임 배분에 반영 */
+  const openAlbumEdit = () => {
+    if (!album) return;
+    setEditForm({
+      track_count: album.track_count ?? 10,
+      target_duration_min: album.target_duration_min ?? 40,
+      concept: album.concept ?? "",
+      mood: album.mood ?? "",
+    });
+    setAlbumEditMsg("");
+    setShowAlbumEdit(true);
+  };
+
+  const saveAlbumEdit = async () => {
+    if (!album) return;
+    setAlbumEditSaving(true);
+    setAlbumEditMsg("");
+    try {
+      const updated = await api.updateAlbum(album.id, {
+        track_count: editForm.track_count,
+        target_duration_min: editForm.target_duration_min,
+        concept: editForm.concept,
+        mood: editForm.mood,
+      });
+      setAlbum((prev) => (prev ? { ...prev, ...updated } : prev));
+      setAlbumEditMsg("저장되었습니다 — 다음 일괄 생성·가사 배분에 반영됩니다.");
+    } catch (e) {
+      setAlbumEditMsg(e instanceof Error ? e.message : "저장 실패");
+    } finally {
+      setAlbumEditSaving(false);
+    }
+  };
+
 
 
   const handleChangeStyle = async (profileId: number) => {
@@ -493,6 +531,14 @@ export default function AlbumDetailPage() {
           )}
 
           <div className="album-detail-actions">
+
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={openAlbumEdit}
+            >
+              곡수·시간 수정
+            </button>
 
             <button
 
@@ -1044,6 +1090,61 @@ export default function AlbumDetailPage() {
 
         </div>
 
+      </Modal>
+
+      <Modal open={showAlbumEdit} onClose={() => setShowAlbumEdit(false)} title="곡수·시간 수정">
+        {albumEditMsg && (
+          <div className={albumEditMsg.startsWith("저장") ? "success-banner" : "error"}>{albumEditMsg}</div>
+        )}
+        <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "1rem" }}>
+          저장한 값은 이후 「전체 곡 일괄 생성」의 트랙 수와 가사 러닝타임 배분(목표 시간)에 반영됩니다.
+        </p>
+        <div className="form-row">
+          <div className="form-group">
+            <label>곡 수</label>
+            <input
+              type="number"
+              min={1}
+              max={30}
+              value={editForm.track_count}
+              onChange={(e) => setEditForm({ ...editForm, track_count: Number(e.target.value) })}
+            />
+          </div>
+          <div className="form-group">
+            <label>목표 시간 (분)</label>
+            <input
+              type="number"
+              min={1}
+              value={editForm.target_duration_min}
+              onChange={(e) => setEditForm({ ...editForm, target_duration_min: Number(e.target.value) })}
+            />
+          </div>
+        </div>
+        <div className="form-group">
+          <label>분위기</label>
+          <input
+            value={editForm.mood}
+            onChange={(e) => setEditForm({ ...editForm, mood: e.target.value })}
+            placeholder="예: 몽환적, 우울한, 희망적"
+          />
+        </div>
+        <div className="form-group">
+          <label>컨셉</label>
+          <textarea
+            value={editForm.concept}
+            onChange={(e) => setEditForm({ ...editForm, concept: e.target.value })}
+            rows={3}
+            style={{ fontFamily: "var(--font)" }}
+          />
+        </div>
+        <div className="modal-actions">
+          <button className="btn btn-secondary" onClick={() => setShowAlbumEdit(false)}>
+            취소
+          </button>
+          <button className="btn btn-primary" onClick={saveAlbumEdit} disabled={albumEditSaving}>
+            {albumEditSaving ? "저장 중..." : "저장"}
+          </button>
+        </div>
       </Modal>
 
     </div>
