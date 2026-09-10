@@ -11,7 +11,8 @@ from typing import Any, Optional
 from fastapi import APIRouter, Body, Depends, File, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
-from sqlalchemy import select, selectinload
+from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
@@ -621,7 +622,6 @@ async def apply_album_thumbnail(
         raise HTTPException(404, "아직 생성되지 않았습니다")
 
     if not project_path:
-        from sqlalchemy import select, selectinload
         from sqlalchemy.orm import selectinload
 
         # db.get()으로 로드한 Album.songs는 lazy라 async에서 MissingGreenlet 발생 —
