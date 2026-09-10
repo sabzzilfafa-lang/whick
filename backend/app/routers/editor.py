@@ -684,6 +684,62 @@ class ThumbnailGenRequest(BaseModel):
     song_ids: Optional[list[int]] = None  # 곡 배경 이미지: 특정 곡만 (2026-09-10)
 
 
+class ThumbOneRequest(BaseModel):
+    """단일 변형(A|B|C) 재생성 요청 (2026-09-10)."""
+    provider: Optional[str] = None
+    model: Optional[str] = None
+    prompt: Optional[str] = None  # 비우면 저장된 마지막 프롬프트 재사용
+
+
+@router.post("/album-thumbs/{album_id}/regen/{variant}")
+async def regenerate_album_thumbnail(
+    album_id: int,
+    variant: str,
+    body: ThumbOneRequest | None = Body(default=None),
+    db: AsyncSession = Depends(get_db),
+):
+    """썸네일 3종 중 1장(A/B/C)만 AI 재생성 (2026-09-10).
+
+    나머지 2장은 그대로 유지 — 유튜브 Test & Compare용 3종 세트를
+    한 장씩 다시 뽑아 볼 때 사용한다.
+    """
+    from app.services.thumbnail_ai_service import (
+        list_generated_thumbnails,
+        regenerate_thumbnail,
+    )
+
+    album, tdir = await _album_dir(db, album_id)
+    try:
+        result = await regenerate_thumbnail(
+            db,
+            album,
+            variant,
+            provider=body.provider if body else None,
+            model=body.model if body else None,
+            prompt=body.prompt if body else None,
+        )
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
+    except Exception as e:  # httpx 등 외부 오류 — 3종 일괄 생성과 동일 정화 (2026-09-10)
+        logger.error(
+            "thumbnail regen failed album=%s variant=%s: %s",
+            album_id,
+            variant,
+            e,
+            exc_info=True,
+        )
+        msg = str(e)[:300]
+        msg = re.sub(r"[?&]key=[^&\s'\"]+", "?key=***", msg)
+        msg = re.sub(r"sk-[A-Za-z0-9_-]+", "sk-***", msg)
+        msg = re.sub(r"(Bearer\s+)\S+", r"\1***", msg)
+        raise HTTPException(502, f"이미지 재생성 실패: {msg}") from e
+    files = list_generated_thumbnails(tdir.parent)
+    for f in files:
+        f["url"] = f"/api/editor/album-thumbs/{album_id}/file/{f['variant']}" if f["ready"] else ""
+    result["files"] = files
+    return result
+
+
 @router.post("/album-thumbs/{album_id}/generate")
 async def generate_album_thumbnails(
     album_id: int,

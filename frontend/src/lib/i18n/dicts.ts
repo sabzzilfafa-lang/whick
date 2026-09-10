@@ -243,6 +243,13 @@ const en: Dict = {
   "설명 블록 구성이 저장되었습니다. 6단계 미리보기부터 바로 적용됩니다.":
     "Description blocks saved. Applies from the step-6 preview.",
   "설명 블록 설정을 불러오는 중...": "Loading description block settings...",
+  "유튜브 썸네일 3종 (AI 생성)": "3 YouTube thumbnails (AI generated)",
+  "앨범 커버와 콘셉트로 썸네일 후보 3장(A/B/C)을 만듭니다. 유튜브 스튜디오의 「Test & Compare」(썸네일 A/B 테스트)에 3장을 모두 올리면 유튜브가 가장 클릭률이 높은 썸네일을 자동으로 대표 노출합니다.":
+    "Creates 3 thumbnail candidates (A/B/C) from the album cover and concept. Upload all 3 to YouTube Studio's Test & Compare (thumbnail A/B test) and YouTube automatically features the one with the highest click-through rate.",
+  "첫 곡에 적용": "Apply to first track",
+  "재생성": "Regenerate",
+  "재생성 중...": "Regenerating...",
+  "이 썸네일만 AI로 다시 생성합니다": "Regenerate only this thumbnail with AI",
 };
 
 const ja: Dict = {
@@ -345,7 +352,13 @@ const ja: Dict = {
   "전체 트랙 이미지 생성": "全トラック画像を生成",
   "생성 중...": "生成中...",
   "활성화됨": "有効",
-  
+  "유튜브 썸네일 3종 (AI 생성)": "YouTubeサムネイル3種（AI生成）",
+  "앨범 커버와 콘셉트로 썸네일 후보 3장(A/B/C)을 만듭니다. 유튜브 스튜디오의 「Test & Compare」(썸네일 A/B 테스트)에 3장을 모두 올리면 유튜브가 가장 클릭률이 높은 썸네일을 자동으로 대표 노출합니다.":
+    "アルバムカバーとコンセプトからサムネイル候補3枚（A/B/C）を作成します。YouTubeスタジオの「Test & Compare」（サムネイルA/Bテスト）に3枚すべてアップロードすると、クリック率の最も高いサムネイルが自動的に代表表示されます。",
+  "첫 곡에 적용": "1曲目に適用",
+  "재생성": "再生成",
+  "재생성 중...": "再生成中...",
+  "이 썸네일만 AI로 다시 생성합니다": "このサムネイルだけAIで再生成します",
 };
 
 const zh: Dict = {
@@ -447,6 +460,13 @@ const zh: Dict = {
   "전체 트랙 이미지 생성": "生成全部曲目图片",
   "생성 중...": "生成中...",
   "활성화됨": "已激活",
+  "유튜브 썸네일 3종 (AI 생성)": "3 张 YouTube 缩略图（AI 生成）",
+  "앨범 커버와 콘셉트로 썸네일 후보 3장(A/B/C)을 만듭니다. 유튜브 스튜디오의 「Test & Compare」(썸네일 A/B 테스트)에 3장을 모두 올리면 유튜브가 가장 클릭률이 높은 썸네일을 자동으로 대표 노출합니다.":
+    "根据专辑封面和概念生成 3 张缩略图候选（A/B/C）。将 3 张全部上传到 YouTube Studio 的「Test & Compare」（缩略图 A/B 测试）后，YouTube 会自动将点击率最高的一张作为代表展示。",
+  "첫 곡에 적용": "应用到第一首",
+  "재생성": "重新生成",
+  "재생성 중...": "重新生成中...",
+  "이 썸네일만 AI로 다시 생성합니다": "仅用 AI 重新生成此缩略图",
 };
 
 const es: Dict = {
@@ -543,6 +563,13 @@ const es: Dict = {
   "전체 트랙 이미지 생성": "Generar imágenes de todas las pistas",
   "생성 중...": "Generando...",
   "활성화됨": "Activada",
+  "유튜브 썸네일 3종 (AI 생성)": "3 miniaturas de YouTube (generadas con IA)",
+  "앨범 커버와 콘셉트로 썸네일 후보 3장(A/B/C)을 만듭니다. 유튜브 스튜디오의 「Test & Compare」(썸네일 A/B 테스트)에 3장을 모두 올리면 유튜브가 가장 클릭률이 높은 썸네일을 자동으로 대표 노출합니다.":
+    "Crea 3 candidatas de miniatura (A/B/C) a partir de la portada y el concepto del álbum. Sube las 3 a «Test & Compare» (prueba A/B de miniaturas) de YouTube Studio y YouTube destacará automáticamente la de mayor tasa de clics.",
+  "첫 곡에 적용": "Aplicar a la primera pista",
+  "재생성": "Regenerar",
+  "재생성 중...": "Regenerando...",
+  "이 썸네일만 AI로 다시 생성합니다": "Regenerar solo esta miniatura con IA",
 };
 
 const fr: Dict = {
@@ -639,6 +666,13 @@ const fr: Dict = {
   "전체 트랙 이미지 생성": "Générer les images de toutes les pistes",
   "생성 중...": "Génération...",
   "활성화됨": "Activée",
+  "유튜브 썸네일 3종 (AI 생성)": "3 miniatures YouTube (générées par IA)",
+  "앨범 커버와 콘셉트로 썸네일 후보 3장(A/B/C)을 만듭니다. 유튜브 스튜디오의 「Test & Compare」(썸네일 A/B 테스트)에 3장을 모두 올리면 유튜브가 가장 클릭률이 높은 썸네일을 자동으로 대표 노출합니다.":
+    "Crée 3 candidats de miniature (A/B/C) à partir de la pochette et du concept de l'album. Téléversez les 3 dans « Test & Compare » (test A/B de miniatures) de YouTube Studio et YouTube mettra automatiquement en avant celle avec le meilleur taux de clic.",
+  "첫 곡에 적용": "Appliquer à la 1re piste",
+  "재생성": "Régénérer",
+  "재생성 중...": "Régénération...",
+  "이 썸네일만 AI로 다시 생성합니다": "Régénérer uniquement cette miniature avec l'IA",
 };
 
 const de: Dict = {
@@ -735,6 +769,13 @@ const de: Dict = {
   "전체 트랙 이미지 생성": "Alle Track-Bilder erstellen",
   "생성 중...": "Wird erstellt...",
   "활성화됨": "Aktiviert",
+  "유튜브 썸네일 3종 (AI 생성)": "3 YouTube-Thumbnails (KI-generiert)",
+  "앨범 커버와 콘셉트로 썸네일 후보 3장(A/B/C)을 만듭니다. 유튜브 스튜디오의 「Test & Compare」(썸네일 A/B 테스트)에 3장을 모두 올리면 유튜브가 가장 클릭률이 높은 썸네일을 자동으로 대표 노출합니다.":
+    "Erstellt 3 Thumbnail-Kandidaten (A/B/C) aus Albumcover und Konzept. Lade alle 3 in YouTube Studios „Test & Compare“ (Thumbnail-A/B-Test) hoch – YouTube zeigt automatisch die mit der höchsten Klickrate als Hauptbild.",
+  "첫 곡에 적용": "Auf ersten Track anwenden",
+  "재생성": "Neu erstellen",
+  "재생성 중...": "Wird neu erstellt...",
+  "이 썸네일만 AI로 다시 생성합니다": "Nur dieses Thumbnail mit KI neu erstellen",
 };
 
 const pt: Dict = {
@@ -831,6 +872,13 @@ const pt: Dict = {
   "전체 트랙 이미지 생성": "Gerar imagens de todas as faixas",
   "생성 중...": "Gerando...",
   "활성화됨": "Ativada",
+  "유튜브 썸네일 3종 (AI 생성)": "3 miniaturas do YouTube (geradas por IA)",
+  "앨범 커버와 콘셉트로 썸네일 후보 3장(A/B/C)을 만듭니다. 유튜브 스튜디오의 「Test & Compare」(썸네일 A/B 테스트)에 3장을 모두 올리면 유튜브가 가장 클릭률이 높은 썸네일을 자동으로 대표 노출합니다.":
+    "Cria 3 candidatas de miniatura (A/B/C) a partir da capa e do conceito do álbum. Envie as 3 no «Test & Compare» (teste A/B de miniaturas) do YouTube Studio e o YouTube destacará automaticamente a com maior taxa de cliques.",
+  "첫 곡에 적용": "Aplicar à primeira faixa",
+  "재생성": "Regerar",
+  "재생성 중...": "Regerando...",
+  "이 썸네일만 AI로 다시 생성합니다": "Regerar apenas esta miniatura com IA",
 };
 
 const ru: Dict = {
@@ -927,6 +975,13 @@ const ru: Dict = {
   "전체 트랙 이미지 생성": "Создать изображения всех треков",
   "생성 중...": "Создание...",
   "활성화됨": "Активирован",
+  "유튜브 썸네일 3종 (AI 생성)": "3 миниатюры YouTube (созданы ИИ)",
+  "앨범 커버와 콘셉트로 썸네일 후보 3장(A/B/C)을 만듭니다. 유튜브 스튜디오의 「Test & Compare」(썸네일 A/B 테스트)에 3장을 모두 올리면 유튜브가 가장 클릭률이 높은 썸네일을 자동으로 대표 노출합니다.":
+    "Создаёт 3 варианта миниатюр (A/B/C) на основе обложки и концепции альбома. Загрузите все 3 в «Test & Compare» (A/B-тест миниатюр) в YouTube Studio — YouTube автоматически покажет как основную ту, у которой выше CTR.",
+  "첫 곡에 적용": "Применить к первому треку",
+  "재생성": "Пересоздать",
+  "재생성 중...": "Пересоздание...",
+  "이 썸네일만 AI로 다시 생성합니다": "Пересоздать только эту миниатюру с помощью ИИ",
 };
 
 const hi: Dict = {
@@ -1023,6 +1078,13 @@ const hi: Dict = {
   "전체 트랙 이미지 생성": "सभी ट्रैक छवियाँ बनाएँ",
   "생성 중...": "बना रहा है...",
   "활성화됨": "सक्रिय",
+  "유튜브 썸네일 3종 (AI 생성)": "3 YouTube थंबनेल (AI जनरेटेड)",
+  "앨범 커버와 콘셉트로 썸네일 후보 3장(A/B/C)을 만듭니다. 유튜브 스튜디오의 「Test & Compare」(썸네일 A/B 테스트)에 3장을 모두 올리면 유튜브가 가장 클릭률이 높은 썸네일을 자동으로 대표 노출합니다.":
+    "एल्बम कवर और कॉन्सेप्ट से 3 थंबनेल उम्मीदवार (A/B/C) बनाता है। तीनों को YouTube Studio के «Test & Compare» (थंबनेल A/B टेस्ट) में अपलोड करें — YouTube सबसे अधिक CTR वाले थंबनेल को स्वतः मुख्य रूप में दिखाएगा।",
+  "첫 곡에 적용": "पहले ट्रैक पर लागू करें",
+  "재생성": "पुनः बनाएँ",
+  "재생성 중...": "पुनः बना रहा है...",
+  "이 썸네일만 AI로 다시 생성합니다": "केवल इस थंबनेल को AI से दोबारा बनाएँ",
 };
 
 const idn: Dict = {
@@ -1119,6 +1181,13 @@ const idn: Dict = {
   "전체 트랙 이미지 생성": "Buat semua gambar trek",
   "생성 중...": "Membuat...",
   "활성화됨": "Aktif",
+  "유튜브 썸네일 3종 (AI 생성)": "3 thumbnail YouTube (dibuat AI)",
+  "앨범 커버와 콘셉트로 썸네일 후보 3장(A/B/C)을 만듭니다. 유튜브 스튜디오의 「Test & Compare」(썸네일 A/B 테스트)에 3장을 모두 올리면 유튜브가 가장 클릭률이 높은 썸네일을 자동으로 대표 노출합니다.":
+    "Membuat 3 kandidat thumbnail (A/B/C) dari sampul dan konsep album. Unggah ketiganya ke «Test & Compare» (uji A/B thumbnail) di YouTube Studio — YouTube otomatis menampilkan yang CTR-nya tertinggi sebagai utama.",
+  "첫 곡에 적용": "Terapkan ke trek pertama",
+  "재생성": "Buat ulang",
+  "재생성 중...": "Membuat ulang...",
+  "이 썸네일만 AI로 다시 생성합니다": "Buat ulang hanya thumbnail ini dengan AI",
 };
 
 export const DICTS: Record<Exclude<Lang, "ko">, Dict> = {

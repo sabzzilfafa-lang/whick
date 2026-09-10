@@ -1189,6 +1189,12 @@ export const albumThumbsApi = {
       method: "POST",
       body: JSON.stringify(options ?? {}),
     }),
+  /** 썸네일 1장(A|B|C)만 AI 재생성 — 나머지 2장 유지 (2026-09-10) */
+  regenerate: (albumId: number, variant: "A" | "B" | "C", options?: { provider?: string; model?: string; prompt?: string }) =>
+    request<AlbumThumbsResult>(`/editor/album-thumbs/${albumId}/regen/${variant}`, {
+      method: "POST",
+      body: JSON.stringify(options ?? {}),
+    }),
   thumbnailFileUrl: (albumId: number, variant: "A" | "B" | "C") =>
     `${API_BASE}/editor/album-thumbs/${albumId}/file/${variant}?t=${Date.now()}`,
   /** 사용자 파일로 앨범 썸네일 직접 업로드 (variant A로 저장 — 2026-09-10 v0.9.51) */

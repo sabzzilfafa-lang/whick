@@ -198,6 +198,24 @@ export default function AlbumDetailPage() {
     }
   };
 
+  /* 썸네일 1장(A|B|C)만 재생성 — 나머지 2장 유지 (2026-09-10) */
+  const [thumbRegenBusy, setThumbRegenBusy] = useState<"A" | "B" | "C" | null>(null);
+  const handleThumbRegenerate = async (variant: "A" | "B" | "C") => {
+    if (!album) return;
+    setThumbRegenBusy(variant);
+    setThumbMsg(`썸네일 ${variant} 재생성 중...`);
+    try {
+      const res = await albumThumbsApi.regenerate(album.id, variant);
+      setThumbFiles(res.files || thumbFiles);
+      if (res.prompts?.length) setThumbPrompts(res.prompts);
+      setThumbMsg(`썸네일 ${variant} 재생성 완료 — ${res.provider || ""} ${res.model || ""}`);
+    } catch (e) {
+      setThumbMsg(String(e));
+    } finally {
+      setThumbRegenBusy(null);
+    }
+  };
+
   const handleThumbApply = async (variant: "A" | "B" | "C") => {
     if (!album) return;
     setThumbBusy(true);
@@ -573,11 +591,9 @@ export default function AlbumDetailPage() {
       </div>
 
       <div className="card" style={{ marginBottom: "1rem", padding: "1rem" }}>
-        <div className="card-title">유튜브 썸네일 3종 (AI 생성)</div>
+        <div className="card-title">{t("유튜브 썸네일 3종 (AI 생성)")}</div>
         <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", margin: "0.25rem 0 0.75rem" }}>
-          앨범 커버와 콘셉트로 썸네일 후보 3장(A/B/C)을 만듭니다.
-          유튜브 스튜디오의 「Test &amp; Compare」(썸네일 A/B 테스트)에 3장을 모두 올리면
-          유튜브가 가장 클릭률이 높은 썸네일을 자동으로 대표 노출합니다.
+          {t("앨범 커버와 콘셉트로 썸네일 후보 3장(A/B/C)을 만듭니다. 유튜브 스튜디오의 「Test & Compare」(썸네일 A/B 테스트)에 3장을 모두 올리면 유튜브가 가장 클릭률이 높은 썸네일을 자동으로 대표 노출합니다.")}
         </p>
         <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
           {(thumbFiles.length
@@ -604,7 +620,7 @@ export default function AlbumDetailPage() {
                   alt={`썸네일 ${f.variant}`}
                   onClick={() => setThumbZoom(f.variant as "A" | "B" | "C")}
                   style={{ width: "100%", display: "block", aspectRatio: "16/9", objectFit: "cover", cursor: "zoom-in" }}
-                  title="클릭하면 큰 이미지로 볼 수 있습니다"
+                  title={t("클릭하면 큰 이미지로 볼 수 있습니다")}
                 />
               ) : (
                 <div
@@ -618,7 +634,7 @@ export default function AlbumDetailPage() {
                     fontSize: "0.8rem",
                   }}
                 >
-                  미생성
+                  {t("미생성")}
                 </div>
               )}
               <div
@@ -627,20 +643,32 @@ export default function AlbumDetailPage() {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "space-between",
+                  gap: "0.4rem",
                 }}
               >
                 <strong style={{ fontSize: "0.85rem" }}>썸네일 {f.variant}</strong>
-                {f.ready && (
+                <div style={{ display: "flex", gap: "0.3rem" }}>
+                  {f.ready && (
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      disabled={thumbBusy || thumbRegenBusy !== null}
+                      onClick={() => handleThumbApply(f.variant as "A" | "B" | "C")}
+                      title={t("첫 곡의 thumbnail.jpg로 적용")}
+                    >
+                      {t("첫 곡에 적용")}
+                    </button>
+                  )}
                   <button
                     type="button"
                     className="btn btn-secondary btn-sm"
-                    disabled={thumbBusy}
-                    onClick={() => handleThumbApply(f.variant as "A" | "B" | "C")}
-                    title="첫 곡의 thumbnail.jpg로 적용"
+                    disabled={thumbBusy || thumbRegenBusy !== null}
+                    onClick={() => void handleThumbRegenerate(f.variant as "A" | "B" | "C")}
+                    title={t("이 썸네일만 AI로 다시 생성합니다")}
                   >
-                    첫 곡에 적용
+                    {thumbRegenBusy === f.variant ? t("재생성 중...") : t("재생성")}
                   </button>
-                )}
+                </div>
               </div>
             </div>
           ))}
@@ -649,25 +677,25 @@ export default function AlbumDetailPage() {
           <button
             type="button"
             className="btn btn-primary"
-            disabled={thumbBusy}
+            disabled={thumbBusy || thumbRegenBusy !== null}
             onClick={() => void handleThumbGenerate()}
           >
-            {thumbBusy ? "생성 중..." : "썸네일 3장 AI 생성"}
+            {thumbBusy ? t("생성 중...") : t("썸네일 3장 AI 생성")}
           </button>
           <button
             type="button"
             className="btn btn-secondary"
-            disabled={thumbBusy}
+            disabled={thumbBusy || thumbRegenBusy !== null}
             onClick={() => void handleThumbPreviewPrompts()}
           >
-            프롬프트만 먼저 보기
+            {t("프롬프트만 먼저 보기")}
           </button>
           <label
             className="btn btn-secondary"
             style={{ cursor: "pointer" }}
-            title="직접 만든 이미지를 앨범 썸네일로 올립니다 (첫 곡에 적용 가능)"
+            title={t("직접 만든 이미지를 앨범 썸네일로 올립니다 (첫 곡에 적용 가능)")}
           >
-            썸네일 파일 직접 올리기
+            {t("썸네일 파일 직접 올리기")}
             <input type="file" accept="image/*" onChange={handleThumbUpload} hidden />
           </label>
         </div>

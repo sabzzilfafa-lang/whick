@@ -31,6 +31,7 @@ from app.services.workflow_service import (
 
 THUMB_W, THUMB_H = 1280, 720
 VARIANT_IDS = ("A", "B", "C")
+PROMPTS_FILE = "prompts.json"  # 마지막 사용 프롬프트 저장 — 개별 재생성 시 재사용 (2026-09-10)
 
 # 이미지 생성 지원 제공업체 → (모델, 키 필드)
 IMAGE_PROVIDERS: dict[str, dict[str, str]] = {
@@ -531,20 +532,52 @@ async def generate_prompts(db: AsyncSession, album) -> list[str]:
     return _extract_json(raw)
 
 
-async def generate_thumbnails(
-    db: AsyncSession,
-    album,
-    *,
-    provider: str | None = None,
-    model: str | None = None,
-    prompts: list[str] | None = None,
-) -> dict[str, Any]:
-    """프롬프트 3개로 썸네일 3장 생성 → thumbnails/thumb-A|B|C.jpg 저장.
+def load_saved_prompts(album_dir: Path) -> list[str]:
+    """thumbnails/prompts.json에 저장된 마지막 프롬프트 3개 (없으면 빈 목록)."""
+    p = thumbnails_dir(album_dir) / PROMPTS_FILE
+    try:
+        data = json.loads(p.read_text(encoding="utf-8"))
+        arr = data.get("prompts") if isinstance(data, dict) else data
+        if isinstance(arr, list):
+            vals = [str(x).strip() for x in arr if str(x).strip()]
+            if len(vals) >= 3:
+                return vals[:3]
+    except Exception:
+        pass
+    return []
 
-    provider 미지정 시 google(gemini-2.5-flash-image) 우선, 키 없으면 openai.
+
+def _save_prompts(album_dir: Path, prompts: list[str]) -> None:
+    try:
+        tdir = thumbnails_dir(album_dir)
+        tdir.mkdir(parents=True, exist_ok=True)
+        (tdir / PROMPTS_FILE).write_text(
+            json.dumps({"prompts": prompts[:3]}, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+    except OSError:
+        pass
+
+
+def _gen_one_image(
+    prov: str, api_key: str, mdl: str, prompt: str, cover_b64: str | None
+) -> bytes:
+    """제공업체별 이미지 1장 생성 — 3종 일괄/단일 재생성 공용 (2026-09-10)."""
+    if prov == "openrouter":
+        return _gen_image_openrouter(api_key, mdl, prompt)
+    if prov == "google":
+        return _gen_image_google(api_key, mdl, prompt, cover_b64)
+    return _gen_image_openai(api_key, mdl, prompt)
+
+
+async def resolve_provider_and_model(
+    db: AsyncSession, provider: str | None = None, model: str | None = None
+) -> tuple[str, str, str]:
+    """이미지 제공업체·모델·키 확정 — 3종 일괄/단일 재생성 공용 (2026-09-10).
+
+    provider 미지정 시 설정(image_provider) > 키 보유 기준 자동.
     """
     s = await get_all_settings(db)
-    # 이미지 생성 제공업체: 요청 지정 > 설정(image_provider) > 키 보유 기준 자동 (2026-09-10)
     configured_img = (s.get("image_provider") or "").strip().lower()
     if provider:
         prov = provider
@@ -563,20 +596,117 @@ async def generate_thumbnails(
             f"{PROVIDER_INFO[prov]['name']} API 키가 없습니다. 설정 > AI 제공업체에서 입력하세요."
         )
     mdl = model or s.get("image_model") or conf["model"]
+    return prov, mdl, api_key
+
+
+async def regenerate_thumbnail(
+    db: AsyncSession,
+    album,
+    variant: str,
+    *,
+    provider: str | None = None,
+    model: str | None = None,
+    prompt: str | None = None,
+) -> dict[str, Any]:
+    """썸네일 1장만 재생성 — variant A/B/C 개별 (2026-09-10).
+
+    prompt 미지정 시 prompts.json의 마지막 프롬프트를 재사용하고,
+    그래도 없으면 AI로 프롬프트 3개를 새로 만들어 해당 변형 것을 쓴다.
+    """
+    v = (variant or "").strip().upper()
+    if v not in VARIANT_IDS:
+        raise ValueError(f"variant는 A/B/C 중 하나여야 합니다: {variant!r}")
+
+    prov, mdl, api_key = await resolve_provider_and_model(db, provider, model)
+    album_dir = await _resolve_album_dir(db, album)
+    tdir = thumbnails_dir(album_dir)
+    tdir.mkdir(parents=True, exist_ok=True)
+
+    used_prompt = (prompt or "").strip()
+    if not used_prompt:
+        saved_prompts = load_saved_prompts(album_dir)
+        if saved_prompts:
+            used_prompt = saved_prompts[VARIANT_IDS.index(v)]
+        else:
+            all_prompts = await generate_prompts(db, album)
+            _save_prompts(album_dir, all_prompts)
+            used_prompt = all_prompts[VARIANT_IDS.index(v)]
+
+    cover_b64 = await _cover_b64(album_dir)
+
+    s2 = await get_all_settings(db)
+    title_mode = (s2.get("thumbnail_title_mode") or "ai").strip().lower()
+    overlay_on = title_mode == "overlay" and (s2.get("thumbnail_overlay") or "1").strip() == "1"
+
+    raw = await _gen_one_image(prov, api_key, mdl, used_prompt, cover_b64)
+    jpg = _crop_to_thumb(raw)
+    if overlay_on:
+        ov_title = str(getattr(album, "title", "") or "").strip()
+        if ov_title:
+            ov_subtitle = str(getattr(album, "mood", "") or getattr(album, "concept", "") or "").strip()
+            ov_tracks = int(getattr(album, "track_count", 0) or 0)
+            ov_seconds = 0
+            for sg in (getattr(album, "songs", []) or []):
+                ap = str(getattr(sg, "audio_path", "") or "")
+                if ap:
+                    try:
+                        pp = Path(ap)
+                        if not pp.is_absolute():
+                            pp = album_dir / ap
+                        if pp.is_file():
+                            ov_seconds += _audio_seconds(pp)
+                    except Exception:
+                        continue
+            jpg = _overlay_text(
+                jpg,
+                title=ov_title,
+                subtitle=ov_subtitle,
+                track_count=ov_tracks,
+                total_seconds=ov_seconds,
+            )
+
+    dest = tdir / f"thumb-{v}.jpg"
+    dest.write_bytes(jpg)
+    return {
+        "ok": True,
+        "provider": prov,
+        "model": mdl,
+        "variant": v,
+        "prompt": used_prompt,
+        "dir": str(tdir),
+        "file": {"variant": v, "path": str(dest), "ready": True},
+    }
+
+
+async def generate_thumbnails(
+    db: AsyncSession,
+    album,
+    *,
+    provider: str | None = None,
+    model: str | None = None,
+    prompts: list[str] | None = None,
+) -> dict[str, Any]:
+    """프롬프트 3개로 썸네일 3장 생성 → thumbnails/thumb-A|B|C.jpg 저장.
+
+    provider 미지정 시 resolve_provider_and_model이 설정·키 보유 기준으로 확정.
+    """
+    prov, mdl, api_key = await resolve_provider_and_model(db, provider, model)
 
     album_dir = await _resolve_album_dir(db, album)
     if not prompts:
         prompts = await generate_prompts(db, album)
     if len(prompts) < 3:
         raise ValueError("프롬프트가 3개 필요합니다.")
+    _save_prompts(album_dir, prompts)  # 개별 재생성 시 재사용 (2026-09-10)
 
     cover_b64 = await _cover_b64(album_dir)
     tdir = thumbnails_dir(album_dir)
     tdir.mkdir(parents=True, exist_ok=True)
 
     # 제목 표기 방식: ai=AI 일체 렌더(오버레이 생략) / overlay=하단 바 표기 (2026-09-10)
-    title_mode = (s.get("thumbnail_title_mode") or "ai").strip().lower()
-    overlay_on = title_mode == "overlay" and (s.get("thumbnail_overlay") or "1").strip() == "1"
+    s2 = await get_all_settings(db)
+    title_mode = (s2.get("thumbnail_title_mode") or "ai").strip().lower()
+    overlay_on = title_mode == "overlay" and (s2.get("thumbnail_overlay") or "1").strip() == "1"
     ov_title = str(getattr(album, "title", "") or "").strip()
     ov_subtitle = str(getattr(album, "mood", "") or getattr(album, "concept", "") or "").strip()
     ov_tracks = int(getattr(album, "track_count", 0) or 0)
@@ -595,12 +725,7 @@ async def generate_thumbnails(
 
     saved: list[dict[str, str]] = []
     for v, prompt in zip(VARIANT_IDS, prompts):
-        if prov == "openrouter":
-            raw = await _gen_image_openrouter(api_key, mdl, prompt)
-        elif prov == "google":
-            raw = await _gen_image_google(api_key, mdl, prompt, cover_b64)
-        else:
-            raw = await _gen_image_openai(api_key, mdl, prompt)
+        raw = await _gen_one_image(prov, api_key, mdl, prompt, cover_b64)
         jpg = _crop_to_thumb(raw)
         if overlay_on and ov_title:
             jpg = _overlay_text(
