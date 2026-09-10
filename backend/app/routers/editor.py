@@ -585,8 +585,12 @@ async def generate_song_images(
     results: list[dict] = []
     errors: list[dict] = []
     for sg in songs:
-        # 재생성 다양화 — 이미지가 이미 있으면(다시 생성) variation 단계 상승 (2026-09-10)
-        variation = 1 if sg.image_path else 0
+        # 재생성 다양화 — 기존 파일명에서 시도 횟수를 읽어 +1 (2026-09-10 v0.9.46)
+        variation = 0
+        if sg.image_path:
+            stem = Path(sg.image_path).stem  # cover_01_5 or cover_01_5.v3
+            m2 = re.search(r"\.v(\d+)$", stem)
+            variation = (int(m2.group(1)) if m2 else 1) + 1
         try:
             r = await generate_song_image(
                 db, sg,

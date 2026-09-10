@@ -79,19 +79,29 @@ async def generate_song_image(
     mood = str(getattr(song, "mood", "") or "").strip()
     tags = str(getattr(song, "tags", "") or "").strip()
     system, user = _song_prompt_request(title, theme, mood, tags)
-    # 재생성 시 다른 결과 — variation 지시를 프롬프트 AI에 전달 (2026-09-10 v0.9.44)
+    # 재생성 시 다른 결과 — 컨셉 자체를 순환 교체 (2026-09-10 v0.9.46)
+    # 이미지 모델이 seed를 지원하지 않고(gemini·gpt-image 전부 미지원) temperature만으론
+    # 유사 이미지가 반복되므, 프롬프트 단계에서 장면 구성을 강제로 바꾼다.
     if int(variation or 0):
-        angles = [
-            "a different camera angle (e.g. low-angle or close-up instead of wide)",
-            "a different time of day or weather within the same scene",
-            "a different color palette and lighting mood (e.g. warmer or cooler)",
-            "a different composition and focal point in the same setting",
-            "a different artistic style (e.g. film photograph vs cinematic render)",
+        concepts = [
+            "TIME SHIFT: move the moment — e.g. dusk or night version of the scene, "
+            "or a different season/weather, keeping the place recognizable",
+            "NEW FOCAL POINT: pick a DIFFERENT subject within the scene (e.g. a person, "
+            "an object, or a detail) and build the composition around it",
+            "DIFFERENT VANTAGE: dramatically change the viewpoint — overhead, low-angle, "
+            "or extreme close-up with shallow depth of field",
+            "WEATHER & ATMOSPHERE: rain, fog, snow, or strong wind transforming the mood",
+            "STYLE CHANGE: switch to another medium — e.g. film photograph, painterly, "
+            "or cinematic teal-orange grade",
+            "INTERIOR/EXTERIOR SWAP: move to the opposite space of the same story "
+            "(inside↔outside), or a neighboring location that continues the narrative",
         ]
+        c = concepts[(int(variation) - 1) % len(concepts)]
         user += (
-            f"\n\nVARIATION: this is regeneration #{int(variation)}. IMPORTANT — produce a "
-            f"clearly DIFFERENT image from previous attempts: {angles[int(variation) % len(angles)]}. "
-            "Same scene described above, but a fresh interpretation."
+            f"\n\nREGENERATION #{int(variation)} — MANDATORY DIVERSITY. "
+            f"Follow this directive: {c}. The final image must be CLEARLY different "
+            "from the previous attempt while still depicting the song's scene. "
+            "Rewrite the prompt accordingly — do not reuse the previous wording."
         )
     if album_context:
         user += (
@@ -146,8 +156,9 @@ async def generate_song_image(
 
     upload_dir = settings.data_dir / "uploads" / str(getattr(song, "album_id", 0))
     upload_dir.mkdir(parents=True, exist_ok=True)
-    filename = f"cover_{int(getattr(song, 'track_number', 0) or 0):02d}_{getattr(song, 'id', 0)}.jpg"
-    filepath = upload_dir / filename
+    base = f"cover_{int(getattr(song, 'track_number', 0) or 0):02d}_{getattr(song, 'id', 0)}"
+    suffix = f".v{int(variation)}" if int(variation or 0) else ""
+    filepath = upload_dir / f"{base}{suffix}.jpg"
     try:
         filepath.write_bytes(jpg)
     except OSError as e:
