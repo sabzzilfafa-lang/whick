@@ -118,6 +118,23 @@ async def generate_song_image(
         f"Cinematic atmospheric scene for the song '{title}', "
         f"{mood or tags or 'music mood'}, no text"
     )
+    # 컨셉 지시를 최종 이미지 프롬프트에 직접 주입 — 프롬프트 AI가 무시해도 이미지가 달라짐
+    # (2026-09-10 v0.9.47 — 이미지 모델이 seed 미지원이라 프롬프트가 유일한 다양화 수단)
+    if int(variation or 0):
+        directives = [
+            "dusk/night time of day, artificial warm lighting",
+            "different focal subject: a person or a key object close to camera",
+            "dramatic overhead or low-angle viewpoint, shallow depth of field",
+            "rain or fog atmosphere, wet surfaces and reflections",
+            "different medium: analog film photograph look, grain, softer colors",
+            "opposite space: interior↔exterior swap of the same story",
+        ]
+        d = directives[(int(variation) - 1) % len(directives)]
+        prompt = (
+            f"{prompt.rstrip('.')} — BUT rendered as: {d}. This must look clearly "
+            f"different from the previous version (regeneration #{int(variation)}). "
+            "No text, no watermarks."
+        )
 
     # 2) 이미지 생성 — 앨범 썸네일과 동일 provider 로직
     configured_img = (s.get("image_provider") or "").strip().lower()
