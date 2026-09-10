@@ -107,7 +107,7 @@ def list_generated_thumbnails(album_dir: Path) -> list[dict[str, str]]:
     return out
 
 
-async def _ai_text(db: AsyncSession, task: str, system: str, user: str) -> str:
+async def _ai_text(db: AsyncSession, task: str, system: str, user: str, temperature: float = 0.7) -> str:
     """설정된 텍스트 제공업체로 짧은 JSON 응답 요청.
 
     썸네일은 설정 > 썸네일 생성 AI(provider_thumbnail/model_thumbnail)를 우선 사용하고
@@ -125,7 +125,7 @@ async def _ai_text(db: AsyncSession, task: str, system: str, user: str) -> str:
     client = AIClient(provider, key)
     if not model:
         model = PROVIDER_INFO.get(provider, {}).get("default_models", {}).get("thumbnail", "")
-    return await client.chat(model, system, user, temperature=0.7, json_mode=True)
+    return await client.chat(model, system, user, temperature=temperature, json_mode=True)
 
 
 def _extract_json(text: str) -> list[str]:
@@ -346,7 +346,7 @@ def _crop_to_thumb(img_bytes: bytes) -> bytes:
     return buf.getvalue()
 
 
-async def _gen_image_openrouter(api_key: str, model: str, prompt: str) -> bytes:
+async def _gen_image_openrouter(api_key: str, model: str, prompt: str, seed: int | None = None) -> bytes:
     """OpenRouter Image API — POST /api/v1/images, 응답 data[0].b64_json (2026-09-10).
 
     OpenAI 호환 게이트웨이 — openrouter_api_key 하나로 Gemini·GPT-Image 등
@@ -359,7 +359,10 @@ async def _gen_image_openrouter(api_key: str, model: str, prompt: str) -> bytes:
                 "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json",
             },
-            json={"model": model, "prompt": prompt, "aspect_ratio": "16:9"},
+            json={
+                **{"model": model, "prompt": prompt, "aspect_ratio": "16:9"},
+                **({"seed": seed} if seed is not None else {}),
+            },
         )
         resp.raise_for_status()
         data = resp.json()

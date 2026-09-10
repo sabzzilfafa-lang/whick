@@ -585,12 +585,15 @@ async def generate_song_images(
     results: list[dict] = []
     errors: list[dict] = []
     for sg in songs:
+        # 재생성 다양화 — 이미지가 이미 있으면(다시 생성) variation 단계 상승 (2026-09-10)
+        variation = 1 if sg.image_path else 0
         try:
             r = await generate_song_image(
                 db, sg,
                 album_context=context,
                 provider=body.provider if body else None,
                 model=body.model if body else None,
+                variation=variation,
             )
             results.append(r)
         except Exception as e:

@@ -79,9 +79,13 @@ async def generate_song_image(
     tags = str(getattr(song, "tags", "") or "").strip()
     system, user = _song_prompt_request(title, theme, mood, tags)
     if album_context:
-        user += "\nAlbum context (must faithfully match):\n" + album_context
+        user += (
+            "\nAlbum context (secondary — only for lighting/palette consistency, "
+            "the Scene description above stays the subject):\n" + album_context[:600]
+        )
+    temp = 0.9 if int(variation or 0) else 0.7
     try:
-        raw = await _ai_text(db, "thumbnail", system, user)
+        raw = await _ai_text(db, "thumbnail", system, user, temperature=temp)
     except Exception as e:
         raise ValueError(f"[프롬프트 생성 실패] {e}") from e
     prompts = _extract_json(raw)
@@ -109,8 +113,10 @@ async def generate_song_image(
     mdl = model or s.get("image_model") or conf["model"]
 
     try:
+        import random as _random
+        seed = _random.randint(0, 2**31 - 1)
         if prov == "openrouter":
-            raw_img = await _gen_image_openrouter(api_key, mdl, prompt)
+            raw_img = await _gen_image_openrouter(api_key, mdl, prompt, seed=seed)
         elif prov == "google":
             raw_img = await _gen_image_google(api_key, mdl, prompt, None)
         else:
