@@ -1,8 +1,27 @@
 """WHICK 서버 파이프라인과 동일한 기본 설정."""
 
+import os
 from copy import deepcopy
 
-DEFAULT_WORK_ROOT = r"D:\YouTubeMusic"
+
+def _default_work_root() -> str:
+    r"""기본 작업 루트 — D: 드라이브가 없는 PC가 대부분이므로 사용자 폴더 기준 (2026-09-10).
+
+    Windows: %USERPROFILE%\Music\SunoHelper  (예: C:\Users\user\Music\SunoHelper)
+    그 외:   ~/Music/SunoHelper
+    기존 설치에서 D:\YouTubeMusic 이 실제로 존재하면(설정 DB가 비어 있어도) 그쪽 우선.
+    """
+    legacy = r"D:\YouTubeMusic"
+    try:
+        if os.path.isdir(legacy):
+            return legacy
+    except OSError:
+        pass
+    base = os.path.join(os.path.expanduser("~"), "Music", "SunoHelper")
+    return base
+
+
+DEFAULT_WORK_ROOT = _default_work_root()
 
 WORKFLOW_STAGES = [
     {

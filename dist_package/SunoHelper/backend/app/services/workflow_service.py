@@ -41,7 +41,18 @@ def _stage_by_folder(folder_name: str) -> dict | None:
 async def get_work_root(db: AsyncSession) -> Path:
     row = await db.get(AppSetting, WORK_ROOT_KEY)
     root = row.value if row and row.value else DEFAULT_PIPELINE_CONFIG["work_root"]
-    return Path(root)
+    p = Path(root)
+    # 드라이브/상위 경로가 존재하지 않으면(예: D: 없는 PC에 D:\ 저장된 경우)
+    # 사용자 폴더 기준 안전 폴백 — 폴더 생성 500 방지 (2026-09-10)
+    anchor = p.anchor  # 'D:\\' 등 드라이브(또는 '/')
+    if anchor and not Path(anchor).exists():
+        fallback = Path(DEFAULT_PIPELINE_CONFIG["work_root"])
+        if fallback.anchor == p.anchor:
+            return p  # 기본값도 같은 없는 드라이브면 아래 최종 폴백으로
+        return fallback
+    if not anchor and not p.parent.exists():
+        return Path(DEFAULT_PIPELINE_CONFIG["work_root"])
+    return p
 
 
 async def set_work_root(db: AsyncSession, path: str) -> Path:
