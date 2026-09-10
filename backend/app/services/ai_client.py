@@ -319,7 +319,9 @@ class AIClient:
                 m["name"].lower(),
             )
         )
-        return normalized
+        # 적합(권장) 모델 전부 + 나머지 일부만 노출 — 목록 과밀 방지 (2026-09-10)
+        rec_count = sum(1 for m in normalized if m["id"] in recommended_ids)
+        return normalized[: rec_count + 10]
 
 
 # 하위 호환

@@ -52,6 +52,7 @@ async def list_image_models(db: AsyncSession) -> list[dict[str, str]]:
     prov = (s.get("image_provider") or "openrouter").strip().lower()
     if prov == "openrouter":
         key = s.get("openrouter_api_key", "")
+        models: list[dict[str, str]] = []
         if key:
             try:
                 async with httpx.AsyncClient(timeout=20.0) as client:
@@ -66,11 +67,21 @@ async def list_image_models(db: AsyncSession) -> list[dict[str, str]]:
                         for m in data
                         if m.get("id")
                     ]
-                    if models:
-                        return models
             except Exception:
-                pass
-        return list(IMAGE_MODELS_OPENROUTER_FALLBACK)
+                models = []
+        if not models:
+            models = list(IMAGE_MODELS_OPENROUTER_FALLBACK)
+        # 적합·검증된 이미지 모델을 앞쪽 정렬 — 나머지는 그 뒤에 (2026-09-10)
+        def _rank(m: dict[str, str]) -> int:
+            mid = m.get("id", "").lower()
+            for i, kw in enumerate(
+                ("gemini-2.5-flash-image", "nano-banana", "gpt-image", "seedream", "flux", "imagen")
+            ):
+                if kw in mid:
+                    return i
+            return 99
+        models.sort(key=_rank)
+        return models[:40]  # 상한 — UI 과밀 방지
     conf = IMAGE_PROVIDERS.get(prov)
     return [{"id": conf["model"], "name": conf["model"]}] if conf else []
 
