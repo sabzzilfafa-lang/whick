@@ -314,7 +314,9 @@ export default function SettingsPage() {
         temperature_analyze: settings.temperature_analyze,
         provider_thumbnail: settings.provider_thumbnail || "openrouter",
         model_thumbnail: settings.model_thumbnail || "",
-        image_provider: settings.image_provider || "google",
+        image_provider: settings.image_provider || "openrouter",
+        image_model: settings.image_model || "",
+        thumbnail_overlay: settings.thumbnail_overlay ?? "1",
       };
       for (const [field, value] of Object.entries(apiKeys)) {
         if (value.trim()) payload[field] = value.trim();

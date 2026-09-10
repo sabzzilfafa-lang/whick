@@ -14,6 +14,7 @@ PROVIDER_INFO = {
             "prompt": "google/gemini-2.5-flash-lite",
             "instruments": "google/gemini-2.5-flash-lite",
             "analyze": "deepseek/deepseek-v3.2",
+            "thumbnail": "google/gemini-2.5-flash-lite",
         },
     },
     "openai": {
@@ -25,6 +26,7 @@ PROVIDER_INFO = {
             "prompt": "gpt-5.5",
             "instruments": "gpt-5.4-mini",
             "analyze": "gpt-5.5",
+            "thumbnail": "gpt-5.5",
         },
     },
     "anthropic": {
@@ -36,6 +38,7 @@ PROVIDER_INFO = {
             "prompt": "claude-sonnet-4-20250514",
             "instruments": "claude-3-5-haiku-20241022",
             "analyze": "claude-sonnet-4-20250514",
+            "thumbnail": "claude-sonnet-4-20250514",
         },
     },
     "google": {
@@ -47,6 +50,7 @@ PROVIDER_INFO = {
             "prompt": "gemini-2.5-flash",
             "instruments": "gemini-2.5-flash",
             "analyze": "gemini-2.5-flash",
+            "thumbnail": "gemini-2.5-flash",
         },
     },
 }

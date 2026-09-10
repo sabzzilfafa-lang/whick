@@ -104,12 +104,15 @@ async def _ai_text(db: AsyncSession, task: str, system: str, user: str) -> str:
     s = await get_all_settings(db)
     if task == "thumbnail":
         provider = s.get("provider_thumbnail") or s.get("provider_prompt") or "openrouter"
-        model = s.get("model_thumbnail") or s.get("model_prompt") or ""
+        # model_thumbnail이 비면 provider 기본 썸네일 모델 사용 — 딥시크(가사) 폴백 방지 (2026-09-10)
+        model = s.get("model_thumbnail") or ""
     else:
         provider = s.get(f"provider_{task}") or "openrouter"
         model = s.get(f"model_{task}") or ""
     key = s.get(API_KEY_FIELDS.get(provider, ""), "")  # type: ignore[arg-type]
     client = AIClient(provider, key)
+    if not model:
+        model = PROVIDER_INFO.get(provider, {}).get("default_models", {}).get("thumbnail", "")
     return await client.chat(model, system, user, temperature=0.7, json_mode=True)
 
 
@@ -132,7 +135,10 @@ def _build_prompt_request(album_title: str, mood: str, concept: str) -> tuple[st
         "prompt for ONE distinct thumbnail concept (A: bold photo-composition with big "
         "readable title text, B: moody atmospheric scene, C: minimal graphic/poster "
         "style). Each prompt must specify: 16:9 landscape, music album mood, no "
-        "watermarks, no logos. Keep the album title text short and in English."
+        "watermarks, no logos. IMPORTANT: concept A must include the album title as "
+        "large, creative, stylized typography rendered INTO the image (bold display "
+        "font, artistic placement, matching the mood). Keep the album title text "
+        "short and in English."
     )
     user = (
         f"Album title: {album_title}\n"
@@ -206,9 +212,16 @@ def _overlay_text(
         f_meta = _find_font(24)
         tx, ty = 28, THUMB_H - bar_h + 10
         if title:
-            draw.text((tx, ty), title[:40], font=f_title, fill=(255, 255, 255, 235))
+            # 그림자 + 아웃라인 — AI 이미지 위에서도 글자가 또렷하게 읽힘
+            draw.text((tx + 2, ty + 3), title[:40], font=f_title, fill=(0, 0, 0, 160))
+            draw.text(
+                (tx, ty), title[:40], font=f_title,
+                fill=(255, 255, 255, 240),
+                stroke_width=2, stroke_fill=(0, 0, 0, 200),
+            )
         if subtitle:
-            draw.text((tx, ty + 50), subtitle[:60], font=f_meta, fill=(210, 210, 210, 220))
+            draw.text((tx + 1, ty + 51), subtitle[:60], font=f_meta, fill=(0, 0, 0, 140))
+            draw.text((tx, ty + 50), subtitle[:60], font=f_meta, fill=(215, 215, 215, 225))
         meta_parts = []
         if track_count:
             meta_parts.append(f"{track_count} tracks")
