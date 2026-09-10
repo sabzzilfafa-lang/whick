@@ -278,11 +278,13 @@ class AIClient:
             raise ValueError(f"{self.name} 연결 실패: {detail}") from e
 
     async def list_models(self) -> list[dict]:
-        if self.provider == "openrouter" and self.api_key:
+        if self.provider == "openrouter":
+            # 모델 카탈로그는 공개 엔드포인트 — 키 없이도 전체 조회 (2026-09-10)
+            headers = {"Authorization": f"Bearer {self.api_key}"} if self.api_key else {}
             async with httpx.AsyncClient(timeout=30.0) as client:
                 response = await client.get(
                     "https://openrouter.ai/api/v1/models",
-                    headers={"Authorization": f"Bearer {self.api_key}"},
+                    headers=headers,
                 )
                 response.raise_for_status()
                 return response.json().get("data", [])
@@ -325,11 +327,8 @@ class AIClient:
             return 1 if any(k in mid for k in known_series) else 2
 
         normalized.sort(key=lambda m: (_rank(m), m["name"].lower()))
-        tail = sum(1 for m in normalized if _rank(m) == 2)
-        if tail > 20:
-            keep = [m for m in normalized if _rank(m) < 2]
-            rest = [m for m in normalized if _rank(m) == 2][:20]
-            normalized = keep + rest
+        # 전체 노출 — 가능한 AI는 모두 표시 (2026-09-10 v0.9.32)
+        return normalized
 
 
 # 하위 호환

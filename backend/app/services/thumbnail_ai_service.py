@@ -53,22 +53,23 @@ async def list_image_models(db: AsyncSession) -> list[dict[str, str]]:
     if prov == "openrouter":
         key = s.get("openrouter_api_key", "")
         models: list[dict[str, str]] = []
-        if key:
-            try:
-                async with httpx.AsyncClient(timeout=20.0) as client:
-                    r = await client.get(
-                        "https://openrouter.ai/api/v1/images/models",
-                        headers={"Authorization": f"Bearer {key}"},
-                    )
-                    r.raise_for_status()
-                    data = r.json().get("data") or []
-                    models = [
-                        {"id": m.get("id", ""), "name": m.get("name") or m.get("id", "")}
-                        for m in data
-                        if m.get("id")
-                    ]
-            except Exception:
-                models = []
+        try:
+            # 이미지 모델 카탈로그도 공개 엔드포인트 — 키 없이 전체 조회 (2026-09-10)
+            headers = {"Authorization": f"Bearer {key}"} if key else {}
+            async with httpx.AsyncClient(timeout=20.0) as client:
+                r = await client.get(
+                    "https://openrouter.ai/api/v1/images/models",
+                    headers=headers,
+                )
+                r.raise_for_status()
+                data = r.json().get("data") or []
+                models = [
+                    {"id": m.get("id", ""), "name": m.get("name") or m.get("id", "")}
+                    for m in data
+                    if m.get("id")
+                ]
+        except Exception:
+            models = []
         if not models:
             models = list(IMAGE_MODELS_OPENROUTER_FALLBACK)
         # 적합·검증된 이미지 모델을 앞쪽 정렬 — 나머지는 그 뒤에 (2026-09-10)
@@ -81,7 +82,7 @@ async def list_image_models(db: AsyncSession) -> list[dict[str, str]]:
                     return i
             return 99
         models.sort(key=_rank)
-        return models[:40]  # 상한 — UI 과밀 방지
+        return models  # 이미지 생성 지원 모델 전체 노출 (2026-09-10)
     conf = IMAGE_PROVIDERS.get(prov)
     return [{"id": conf["model"], "name": conf["model"]}] if conf else []
 
