@@ -11,6 +11,7 @@ from typing import Any, Optional
 from fastapi import APIRouter, Body, Depends, File, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
+from sqlalchemy import select, selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
@@ -471,7 +472,14 @@ async def _album_dir(db: AsyncSession, album_id: int) -> tuple[Any, Path]:
     from app.services.thumbnail_ai_service import thumbnails_dir
     from app.services.workflow_service import ensure_album_work_folder
 
-    album = await db.get(Album, album_id)
+    # songs·music_profile을 미리 로드 — 썸네일 프롬프트가 곡 데이터를 참조하므로
+    # 지연로딩이 비동기 컨텍스트 밖에서 실행되는 greenlet 오류 방지 (2026-09-10)
+    result = await db.execute(
+        select(Album)
+        .options(selectinload(Album.songs), selectinload(Album.music_profile))
+        .where(Album.id == album_id)
+    )
+    album = result.scalar_one_or_none()
     if not album:
         raise HTTPException(404, "앨범을 찾을 수 없습니다")
     root = await get_work_root(db)
@@ -613,7 +621,7 @@ async def apply_album_thumbnail(
         raise HTTPException(404, "아직 생성되지 않았습니다")
 
     if not project_path:
-        from sqlalchemy import select
+        from sqlalchemy import select, selectinload
         from sqlalchemy.orm import selectinload
 
         # db.get()으로 로드한 Album.songs는 lazy라 async에서 MissingGreenlet 발생 —
