@@ -29,21 +29,27 @@ logger = logging.getLogger(__name__)
 
 
 def _song_prompt_request(title: str, theme: str, mood: str, tags: str) -> tuple[str, str]:
-    """곡 1개의 배경 이미지 프롬프트 생성 요청 (재생 화면 배경용 — 글자 없음)."""
+    """곡 1개의 배경 이미지 프롬프트 생성 요청 (재생 화면 배경용 — 글자 없음).
+
+    기준은 곡 제목 + 트랙별 분위기(theme, 예: "차가운 늦가을 아침, 문을 연 카페에
+    첫 햇살과 갓 내린 커피 향이 천천히 번지는 순간") — 이 장면을 그대로 그린다 (2026-09-10).
+    """
     system = (
         "You are a music visualizer / streaming-background art director. "
         "Reply with ONLY a JSON array with EXACTLY 1 string — one image-generation "
         "prompt for a single song's PLAYING BACKGROUND image (16:9 landscape). "
-        "The prompt must faithfully express the song title's meaning, theme and mood: "
-        "name the exact scene & setting, lighting, color palette, era, and camera "
-        "feel derived from the title/theme. Keep it CONCISE: 2-3 sentences, under 120 "
-        "words total — the response must not be truncated. "
+        "PRIMARY SOURCE: the song title and its SCENE DESCRIPTION (Theme) — the image "
+        "must literally depict that described moment (place, time, action, sensory "
+        "details). Translate the scene faithfully; do NOT invent unrelated imagery. "
+        "Mood/genre tags only refine lighting and palette. "
+        "Keep it CONCISE: 2-3 sentences, under 120 words total — the response must "
+        "not be truncated. "
         "ABSOLUTELY NO text, letters, words, captions, watermarks or logos in the "
         "image (it plays behind other UI). Do not draw any typography."
     )
     user = (
         f"Song title: {title}\n"
-        f"Theme/plot: {theme or 'unspecified'}\n"
+        f"Scene description (depict THIS): {theme or 'unspecified'}\n"
         f"Mood: {mood or 'unspecified'}\n"
         f"Tags/genre: {tags or 'unspecified'}\n"
         'Return: ["prompt"]'
@@ -73,7 +79,10 @@ async def generate_song_image(
     tags = str(getattr(song, "tags", "") or "").strip()
     system, user = _song_prompt_request(title, theme, mood, tags)
     if album_context:
-        user += "\nAlbum context (must faithfully match):\n" + album_context
+        user += (
+            "\nAlbum context (secondary — only for lighting/palette consistency, "
+            "the Scene description above stays the subject):\n" + album_context[:600]
+        )
     try:
         raw = await _ai_text(db, "thumbnail", system, user)
     except Exception as e:
