@@ -629,6 +629,10 @@ async def regenerate_thumbnail(
             used_prompt = saved_prompts[VARIANT_IDS.index(v)]
         else:
             all_prompts = await generate_prompts(db, album)
+            if len(all_prompts) < 3:
+                raise ValueError(
+                    "AI가 프롬프트 3개를 반환하지 않았습니다. 다시 시도하거나 썸네일 AI 모델을 바꿔 보세요."
+                )
             _save_prompts(album_dir, all_prompts)
             used_prompt = all_prompts[VARIANT_IDS.index(v)]
 
