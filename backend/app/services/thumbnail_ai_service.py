@@ -200,11 +200,15 @@ def _build_prompt_request(album_title: str, mood: str, concept: str, title_mode:
             "Reply with ONLY a JSON array of exactly 3 strings — each an image-generation "
             "prompt for ONE distinct background concept (A: photo-composition with clear "
             "empty sky or open space in the upper area, B: moody atmospheric scene with "
-            "negative space on one side, C: minimal graphic/poster with large clean "
-            "empty center). The text will be composited later, so ABSOLUTELY NO text, "
+            "negative space on one side, C: cinematic hero shot — ONE bold subject "
+            "object matching the album mood, dramatic rim/spot lighting, rich layered "
+            "background, high-contrast saturated palette in the BOGY range (blue/orange/"
+            "green/yellow), subject placed off-center with clean space in the lower area "
+            "for the title). The text will be composited later, so ABSOLUTELY NO text, "
             "letters, words, captions or typography in the image. Each prompt must "
-            "specify: 16:9 landscape, music album mood, leave clean space where a big "
-            "title would go, no watermarks, no logos."
+            "specify: 16:9 landscape, music album mood, a single clear focal point, "
+            "bright saturated colors that pop against YouTube's dark UI, leave clean "
+            "space where a big title would go, no watermarks, no logos."
         )
     else:
         system = (
@@ -217,8 +221,11 @@ def _build_prompt_request(album_title: str, mood: str, concept: str, title_mode:
             "photographic depth of field around the text.\n"
             "B: title as a huge semi-transparent glass/neon/signage element integrated "
             "into a real scene, characters interacting with the letters.\n"
-            "C: minimal poster — one huge elegant word on a bold color field or gradient, "
-            "swiss-style, with a small scene element.\n"
+            "C: cinematic hero-scene poster — a dramatic photo scene built around the "
+            "album mood with the title as a huge bold display word overlaid on the "
+            "action; high-contrast BOGY color palette (blue/orange/green/yellow), one "
+            "clear focal object, rich lighting and depth (NOT a flat minimal color "
+            "field).\n"
             "Each prompt must: specify 16:9 landscape; state the EXACT title text to "
             "render in quotes; describe font style (display serif / rounded sans / "
             "script), letter color & material (e.g. white with soft shadow, orange "
@@ -610,8 +617,8 @@ async def regenerate_thumbnail(
 ) -> dict[str, Any]:
     """썸네일 1장만 재생성 — variant A/B/C 개별 (2026-09-10).
 
-    prompt 미지정 시 prompts.json의 마지막 프롬프트를 재사용하고,
-    그래도 없으면 AI로 프롬프트 3개를 새로 만들어 해당 변형 것을 쓴다.
+    prompt 미지정 시 저장 프롬프트 재사용 없이 AI로 프롬프트 3개를 새로 만들어
+    해당 변형 것을 쓴다 (v0.9.63 — 누를 때마다 새 디자인 시도).
     """
     v = (variant or "").strip().upper()
     if v not in VARIANT_IDS:
@@ -624,17 +631,15 @@ async def regenerate_thumbnail(
 
     used_prompt = (prompt or "").strip()
     if not used_prompt:
-        saved_prompts = load_saved_prompts(album_dir)
-        if saved_prompts:
-            used_prompt = saved_prompts[VARIANT_IDS.index(v)]
-        else:
-            all_prompts = await generate_prompts(db, album)
-            if len(all_prompts) < 3:
-                raise ValueError(
-                    "AI가 프롬프트 3개를 반환하지 않았습니다. 다시 시도하거나 썸네일 AI 모델을 바꿔 보세요."
-                )
-            _save_prompts(album_dir, all_prompts)
-            used_prompt = all_prompts[VARIANT_IDS.index(v)]
+        # v0.9.63 — 재생성 시 저장 프롬프트 재사용 금지: 누를 때마다 새 프롬프트를
+        # 생성해 다른 디자인을 시도한다 (같은 프롬프트 재사용 → 비슷비슷한 결과 문제).
+        all_prompts = await generate_prompts(db, album)
+        if len(all_prompts) < 3:
+            raise ValueError(
+                "AI가 프롬프트 3개를 반환하지 않았습니다. 다시 시도하거나 썸네일 AI 모델을 바꿔 보세요."
+            )
+        _save_prompts(album_dir, all_prompts)
+        used_prompt = all_prompts[VARIANT_IDS.index(v)]
 
     cover_b64 = await _cover_b64(album_dir)
 
