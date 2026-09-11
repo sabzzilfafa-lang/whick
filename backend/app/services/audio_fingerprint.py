@@ -5,6 +5,8 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
+from app.services.winproc import creation_flags as _creation_flags
+
 
 def probe_metadata_blob(media_path: Path) -> str:
     r = subprocess.run(
@@ -13,6 +15,7 @@ def probe_metadata_blob(media_path: Path) -> str:
         text=True,
         encoding="utf-8", errors="replace",
         timeout=120,
+        creationflags=_creation_flags(),
     )
     return ((r.stdout or "") + (r.stderr or "")).lower()
 

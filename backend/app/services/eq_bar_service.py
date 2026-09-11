@@ -6,6 +6,8 @@ import re
 import subprocess
 from pathlib import Path
 
+from app.services.winproc import creation_flags as _creation_flags
+
 EQ_STYLES = ("bars", "thin", "thick", "spaced", "line", "mirror", "dots")
 
 STYLE_BARS = {
@@ -198,6 +200,7 @@ def make_eq_video(
             timeout=600,
             encoding="utf-8",
             errors="replace",
+            creationflags=_creation_flags(),
         )
         if r.returncode != 0 or not pcm.exists():
             return False
@@ -259,6 +262,7 @@ def make_eq_video(
             stdin=subprocess.PIPE,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
+            creationflags=_creation_flags(),
         )
         assert proc.stdin is not None
         for fi in range(len(smooth)):

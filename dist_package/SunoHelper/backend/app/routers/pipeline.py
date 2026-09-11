@@ -281,6 +281,7 @@ async def _require_license_gate() -> None:
 
     1) 보관된 API키를 CC verify-key로 재검증 (성공 시 사용량 기록도 함께 됨)
     2) 레거시 라이선스(valid/grace)는 전환 기간 호환 허용
+    v0.9.64: 키 없음(미활성화) vs 네트워크 실패를 구분해 정확한 안내 제공
     """
     from app.services import license_service
 
@@ -290,9 +291,14 @@ async def _require_license_gate() -> None:
     st = license_service.license_status()
     if st.get('state') in ('valid', 'grace'):
         return
+    saved_key = bool((license_service._load_saved().get('api_key') or '').strip())
+    if saved_key and license_service.last_verify_error():
+        # 키는 있는데 검증 실패 — 네트워크/서버 사유를 그대로 안내
+        raise HTTPException(403, license_service.last_verify_error())
     raise HTTPException(
         403,
-        'API 키가 필요합니다 — whick.org 내 계정에서 API 키를 발급한 뒤 설정에서 등록하세요',
+        'API 키가 필요합니다 — 앱 설정에서 whick_ API 키를 활성화하세요 '
+        '(whick.org 내 계정 → API 키 발급 후, 앱 설정 화면에 입력)',
     )
 
 

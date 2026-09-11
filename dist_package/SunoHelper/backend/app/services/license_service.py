@@ -49,6 +49,7 @@ XQIDAQAB
 # machine_id
 # ---------------------------------------------------------------------------
 _machine_id_cache: str | None = None
+_last_verify_error: str = ""
 
 
 def machine_id() -> str:
@@ -62,6 +63,7 @@ def machine_id() -> str:
             r = subprocess.run(
                 ["reg", "query", r"HKLM\SOFTWARE\Microsoft\Cryptography", "/v", "MachineGuid"],
                 capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=10,
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
             )
             for line in (r.stdout or "").splitlines():
                 if "MachineGuid" in line:
@@ -286,14 +288,23 @@ async def verify_api_key_remote() -> dict[str, Any] | None:
     key = (saved.get('api_key') or '').strip()
     if not key:
         return None
+    global _last_verify_error
+    _last_verify_error = ""
     try:
         async with httpx.AsyncClient(timeout=15.0) as client:
             r = await client.post(VERIFY_KEY_URL, json={'api_key': key, 'product': 'suno'})
         if r.status_code == 200:
             return (r.json().get('data') or {})
-    except Exception:
-        pass
+        _last_verify_error = f"서버 거부({r.status_code}) — 키가 만료·해지되었을 수 있습니다"
+    except Exception as e:
+        # 네트워크 실패를 "키 없음"과 구분해 기록 — 403 안내 문구에서 사용 (v0.9.64)
+        _last_verify_error = f"whick.org 연결 실패({type(e).__name__}) — 인터넷 연결 확인 후 다시 시도하세요"
     return None
+
+
+def last_verify_error() -> str:
+    """직전 verify_api_key_remote 실패 사유 (키 없음은 빈 문자열)."""
+    return _last_verify_error
 
 
 def license_allows_new_jobs_with_key() -> tuple[bool, str]:

@@ -482,7 +482,9 @@ def merge_editor_into_pipeline(project_dir: Path, global_config: dict) -> dict:
 
 
 def _run_ffmpeg(cmd: list[str]) -> None:
-    r = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=3600)
+    from app.services.winproc import creation_flags
+
+    r = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=3600, creationflags=creation_flags())
     if r.returncode != 0:
         err = (r.stderr or r.stdout or "")
         lines = []
@@ -508,6 +510,8 @@ def preview_remaster_audio(
     *,
     duration_sec: float = 30.0,
 ) -> Path:
+    from app.services.winproc import creation_flags
+
     chain = build_remaster_chain(remaster)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     cmd = [
@@ -1235,7 +1239,7 @@ def _encode_preview_clip(
                 "-movflags", "+faststart",
                 str(out_path),
             ]
-        r = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=180)
+        r = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=180, creationflags=creation_flags())
         if r.returncode != 0:
             err = (r.stderr or r.stdout or "")[-2000:]
             raise RuntimeError(f"미리보기 인코딩 실패: {err}")

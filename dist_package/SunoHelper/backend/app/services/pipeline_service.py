@@ -8,6 +8,8 @@ import subprocess
 import tempfile
 from pathlib import Path
 
+from app.services.winproc import creation_flags as _creation_flags
+
 from app.services.pipeline_defaults import get_default_config
 from app.services.watermark_service import (
     prepare_watermark_png,
@@ -122,6 +124,7 @@ def find_ffmpeg() -> str | None:
             text=True,
             encoding="utf-8", errors="replace",
             timeout=10,
+            creationflags=_creation_flags(),
         )
         if r.returncode == 0:
             return "ffmpeg"
@@ -152,6 +155,7 @@ def _encoder_actually_works(encoder: str) -> bool:
                 text=True,
                 encoding="utf-8", errors="replace",
                 timeout=60,
+                creationflags=_creation_flags(),
             )
             return r.returncode == 0 and out.exists() and out.stat().st_size > 0
         except (subprocess.TimeoutExpired, OSError):
@@ -170,6 +174,7 @@ def detect_video_encoder(preferred: str = "auto") -> str:
         text=True,
         encoding="utf-8", errors="replace",
         timeout=15,
+        creationflags=_creation_flags(),
     )
     encoders = r.stdout or ""
     # 우선순위: NVIDIA NVENC → AMD AMF → Intel QSV → Intel MF → CPU libx264
@@ -196,6 +201,7 @@ def probe_duration(audio_path: Path) -> float:
         text=True,
         encoding="utf-8", errors="replace",
         timeout=30,
+        creationflags=_creation_flags(),
     )
     if r.returncode != 0:
         return 180.0
@@ -652,7 +658,7 @@ def run_full_pipeline(
 
 
 def _run(cmd: list[str]) -> None:
-    r = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=3600)
+    r = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=3600, creationflags=_creation_flags())
     if r.returncode != 0:
         err = (r.stderr or r.stdout or "")
         # swscaler 경고, 폰트 선택, Using font provider 등 잡음 제거 — 진짜 에러만
