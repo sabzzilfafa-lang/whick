@@ -45,6 +45,7 @@ from app.services.openrouter import (
     generate_instruments,
     generate_album_lyrics_batch,
     generate_lyrics,
+    generate_lyrics_en_with_title,
     generate_lyrics_ko_with_title,
     repair_merged_album_lyrics,
     _lyrics_looks_corrupted,
@@ -506,7 +507,9 @@ async def api_generate_lyrics(
                     # 채워 편집 대상이 되게 한다 (한글 원제목은 song.title에 보존).
                     song.title_en = (song.title or "")[:200]
             else:
-                content = await generate_lyrics(
+                # v0.9.62 — 영어 신규 생성도 제목+가사를 JSON으로 같이 생성
+                # (기존 generate_lyrics는 "가사만 출력"이라 Track 1 임시 제목이 남았음)
+                en_title, content = await generate_lyrics_en_with_title(
                     client,
                     _model_to_dict(profile),
                     _model_to_dict(album),
@@ -515,8 +518,10 @@ async def api_generate_lyrics(
                     req.additional_instructions,
                     model,
                     temp,
-                    language="en",
                 )
+                if en_title:
+                    generated_title = en_title
+                    song.title_en = en_title[:200]
         else:
             generated_title, content = await generate_lyrics_ko_with_title(
                 client,
@@ -547,6 +552,11 @@ async def api_generate_lyrics(
         )
     )
     await db.flush()
+
+    # 사용량 리포트 — fire-and-forget (2026-09-11, 서비스 무영향)
+    from app.services.usage_report_service import report_usage
+
+    report_usage("lyrics", 1)
 
     return GenerationResponse(
         content=content,
@@ -612,6 +622,11 @@ async def api_generate_prompt(
         )
     )
     await db.flush()
+
+    # 사용량 리포트 — fire-and-forget (2026-09-11, 서비스 무영향)
+    from app.services.usage_report_service import report_usage
+
+    report_usage("prompt", 1)
 
     return GenerationResponse(
         content=content,
@@ -1016,6 +1031,11 @@ async def generate_album_lyrics(
         updated += 1
 
     await db.flush()
+    # 사용량 리포트 — 앨범 가사 배치 생성 (트랙 수 기준, 2026-09-11)
+    from app.services.usage_report_service import report_usage
+
+    report_usage("lyrics", max(1, updated))
+
     return {
         "updated": updated,
         "total": len(album.songs),

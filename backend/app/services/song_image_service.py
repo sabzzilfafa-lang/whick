@@ -184,6 +184,11 @@ async def generate_song_image(
     song.image_path = str(filepath)
     await db.flush()
 
+    # 사용량 리포트 — 트랙 배경 이미지 1장 (2026-09-11)
+    from app.services.usage_report_service import report_usage
+
+    report_usage("track_thumbnail", 1)
+
     return {
         "song_id": song.id,
         "track": int(getattr(song, "track_number", 0) or 0),

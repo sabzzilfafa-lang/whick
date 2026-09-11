@@ -164,6 +164,22 @@ LYRICS_SYSTEM = """당신은 전문 작사가입니다. Suno AI 음악 생성에
 - 한국어 또는 요청된 언어로 작성
 - 가사만 출력 (설명 없이)"""
 
+LYRICS_EN_JSON_SYSTEM = """당신은 전문 작사가입니다. Suno AI용 영어 곡 제목과 가사를 작성합니다.
+
+규칙:
+- 곡 테마·앨범 컨셉·트랙 테마에 맞는 감성적인 **영어** 곡 제목 1개 (Track 1 같은 임시 이름 금지)
+- 앨범에서 배분된 **곡당 목표 시간**에 맞는 가사 **줄 수·섹션 수**를 반드시 채울 것
+- 줄 수는 지정된 최소~최대 범위 안에서 — **최대 줄 수 초과 금지** (앨범 총 러닝타임 초과 원인)
+- 짧은 2분 30초 팝 한 세트(Verse+Chorus 1~2회) 금지
+- 가사는 [Verse], [Chorus], [Bridge], [Outro] 등 섹션 태그 사용
+- 영어권 차트곡처럼 자연스럽게 (직역체·문어체 금지)
+- 제목을 가사 본문에 넣지 말 것
+- 출력은 아래 JSON만 (마크다운 없음):
+
+{"title": "English song title", "lyrics": "full English lyrics"}
+
+Suno 길이: 프롬프트 시간이 아니라 가사 줄 수가 곡 길이를 결정함. 목표 줄 수 미달 시 실패."""
+
 LYRICS_SYSTEM_KO = LYRICS_SYSTEM + LYRICS_KO_NATURAL
 
 LYRICS_KO_JSON_SYSTEM = """당신은 전문 작사가입니다. Suno AI용 한국어 곡 제목과 가사를 작성합니다.
@@ -720,6 +736,86 @@ def _lyrics_stats_simple(lyrics: str) -> int:
     from app.services.suno_prompt_service import _lyrics_stats
 
     return _lyrics_stats(lyrics)["lines"]
+
+
+async def generate_lyrics_en_with_title(
+    client: AIClient,
+    profile: Optional[dict],
+    album: dict,
+    song: dict,
+    reference_song: Optional[dict] = None,
+    additional: Optional[str] = None,
+    model: Optional[str] = None,
+    temperature: float = 0.8,
+) -> tuple[Optional[str], str]:
+    """영어 가사 + 곡 제목 JSON 생성. 실패 시 가사만 반환 (v0.9.62 — Track 1 잔류 버그 수정)."""
+    from app.services.suno_prompt_service import (
+        build_lyrics_duration_prompt_block,
+        lyrics_meets_target,
+    )
+
+    context = _build_music_context(profile, album, song, reference_song)
+    duration_ctx = build_lyrics_duration_prompt_block(album, profile)
+    base_prompt = (
+        f"{context}{duration_ctx}\n\n"
+        "Based on the above, write an English song title and English lyrics for this track as JSON."
+    )
+    if additional:
+        base_prompt += f"\n\n추가 지시: {additional}"
+
+    max_tokens = _lyrics_max_tokens_for_album(album, profile)
+    title, lyrics = await _generate_ko_lyrics_json_once(
+        client,
+        LYRICS_EN_JSON_SYSTEM,
+        base_prompt,
+        model,
+        temperature,
+        max_tokens,
+    )
+    if lyrics and not lyrics_meets_target(lyrics, album, profile):
+        retry_prompt = base_prompt + _lyrics_retry_suffix(lyrics, album, profile)
+        r_title, r_lyrics = await _generate_ko_lyrics_json_once(
+            client,
+            LYRICS_EN_JSON_SYSTEM,
+            retry_prompt,
+            model,
+            min(0.95, temperature + 0.05),
+            max_tokens,
+        )
+        if r_lyrics:
+            from app.services.suno_prompt_service import compute_track_lyrics_target
+
+            t = compute_track_lyrics_target(album, profile)
+            if t:
+                mid = int(t["target_lines_mid"])
+                lo, hi = int(t["target_lines_min"]), int(t["target_lines_max"])
+
+                def _score(n: int) -> tuple[int, int]:
+                    return (0 if lo <= n <= hi else 1, abs(n - mid))
+
+                old_n = _lyrics_stats_simple(lyrics)
+                new_n = _lyrics_stats_simple(r_lyrics)
+                if _score(new_n) <= _score(old_n):
+                    title, lyrics = r_title or title, r_lyrics
+            elif _lyrics_stats_simple(r_lyrics) >= _lyrics_stats_simple(lyrics):
+                title, lyrics = r_title or title, r_lyrics
+
+    if lyrics and title:
+        return title, lyrics
+    if lyrics:
+        return None, lyrics
+    fallback = await generate_lyrics(
+        client,
+        profile,
+        album,
+        song,
+        reference_song,
+        additional,
+        model,
+        temperature,
+        language="en",
+    )
+    return None, fallback
 
 
 async def _generate_album_lyrics_chunk(

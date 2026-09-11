@@ -743,6 +743,11 @@ async def generate_thumbnails(
         dest.write_bytes(jpg)
         saved.append({"variant": v, "path": str(dest), "ready": True})
 
+    # 사용량 리포트 — 앨범 썸네일 생성 (variant 수 기준, 2026-09-11)
+    from app.services.usage_report_service import report_usage
+
+    report_usage("album_thumbnail", max(1, len(saved)))
+
     return {
         "ok": True,
         "provider": prov,
